@@ -21,6 +21,8 @@ jobs:
           if [ -f "PILARK-assets-pack.zip" ]; then
             unzip -oq "PILARK-assets-pack.zip" -d .
           fi
+      - name: Apply ONLY the benefit-grid fix
+        run: cat benefit-fix.css >> styles.css
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload website
