@@ -16,19 +16,24 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-      - name: Restore the original website from ZIP
+      - name: Extract website assets from ZIP
+        shell: bash
         run: |
-          if [ -f "PILARK-assets-pack.zip" ]; then
-            unzip -oq "PILARK-assets-pack.zip" -d .
-          fi
-          mkdir -p assets/profile assets/catalog
-          if [ -d "profile" ]; then
-            cp -R profile/. assets/profile/
-          fi
-          if [ -d "catalog" ]; then
-            cp -R catalog/. assets/catalog/
-          fi
-          find . -type f \( -name 'PILAR Catalog 2026-web.pdf' -o -name 'PILAR Company Profile 2026.pdf' \) -not -path './assets/*' -exec cp -f {} assets/ \;
+          set -e
+          ZIP=$(find . -type f -name 'PILARK-assets-pack.zip' -print -quit)
+          test -n "$ZIP"
+          rm -rf /tmp/pilark-pack
+          mkdir -p /tmp/pilark-pack assets/profile assets/catalog
+          unzip -oq "$ZIP" -d /tmp/pilark-pack
+          PROFILE=$(find /tmp/pilark-pack -type d -name profile -print -quit || true)
+          CATALOG=$(find /tmp/pilark-pack -type d -name catalog -print -quit || true)
+          test -n "$PROFILE"
+          test -n "$CATALOG"
+          cp -R "$PROFILE"/. assets/profile/
+          cp -R "$CATALOG"/. assets/catalog/
+          find /tmp/pilark-pack -type f \( -name 'PILAR Catalog 2026-web.pdf' -o -name 'PILAR Company Profile 2026.pdf' \) -exec cp -f {} assets/ \;
+          echo "Profile images: $(find assets/profile -type f | wc -l)"
+          echo "Catalog images: $(find assets/catalog -type f | wc -l)"
       - name: Verify required assets
         run: |
           test -f assets/profile/page01.jpg
