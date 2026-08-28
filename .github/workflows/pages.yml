@@ -21,6 +21,26 @@ jobs:
           if [ -f "PILARK-assets-pack.zip" ]; then
             unzip -oq "PILARK-assets-pack.zip" -d .
           fi
+          mkdir -p assets
+          PROFILE_DIR=$(find . -type d -path '*/assets/profile' -print -quit || true)
+          CATALOG_DIR=$(find . -type d -path '*/assets/catalog' -print -quit || true)
+          if [ -n "$PROFILE_DIR" ] && [ "$PROFILE_DIR" != "./assets/profile" ]; then
+            rm -rf assets/profile
+            mkdir -p assets
+            cp -R "$PROFILE_DIR" assets/profile
+          fi
+          if [ -n "$CATALOG_DIR" ] && [ "$CATALOG_DIR" != "./assets/catalog" ]; then
+            rm -rf assets/catalog
+            mkdir -p assets
+            cp -R "$CATALOG_DIR" assets/catalog
+          fi
+          find . -type f \( -name 'PILAR Catalog 2026-web.pdf' -o -name 'PILAR Company Profile 2026.pdf' \) -not -path './assets/*' -exec cp -f {} assets/ \;
+      - name: Verify required assets
+        run: |
+          test -f assets/profile/page01.jpg
+          test -f assets/profile/page04.jpg
+          test -f assets/catalog/page14.jpg
+          test -f assets/catalog/page49.jpg
       - name: Apply ONLY the benefit-grid fix
         run: cat benefit-fix.css >> styles.css
       - name: Setup Pages
