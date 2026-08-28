@@ -35,7 +35,7 @@ function observeReveals(){if(!window.IntersectionObserver){document.querySelecto
 document.addEventListener('DOMContentLoaded',()=>{renderFilters();renderProducts();renderCatalog();observeReveals();$('closeModal')?.addEventListener('click',closeModal);$('productModal')?.addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal()});$('lightClose')?.addEventListener('click',closeLight);$('lightPrev')?.addEventListener('click',()=>galleryMove(-1));$('lightNext')?.addEventListener('click',()=>galleryMove(1));$('lightbox')?.addEventListener('click',e=>{if(e.target===e.currentTarget)closeLight()});const menu=$('mobileMenu'),btn=$('menuBtn');btn?.addEventListener('click',()=>menu?.classList.toggle('open'));menu?.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>menu.classList.remove('open')));document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeLight()}})});
 
 document.addEventListener('DOMContentLoaded',()=>{
-  const footerLogo=document.querySelector('footer .logo');
-  if(footerLogo){footerLogo.innerHTML='<img src="assets/pilark-logo-footer.svg" alt="PILARK Composites" style="height:58px;width:150px;object-fit:contain;object-position:left center">';}
+  const footerLogo= document.querySelector('footer .logo');
+  if(footerLogo){footerLogo.innerHTML='<img src="assets/pilark-logo-footer.svg?v=20260828" alt="PILARK Composites" style="height:58px;width:150px;object-fit:contain;object-position:left center">';}
   document.querySelectorAll('a[href^="mailto:"]').forEach(a=>{a.href='mailto:support@pilarkomposit.com';a.textContent='support@pilarkomposit.com';});
 });
