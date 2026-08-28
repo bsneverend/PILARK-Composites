@@ -21,18 +21,12 @@ jobs:
           if [ -f "PILARK-assets-pack.zip" ]; then
             unzip -oq "PILARK-assets-pack.zip" -d .
           fi
-          mkdir -p assets
-          PROFILE_DIR=$(find . -type d -path '*/assets/profile' -print -quit || true)
-          CATALOG_DIR=$(find . -type d -path '*/assets/catalog' -print -quit || true)
-          if [ -n "$PROFILE_DIR" ] && [ "$PROFILE_DIR" != "./assets/profile" ]; then
-            rm -rf assets/profile
-            mkdir -p assets
-            cp -R "$PROFILE_DIR" assets/profile
+          mkdir -p assets/profile assets/catalog
+          if [ -d "profile" ]; then
+            cp -R profile/. assets/profile/
           fi
-          if [ -n "$CATALOG_DIR" ] && [ "$CATALOG_DIR" != "./assets/catalog" ]; then
-            rm -rf assets/catalog
-            mkdir -p assets
-            cp -R "$CATALOG_DIR" assets/catalog
+          if [ -d "catalog" ]; then
+            cp -R catalog/. assets/catalog/
           fi
           find . -type f \( -name 'PILAR Catalog 2026-web.pdf' -o -name 'PILAR Company Profile 2026.pdf' \) -not -path './assets/*' -exec cp -f {} assets/ \;
       - name: Verify required assets
