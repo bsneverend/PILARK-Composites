@@ -6,6 +6,7 @@ function applyAdminOverrides(){
   if(o.products){products.forEach(p=>{if(o.products[p.id]?.img)p.img=o.products[p.id].img;});}
 
   const set=(id,src)=>{const el=document.getElementById(id);if(el&&src)el.src=src;};
+  set('navbarLogo',o.media?.navbarLogo);
   set('heroThumbnail',o.media?.hero);
   set('companyThumbnail',o.media?.company);
   set('visionMissionImage',o.media?.vision);
@@ -68,6 +69,7 @@ async function applyCloudCms(){
 
   if(o.products){products.forEach(p=>{if(o.products[p.id]?.img)p.img=o.products[p.id].img;});}
   const set=(id,src)=>{const el=document.getElementById(id);if(el&&src)el.src=src;};
+  set('navbarLogo',o.media?.navbarLogo);
   set('heroThumbnail',o.media?.hero);
   set('companyThumbnail',o.media?.company);
   set('visionMissionImage',o.media?.vision);
