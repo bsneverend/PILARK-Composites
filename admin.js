@@ -37,6 +37,7 @@ const contentGroups=[
 ];
 
 let cloudState={media:{},products:{},content:{}};
+let adminChatState={conversations:[],selected:null,timer:null,lastUnread:0};
 function cloudReady(){return !!window.PILARK_CMS?.ready}
 function load(){try{return JSON.parse(localStorage.getItem(KEY)||'{}')}catch{return {}}}
 function activeData(){return cloudReady()?cloudState:load()}
@@ -116,10 +117,48 @@ function updateStats(){
   document.getElementById('contentCount').textContent=contentCount;
 }
 
+async function loadAdminChats(){
+  if(!cloudReady())return;
+  const c=window.PILARK_CMS.client;
+  const {data,error}=await c.from('chat_conversations').select('id,visitor_name,visitor_email,current_page,status,created_at,updated_at').order('updated_at',{ascending:false}).limit(100);
+  if(error){console.warn('Live chat load failed:',error.message);return;}
+  adminChatState.conversations=data||[];
+  const list=document.getElementById('adminChatList');
+  if(list){list.innerHTML=(data||[]).map(x=>'<button class="admin-chat-row '+(adminChatState.selected?.id===x.id?'active':'')+'" data-chat-id="'+x.id+'"><span class="admin-chat-row-top"><b>'+escapeHtml(x.visitor_name||'Website visitor')+'</b><small>'+escapeHtml(x.status)+'</small></span><span>'+escapeHtml(x.visitor_email||'No email provided')+'</span><small>'+new Date(x.updated_at).toLocaleString()+'</small></button>').join('')||'<div class="admin-chat-empty small"><b>No conversations yet</b><span>New visitor messages will appear here.</span></div>';list.querySelectorAll('[data-chat-id]').forEach(b=>b.onclick=()=>selectAdminChat(b.dataset.chatId));}
+  const badge=document.getElementById('chatUnreadBadge');
+  const openCount=(data||[]).filter(x=>x.status==='open').length;
+  if(badge){badge.textContent=openCount;badge.hidden=!openCount;}
+}
+function escapeHtml(v){return String(v||'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));}
+async function selectAdminChat(id){
+  const convo=adminChatState.conversations.find(x=>x.id===id);if(!convo)return;
+  adminChatState.selected=convo;
+  await loadAdminChats();
+  document.getElementById('adminChatEmpty').hidden=true;document.getElementById('adminChatThread').hidden=false;
+  document.getElementById('adminChatName').textContent=convo.visitor_name||'Website visitor';
+  document.getElementById('adminChatMeta').textContent=(convo.visitor_email||'No email provided')+(convo.current_page?' · '+convo.current_page:'');
+  document.getElementById('adminChatStatus').value=convo.status;
+  await loadAdminChatMessages();
+}
+async function loadAdminChatMessages(){
+  const convo=adminChatState.selected;if(!convo||!cloudReady())return;
+  const {data,error}=await window.PILARK_CMS.client.from('chat_messages').select('id,sender_type,message,created_at').eq('conversation_id',convo.id).order('created_at',{ascending:true});
+  if(error){console.warn('Chat messages load failed:',error.message);return;}
+  const box=document.getElementById('adminChatMessages');if(!box)return;
+  box.innerHTML=(data||[]).map(m=>'<div class="admin-msg '+(m.sender_type==='admin'?'admin':'visitor')+'"><div>'+escapeHtml(m.message)+'</div><small>'+new Date(m.created_at).toLocaleString()+'</small></div>').join('');box.scrollTop=box.scrollHeight;
+}
+async function sendAdminChatMessage(message){
+  const convo=adminChatState.selected;if(!convo)return;
+  const {error}=await window.PILARK_CMS.client.from('chat_messages').insert({conversation_id:convo.id,sender_type:'admin',message});if(error)throw error;
+  await window.PILARK_CMS.client.from('chat_conversations').update({status:'pending',updated_at:new Date().toISOString()}).eq('id',convo.id);
+  convo.status='pending';await loadAdminChatMessages();await loadAdminChats();
+}
+
 function showView(name){
   document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+name));
   document.querySelectorAll('.side-link').forEach(b=>b.classList.toggle('active',b.dataset.view===name));
-  document.getElementById('pageTitle').textContent={dashboard:'Website overview',media:'Media Library',products:'Product thumbnails',sections:'Website Content',settings:'Settings'}[name]||'PILARK Admin';
+  document.getElementById('pageTitle').textContent={dashboard:'Website overview',media:'Media Library',products:'Product thumbnails',sections:'Website Content',chat:'Live Chat',settings:'Settings'}[name]||'PILARK Admin';
+  if(name==='chat') loadAdminChats();
 }
 
 function enterDashboard(){
@@ -178,6 +217,9 @@ document.addEventListener('DOMContentLoaded',async()=>{
     document.querySelectorAll('.side-link').forEach(b=>b.onclick=()=>showView(b.dataset.view));
     document.querySelectorAll('[data-goto]').forEach(b=>b.onclick=()=>showView(b.dataset.goto));
     document.getElementById('productSearch')?.addEventListener('input',e=>renderProducts(e.target.value));
+    document.getElementById('chatRefreshBtn')?.addEventListener('click',()=>{loadAdminChats();loadAdminChatMessages();});
+    document.getElementById('adminChatComposer')?.addEventListener('submit',async e=>{e.preventDefault();const input=document.getElementById('adminChatReply');const message=input.value.trim();if(!message)return;try{await sendAdminChatMessage(message);input.value='';}catch(err){alert('Reply failed: '+err.message);}});
+    document.getElementById('adminChatStatus')?.addEventListener('change',async e=>{const convo=adminChatState.selected;if(!convo)return;try{const {error}=await window.PILARK_CMS.client.from('chat_conversations').update({status:e.target.value,updated_at:new Date().toISOString()}).eq('id',convo.id);if(error)throw error;convo.status=e.target.value;await loadAdminChats();}catch(err){alert('Status update failed: '+err.message);}});
 
     const logoutBtn=document.getElementById('logoutBtn');
     if(logoutBtn) logoutBtn.onclick=async()=>{
@@ -197,6 +239,8 @@ document.addEventListener('DOMContentLoaded',async()=>{
     if(session){
       await loadCloudState();
       enterDashboard();
+      loadAdminChats();
+      if(adminChatState.timer)clearInterval(adminChatState.timer);adminChatState.timer=setInterval(()=>{loadAdminChats();if(adminChatState.selected)loadAdminChatMessages();},5000);
     }else{
       showLogin('');
     }
