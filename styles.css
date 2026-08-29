@@ -30,3 +30,24 @@ footer{background:#071017;color:#fff;padding:58px 0 25px}.footer-grid{display:gr
 /* Admin access */
 .nav-login{padding:9px 13px;font-size:.78rem;white-space:nowrap}.nav-login:hover{border-color:var(--blue);color:var(--blue2)}
 @media(max-width:1050px){.nav-login{display:none}}
+
+
+/* Solutions navigation dropdown */
+.nav-dropdown{position:relative;display:flex;align-items:center}
+.nav-dropdown-toggle{appearance:none;border:0;background:transparent;color:inherit;font:inherit;font-weight:800;font-size:inherit;letter-spacing:inherit;padding:10px 0;display:flex;align-items:center;gap:5px;cursor:pointer;opacity:.72}
+.nav-dropdown-toggle:hover,.nav-dropdown:focus-within .nav-dropdown-toggle{opacity:1}
+.nav-dropdown-toggle span{font-size:.95em;line-height:1;transition:transform .2s ease}
+.nav-dropdown:hover .nav-dropdown-toggle span,.nav-dropdown:focus-within .nav-dropdown-toggle span{transform:rotate(180deg)}
+.nav-dropdown-menu{position:absolute;top:calc(100% + 12px);left:50%;transform:translate(-50%,8px);min-width:170px;padding:8px;background:rgba(255,255,255,.98);border:1px solid var(--line);border-radius:16px;box-shadow:0 16px 36px rgba(8,27,38,.14);display:grid;gap:2px;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .18s ease,transform .18s ease,visibility .18s ease}
+.nav-dropdown:hover .nav-dropdown-menu,.nav-dropdown:focus-within .nav-dropdown-menu{opacity:1;visibility:visible;pointer-events:auto;transform:translate(-50%,0)}
+.nav-dropdown-menu a{padding:10px 12px;border-radius:10px;white-space:nowrap;font-weight:800;opacity:.76}
+.nav-dropdown-menu a:hover,.nav-dropdown-menu a:focus-visible{opacity:1;background:#f1f8fb}
+.mobile-submenu-wrap{display:grid}
+.mobile-submenu-toggle{width:100%;display:flex;align-items:center;justify-content:space-between;padding:13px 10px;border:0;border-bottom:1px solid #edf3f6;background:transparent;color:inherit;font:inherit;font-weight:800;text-align:left;cursor:pointer}
+.mobile-submenu-toggle span{font-size:1.2rem;line-height:1;transition:transform .2s ease}
+.mobile-submenu-toggle[aria-expanded="true"] span{transform:rotate(45deg)}
+.mobile-submenu{display:none;padding:2px 0 8px 14px}
+.mobile-submenu.open{display:grid}
+.mobile-menu .mobile-submenu a{padding:10px 10px;color:#52636d;font-size:.94em;border-bottom:0}
+.mobile-menu .mobile-submenu a:last-child{border-bottom:0}
+@media(max-width:1050px){.nav-dropdown{display:none}}
