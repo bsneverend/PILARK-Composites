@@ -164,3 +164,70 @@
     background:#fff;
   }
 }
+
+
+/* Mobile live chat: keep the chat workspace immediately visible */
+@media (max-width:900px){
+  /* The earlier mobile rule intentionally returned chat to normal page flow.
+     Keep the conversation workspace visible directly after the intro instead. */
+  .admin-main.chat-mode{
+    height:auto;
+    min-height:0;
+    max-height:none;
+    overflow:visible;
+    padding-bottom:24px;
+  }
+
+  .admin-main.chat-mode .chat-admin-layout{
+    display:grid;
+    grid-template-columns:1fr;
+    min-height:0;
+    height:auto;
+    max-height:none;
+    overflow:visible;
+  }
+
+  .admin-main.chat-mode .chat-admin-list-panel{
+    height:auto;
+    min-height:0;
+    overflow:visible;
+  }
+
+  .admin-main.chat-mode .admin-chat-list{
+    display:block;
+    max-height:260px;
+    min-height:0;
+    overflow-y:auto;
+  }
+
+  .admin-main.chat-mode .chat-admin-thread-panel{
+    height:auto;
+    min-height:0;
+    overflow:visible;
+  }
+
+  .admin-main.chat-mode #adminChatThread:not([hidden]){
+    display:flex;
+    height:auto;
+    min-height:0;
+    max-height:none;
+    flex-direction:column;
+    overflow:visible;
+  }
+
+  .admin-main.chat-mode .admin-chat-messages{
+    display:block;
+    height:380px;
+    min-height:220px;
+    max-height:55dvh;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+
+  .admin-main.chat-mode .admin-chat-composer{
+    position:sticky;
+    bottom:0;
+    z-index:3;
+    background:#fff;
+  }
+}
