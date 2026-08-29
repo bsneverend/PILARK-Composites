@@ -58,3 +58,6 @@ footer{background:#071017;color:#fff;padding:58px 0 25px}.footer-grid{display:gr
 
 /* Live chat visibility: HTML hidden attribute must always override layout rules */
 .live-chat-panel[hidden],.live-chat-fab[hidden]{display:none !important}
+
+/* Live chat state transitions: section layout rules must not override the HTML hidden attribute */
+.chat-lead[hidden],.chat-composer[hidden]{display:none !important}
