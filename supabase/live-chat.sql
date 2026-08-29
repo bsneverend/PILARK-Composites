@@ -49,14 +49,16 @@ as $$
 declare
   v_id uuid;
   v_token uuid;
+  v_created timestamptz;
 begin
   insert into public.chat_conversations(visitor_name, visitor_email, current_page)
   values (nullif(trim(p_name),''), nullif(trim(p_email),''), nullif(trim(p_page),''))
   returning chat_conversations.id, chat_conversations.visitor_token, chat_conversations.created_at
-  into v_id, v_token, chat_start_conversation.created_at;
+  into v_id, v_token, v_created;
 
   id := v_id;
   visitor_token := v_token;
+  created_at := v_created;
   return next;
 end;
 $$;
