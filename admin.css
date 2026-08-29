@@ -42,3 +42,44 @@
   .admin-main.chat-mode #adminChatThread{display:block}
   .admin-main.chat-mode .admin-chat-messages{height:380px}
 }
+
+
+/* Live chat viewport sizing fix: keep composer visible and constrain inner scroll areas */
+.admin-app:has(.admin-main.chat-mode){height:100dvh;overflow:hidden}
+.admin-main.chat-mode{
+  box-sizing:border-box;
+  height:100dvh;
+  min-height:0;
+  max-height:100dvh;
+  overflow:hidden;
+}
+.admin-main.chat-mode .view-chat.active{
+  min-height:0;
+  overflow:hidden;
+}
+.admin-main.chat-mode .chat-admin-layout{
+  min-height:0;
+  height:100%;
+  overflow:hidden;
+  grid-template-columns:340px minmax(0,1fr);
+}
+.admin-main.chat-mode .chat-admin-list-panel,
+.admin-main.chat-mode .chat-admin-thread-panel{
+  min-height:0;
+  height:100%;
+  overflow:hidden;
+}
+.admin-main.chat-mode .admin-chat-list{
+  min-height:0;
+  height:auto;
+  overflow-y:auto;
+}
+.admin-main.chat-mode #adminChatThread{
+  min-height:0;
+  height:100%;
+  overflow:hidden;
+}
+.admin-main.chat-mode .admin-chat-messages{
+  min-height:0;
+  overflow-y:auto;
+}
