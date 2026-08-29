@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PILARK Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../admin.css">
+</head><body>
+<div id="loginView" class="login-view">
+  <div class="login-card">
+    <a class="admin-logo" href="../index.html"><img src="../assets/pilark-logo.svg" alt="PILARK Composites"></a>
+    <div class="eyebrow">Admin access</div><h1>Welcome back.</h1>
+    <p>Manage website images, product thumbnails and visual content from one place.</p>
+    <form id="loginForm"><label>Email<input type="email" placeholder="admin@pilarkomposit.com" required></label><label>Password<input type="password" placeholder="Enter password" required></label><button class="primary-btn" type="submit">Login to dashboard →</button></form>
+    <div class="prototype-note"><b>Prototype mode</b><span>This first version is a UI prototype. Login is not yet connected to a secure backend.</span></div>
+    <a class="back-link" href="../index.html">← Back to website</a>
+  </div>
+</div>
+
+<div id="adminApp" class="admin-app" hidden>
+  <aside class="sidebar">
+    <a class="admin-logo" href="../index.html"><img src="../assets/pilark-logo.svg" alt="PILARK Composites"></a>
+    <div class="sidebar-label">Content management</div>
+    <button class="side-link active" data-view="dashboard">Overview</button>
+    <button class="side-link" data-view="media">Media Library</button>
+    <button class="side-link" data-view="products">Products</button>
+    <button class="side-link" data-view="sections">Sections</button>
+    <button class="side-link" data-view="settings">Settings</button>
+    <div class="sidebar-bottom"><a href="../index.html">View website ↗</a><button id="logoutBtn">Logout</button></div>
+  </aside>
+  <main class="admin-main">
+    <div class="topbar"><div><div class="eyebrow">PILARK Admin</div><h1 id="pageTitle">Website overview</h1></div><a class="preview-btn" href="../index.html" target="_blank">Preview website ↗</a></div>
+    <div class="prototype-banner">Prototype mode — changes currently save in this browser only. The next phase is to connect secure authentication, cloud storage and a shared database.</div>
+
+    <section class="view active" id="view-dashboard">
+      <div class="stats-grid"><div class="metric"><span>Products</span><b>19</b><small>Thumbnail management ready</small></div><div class="metric"><span>Media assets</span><b>4+</b><small>Hero, company and section media</small></div><div class="metric"><span>Client sectors</span><b>20</b><small>Structured website content</small></div></div>
+      <div class="panel"><div class="panel-head"><div><h2>Quick media editing</h2><p>Replace the most visible website images without touching the code.</p></div><button class="text-btn" data-goto="media">Open media library →</button></div><div id="quickMedia" class="quick-media"></div></div>
+      <div class="panel"><div class="panel-head"><div><h2>Next backend phase</h2><p>Connect the same dashboard to shared cloud data.</p></div></div><div class="check-grid"><div>✓ Secure administrator login</div><div>✓ Supabase database</div><div>✓ Cloud image storage</div><div>✓ Publish / draft workflow</div></div></div>
+    </section>
+
+    <section class="view" id="view-media"><div class="section-intro"><h2>Media Library</h2><p>Replace hero, company, applications and Vision & Mission images.</p></div><div id="mediaGrid" class="media-grid"></div></section>
+    <section class="view" id="view-products"><div class="section-intro"><h2>Product thumbnails</h2><p>Select a product and replace its card thumbnail. Changes update the product cards on this browser.</p></div><div id="productEditor" class="product-editor-grid"></div></section>
+    <section class="view" id="view-sections"><div class="section-intro"><h2>Website sections</h2><p>This area is prepared for future editing of titles, descriptions, cards and section ordering.</p></div><div class="empty-state"><b>Content editor is the next module.</b><span>The dashboard foundation is now in place. We can connect each website section one by one after the backend is added.</span></div></section>
+    <section class="view" id="view-settings"><div class="section-intro"><h2>Settings</h2><p>Manage local prototype data.</p></div><div class="panel"><h2>Reset prototype changes</h2><p>Remove all image overrides saved in this browser and return the website to its repository defaults.</p><button id="resetBtn" class="danger-btn">Reset local changes</button></div></section>
+  </main>
+</div>
+<script src="../admin.js"></script>
+</body></html>
