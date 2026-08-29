@@ -7,6 +7,7 @@ function applyAdminOverrides(){
 
   const set=(id,src)=>{const el=document.getElementById(id);if(el&&src)el.src=src;};
   set('navbarLogo',o.media?.navbarLogo);
+  set('footerLogo',o.media?.footerLogo);
   set('heroThumbnail',o.media?.hero);
   set('companyThumbnail',o.media?.company);
   set('visionMissionImage',o.media?.vision);
@@ -70,6 +71,7 @@ async function applyCloudCms(){
   if(o.products){products.forEach(p=>{if(o.products[p.id]?.img)p.img=o.products[p.id].img;});}
   const set=(id,src)=>{const el=document.getElementById(id);if(el&&src)el.src=src;};
   set('navbarLogo',o.media?.navbarLogo);
+  set('footerLogo',o.media?.footerLogo);
   set('heroThumbnail',o.media?.hero);
   set('companyThumbnail',o.media?.company);
   set('visionMissionImage',o.media?.vision);
@@ -109,8 +111,6 @@ function observeReveals(){if(!window.IntersectionObserver){document.querySelecto
 document.addEventListener('DOMContentLoaded',async()=>{applyAdminOverrides();try{await applyCloudCms();}catch(err){console.warn('PILARK CMS unavailable:',err);}renderFilters();renderProducts();renderCatalog();initCatalogViewer();initClientModal();observeReveals();$('closeModal')?.addEventListener('click',closeModal);$('productModal')?.addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal()});$('modalCatalog')?.addEventListener('click',e=>{e.preventDefault();const page=Number(e.currentTarget.dataset.page)||1;closeModal();openCatalog(page)});const menu=$('mobileMenu'),btn=$('menuBtn');btn?.addEventListener('click',()=>menu?.classList.toggle('open'));menu?.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>menu.classList.remove('open')));document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeCatalog()}else if($('catalogViewer')?.classList.contains('open')&&e.key==='ArrowLeft'){updateCatalogPage(catalogPage-1)}else if($('catalogViewer')?.classList.contains('open')&&e.key==='ArrowRight'){updateCatalogPage(catalogPage+1)}})});
 
 document.addEventListener('DOMContentLoaded',()=>{
-  const footerLogo= document.querySelector('footer .logo');
-  if(footerLogo){footerLogo.innerHTML='<img src="assets/pilark-logo-footer.svg?v=20260828" alt="PILARK Composites" style="height:58px;width:150px;object-fit:contain;object-position:left center">';}
   document.querySelectorAll('a[href^="mailto:"]').forEach(a=>{a.href='mailto:support@pilarkomposit.com';a.textContent='support@pilarkomposit.com';});
 });
 
