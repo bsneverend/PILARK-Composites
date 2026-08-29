@@ -442,3 +442,120 @@
     cursor:pointer;
   }
 }
+
+
+/* Mobile chat sheet sizing fix: keep every chat element inside the visible viewport */
+@media (max-width:900px){
+  .admin-main.chat-mode.mobile-chat-open,
+  .admin-main.chat-mode.mobile-chat-open *{
+    box-sizing:border-box;
+  }
+
+  .admin-main.chat-mode.mobile-chat-open .chat-admin-thread-panel{
+    left:0;
+    right:0;
+    top:0;
+    bottom:0;
+    width:100vw;
+    max-width:100vw;
+    min-width:0;
+    overflow:hidden;
+  }
+
+  .admin-main.chat-mode.mobile-chat-open #adminChatThread:not([hidden]){
+    width:100%;
+    max-width:100%;
+    min-width:0;
+  }
+
+  .admin-main.chat-mode.mobile-chat-open .admin-chat-thread-head{
+    width:100%;
+    max-width:100%;
+    min-width:0;
+    gap:10px;
+    padding:12px 14px;
+    overflow:hidden;
+  }
+
+  .admin-main.chat-mode.mobile-chat-open .admin-chat-thread-head > div:first-child{
+    min-width:0;
+    flex:1 1 auto;
+    overflow:hidden;
+  }
+
+  .admin-main.chat-mode.mobile-chat-open .admin-chat-thread-head small{
+    width:100%;
+    max-width:100%;
+  }
+
+  .admin-main.chat-mode.mobile-chat-open .admin-chat-thread-actions{
+    flex:0 0 auto;
+    min-width:0;
+    gap:6px;
+  }
+
+  .admin-main.chat-mode.mobile-chat-open #adminChatStatus{
+    width:auto;
+    max-width:118px;
+    min-width:0;
+    padding-left:10px;
+    padding-right:8px;
+  }
+
+  .admin-main.chat-mode.mobile-chat-open .admin-chat-messages{
+    width:100%;
+    max-width:100%;
+    min-width:0;
+    overflow-x:hidden;
+    padding:14px;
+  }
+
+  .admin-main.chat-mode.mobile-chat-open .admin-msg{
+    width:fit-content;
+    max-width:min(82%, calc(100vw - 28px));
+    min-width:0;
+    overflow-wrap:anywhere;
+    word-break:break-word;
+  }
+
+  .admin-main.chat-mode.mobile-chat-open .admin-msg-foot{
+    min-width:0;
+    gap:8px;
+  }
+
+  .admin-main.chat-mode.mobile-chat-open .admin-msg-foot small{
+    min-width:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+
+  .admin-main.chat-mode.mobile-chat-open .admin-chat-composer{
+    width:100%;
+    max-width:100%;
+    min-width:0;
+    gap:8px;
+    padding:10px 12px max(10px,env(safe-area-inset-bottom));
+    overflow:hidden;
+  }
+
+  .admin-main.chat-mode.mobile-chat-open .admin-chat-composer input{
+    min-width:0;
+    width:0;
+    flex:1 1 auto;
+  }
+
+  .admin-main.chat-mode.mobile-chat-open .admin-chat-composer button{
+    flex:0 0 auto;
+    white-space:nowrap;
+    padding-left:14px;
+    padding-right:14px;
+  }
+
+  @supports (width:100dvw){
+    .admin-main.chat-mode.mobile-chat-open .chat-admin-thread-panel{
+      width:100dvw;
+      max-width:100dvw;
+    }
+  }
+}
