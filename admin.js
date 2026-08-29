@@ -153,9 +153,23 @@ async function loadAdminChatMessages(){
   const {data,error}=await window.PILARK_CMS.client.from('chat_messages').select('id,sender_type,message,created_at').eq('conversation_id',convo.id).order('created_at',{ascending:true});
   if(error){console.warn('Chat messages load failed:',error.message);return;}
   const box=document.getElementById('adminChatMessages');if(!box)return;
+
+  // This function is also called by the 5-second inbox refresh. Do not force
+  // the operator back to the bottom while they are reading older messages.
+  const previousScrollHeight=box.scrollHeight;
+  const previousScrollTop=box.scrollTop;
+  const hadMessages=box.children.length>0;
+  const wasNearBottom=!hadMessages || (previousScrollHeight-previousScrollTop-box.clientHeight<56);
+
   box.innerHTML=(data||[]).map(m=>'<div class="admin-msg '+(m.sender_type==='admin'?'admin':'visitor')+'" data-message-id="'+m.id+'"><div class="admin-msg-text">'+escapeHtml(m.message)+'</div><div class="admin-msg-foot"><small>'+new Date(m.created_at).toLocaleString()+'</small><button type="button" class="admin-msg-delete" data-delete-message="'+m.id+'" aria-label="Delete message" title="Delete message">Delete</button></div></div>').join('');
   box.querySelectorAll('[data-delete-message]').forEach(btn=>btn.onclick=async()=>{const id=btn.dataset.deleteMessage;if(!confirm('Delete this message permanently?'))return;try{await deleteAdminChatMessage(id);}catch(err){alert('Delete failed: '+err.message);}});
-  box.scrollTop=box.scrollHeight;
+
+  if(wasNearBottom){
+    box.scrollTop=box.scrollHeight;
+  }else{
+    // Preserve the reader's exact viewport position during background refresh.
+    box.scrollTop=previousScrollTop+(box.scrollHeight-previousScrollHeight);
+  }
 }
 async function deleteAdminChatConversation(conversationId){
   if(!cloudReady())return;
