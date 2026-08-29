@@ -34,12 +34,26 @@ const contentGroups=[
   ]}
 ];
 
+let cloudState={media:{},products:{},content:{}};
+function cloudReady(){return !!window.PILARK_CMS?.ready}
 function load(){try{return JSON.parse(localStorage.getItem(KEY)||'{}')}catch{return {}}}
+function activeData(){return cloudReady()?cloudState:load()}
+async function loadCloudState(){if(!cloudReady())return false;cloudState=await window.PILARK_CMS.load()||{media:{},products:{},content:{}};return true}
+async function cloudUpload(file,path){
+  const c=window.PILARK_CMS.client;
+  const {error}=await c.storage.from('website-media').upload(path,file,{upsert:true,cacheControl:'3600',contentType:file.type});
+  if(error)throw error;
+  const {data}=c.storage.from('website-media').getPublicUrl(path);
+  return data.publicUrl;
+}
+async function saveMediaCloud(key,src){const {error}=await window.PILARK_CMS.client.from('site_media').upsert({key,src,updated_at:new Date().toISOString()});if(error)throw error;cloudState.media[key]=src}
+async function saveProductCloud(id,img){const {error}=await window.PILARK_CMS.client.from('site_products').upsert({id,image_url:img,updated_at:new Date().toISOString()});if(error)throw error;cloudState.products[id]={img}}
+async function saveContentCloud(section,data){const {error}=await window.PILARK_CMS.client.from('site_content').upsert({section,data,updated_at:new Date().toISOString()});if(error)throw error;cloudState.content[section]=data}
 function save(data){localStorage.setItem(KEY,JSON.stringify(data))}
-function getMedia(item){return load().media?.[item.key]||item.src}
-function getProduct(id,src){return load().products?.[id]?.img||src}
-function getContent(group,field,fallback){return load().content?.[group]?.[field]??fallback}
-function upload(file,done){if(!file)return;if(file.size>3500000){alert('For local dashboard mode, please use an image below 3.5 MB. Cloud storage will remove this limitation.');return}const r=new FileReader();r.onload=()=>done(r.result);r.readAsDataURL(file)}
+function getMedia(item){return activeData().media?.[item.key]||item.src}
+function getProduct(id,src){return activeData().products?.[id]?.img||src}
+function getContent(group,field,fallback){return activeData().content?.[group]?.[field]??fallback}
+function upload(file,done){if(!file)return;if(cloudReady()){done(file);return;}if(file.size>3500000){alert('For local dashboard mode, please use an image below 3.5 MB.');return}const r=new FileReader();r.onload=()=>done(r.result);r.readAsDataURL(file)}
 
 function mediaCard(item){return '<article class="media-card"><div class="media-preview"><img src="'+getMedia(item)+'" alt=""></div><div class="media-card-body"><b>'+item.name+'</b><span>'+item.description+'</span><label class="upload-btn">Replace image<input type="file" accept="image/*" data-media="'+item.key+'"></label></div></article>'}
 function renderMedia(){document.getElementById('mediaGrid').innerHTML=mediaDefaults.map(mediaCard).join('');document.getElementById('quickMedia').innerHTML=mediaDefaults.map(mediaCard).join('');bindUploads()}
@@ -52,11 +66,21 @@ function renderProducts(query=''){
 }
 
 function bindUploads(){
-  document.querySelectorAll('input[data-media]').forEach(input=>input.onchange=e=>upload(e.target.files[0],result=>{
-    const d=load();d.media=d.media||{};d.media[e.target.dataset.media]=result;save(d);renderMedia();updateStats();
+  document.querySelectorAll('input[data-media]').forEach(input=>input.onchange=e=>upload(e.target.files[0],async result=>{
+    try{
+      const key=e.target.dataset.media;
+      if(cloudReady()){const src=await cloudUpload(result,'media/'+key+'-'+Date.now()+'-'+result.name.replace(/[^a-z0-9._-]/gi,'-'));await saveMediaCloud(key,src);}
+      else {const d=load();d.media=d.media||{};d.media[key]=result;save(d);}
+      renderMedia();updateStats();
+    }catch(err){alert('Upload failed: '+err.message);}
   }));
-  document.querySelectorAll('input[data-product]').forEach(input=>input.onchange=e=>upload(e.target.files[0],result=>{
-    const d=load();d.products=d.products||{};d.products[e.target.dataset.product]={img:result};save(d);renderProducts(document.getElementById('productSearch')?.value||'');updateStats();
+  document.querySelectorAll('input[data-product]').forEach(input=>input.onchange=e=>upload(e.target.files[0],async result=>{
+    try{
+      const id=e.target.dataset.product;
+      if(cloudReady()){const src=await cloudUpload(result,'products/'+id+'-'+Date.now()+'-'+result.name.replace(/[^a-z0-9._-]/gi,'-'));await saveProductCloud(id,src);}
+      else {const d=load();d.products=d.products||{};d.products[id]={img:result};save(d);}
+      renderProducts(document.getElementById('productSearch')?.value||'');updateStats();
+    }catch(err){alert('Upload failed: '+err.message);}
   }));
 }
 
@@ -70,17 +94,20 @@ function renderContentEditor(){
     return '<article class="content-card" data-group="'+group.key+'"><div class="content-card-head"><div><h3>'+group.title+'</h3><p>'+group.description+'</p></div></div><div class="content-fields">'+fields+'</div><div class="content-actions"><button type="button" class="reset-section-btn" data-reset-group="'+group.key+'">Reset section</button><button type="button" class="save-btn" data-save-group="'+group.key+'">Save changes</button></div><div class="content-status" data-status="'+group.key+'"></div></article>';
   }).join('');
   el.querySelectorAll('[data-save-group]').forEach(btn=>btn.onclick=()=>{
-    const card=btn.closest('[data-group]'),group=card.dataset.group,d=load();d.content=d.content||{};d.content[group]={};
-    card.querySelectorAll('[data-field]').forEach(field=>d.content[group][field.dataset.field]=field.value.trim());
-    save(d);card.querySelector('[data-status]').textContent='Saved. Preview the website to see the update.';updateStats();
+    const card=btn.closest('[data-group]'),group=card.dataset.group;
+    const payload={};card.querySelectorAll('[data-field]').forEach(field=>payload[field.dataset.field]=field.value.trim());
+    if(cloudReady()){saveContentCloud(group,payload).then(()=>{card.querySelector('[data-status]').textContent='Saved to cloud. The live website will use the new content.';updateStats();}).catch(err=>alert('Save failed: '+err.message));}
+    else {const d=load();d.content=d.content||{};d.content[group]=payload;save(d);card.querySelector('[data-status]').textContent='Saved locally. Preview the website to see the update.';updateStats();}
   });
   el.querySelectorAll('[data-reset-group]').forEach(btn=>btn.onclick=()=>{
-    const group=btn.dataset.resetGroup,d=load();if(d.content)delete d.content[group];save(d);renderContentEditor();updateStats();
+    const group=btn.dataset.resetGroup;
+    if(cloudReady()){window.PILARK_CMS.client.from('site_content').delete().eq('section',group).then(({error})=>{if(error)throw error;delete cloudState.content[group];renderContentEditor();updateStats();}).catch(err=>alert('Reset failed: '+err.message));}
+    else {const d=load();if(d.content)delete d.content[group];save(d);renderContentEditor();updateStats();}
   });
 }
 
 function updateStats(){
-  const d=load();
+  const d=activeData();
   document.getElementById('productCount').textContent=productDefaults.length;
   document.getElementById('mediaCount').textContent=mediaDefaults.length;
   const contentCount=Object.values(d.content||{}).reduce((n,g)=>n+Object.keys(g||{}).length,0);
@@ -99,10 +126,11 @@ function enterDashboard(){
   sessionStorage.setItem(SESSION_KEY,'1');
 }
 
-document.addEventListener('DOMContentLoaded',()=>{
+document.addEventListener('DOMContentLoaded',async()=>{
   // Bind login first so the dashboard can always be opened even if an editor
   // section has a missing asset or encounters a rendering error.
   const loginForm=document.getElementById('loginForm');
+  await loadCloudState().catch(err=>console.warn('CMS not configured:',err));
   const loginStatus=document.getElementById('loginStatus');
 
   if(loginForm){
@@ -111,11 +139,15 @@ document.addEventListener('DOMContentLoaded',()=>{
       const email=document.getElementById('adminEmail')?.value.trim()||'';
       const password=document.getElementById('adminPassword')?.value||'';
 
-      if(!email||!password){
-        if(loginStatus) loginStatus.textContent='Please enter your email and password.';
+      if(!email||!password){if(loginStatus) loginStatus.textContent='Please enter your email and password.';return;}
+      if(cloudReady()){
+        if(loginStatus) loginStatus.textContent='Signing in...';
+        window.PILARK_CMS.client.auth.signInWithPassword({email,password}).then(async({error})=>{
+          if(error){if(loginStatus)loginStatus.textContent=error.message;return;}
+          await loadCloudState();if(loginStatus)loginStatus.textContent='';enterDashboard();
+        }).catch(err=>{if(loginStatus)loginStatus.textContent=err.message;});
         return;
       }
-
       if(loginStatus) loginStatus.textContent='';
       enterDashboard();
     });
@@ -133,7 +165,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 
     const logoutBtn=document.getElementById('logoutBtn');
     if(logoutBtn) logoutBtn.onclick=()=>{
-      sessionStorage.removeItem(SESSION_KEY);
+      sessionStorage.removeItem(SESSION_KEY);if(cloudReady())window.PILARK_CMS.client.auth.signOut();
       document.getElementById('adminApp').hidden=true;
       document.getElementById('loginView').hidden=false;
       document.getElementById('loginForm').reset();
@@ -152,5 +184,8 @@ document.addEventListener('DOMContentLoaded',()=>{
     if(loginStatus) loginStatus.textContent='Editor initialization issue detected. You can still log in to open the dashboard.';
   }
 
-  if(sessionStorage.getItem(SESSION_KEY)==='1') enterDashboard();
+  if(cloudReady()){
+    const {data:{session}}=await window.PILARK_CMS.client.auth.getSession();
+    if(session){await loadCloudState();enterDashboard();}
+  }else if(sessionStorage.getItem(SESSION_KEY)==='1') enterDashboard();
 });
