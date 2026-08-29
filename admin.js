@@ -3,6 +3,7 @@ const SESSION_KEY='pilarkAdminSessionV1';
 
 const mediaDefaults=[
   {key:'navbarLogo',name:'Navbar logo',description:'Logo displayed in the website navigation bar',src:'assets/pilark-logo.svg'},
+  {key:'footerLogo',name:'Footer logo',description:'Logo displayed in the website footer',src:'assets/pilark-logo-footer.svg'},
   {key:'hero',name:'Hero thumbnail',description:'Homepage hero image',src:'assets/hero-thumbnail.jpg'},
   {key:'company',name:'Company image',description:'Our Company section',src:'assets/company-thumbnail.jpg'},
   {key:'applications',name:'Applications image',description:'Applications feature background',src:'assets/applications-thumbnail.jpg'},
@@ -56,7 +57,7 @@ function getProduct(id,src){return activeData().products?.[id]?.img||src}
 function getContent(group,field,fallback){return activeData().content?.[group]?.[field]??fallback}
 function upload(file,done){if(!file)return;if(cloudReady()){done(file);return;}if(file.size>3500000){alert('For local dashboard mode, please use an image below 3.5 MB.');return}const r=new FileReader();r.onload=()=>done(r.result);r.readAsDataURL(file)}
 
-function mediaCard(item){const previewClass=item.key==='navbarLogo'?'media-preview logo-preview':'media-preview';return '<article class="media-card"><div class="'+previewClass+'"><img src="'+getMedia(item)+'" alt=""></div><div class="media-card-body"><b>'+item.name+'</b><span>'+item.description+'</span><label class="upload-btn">Replace image<input type="file" accept="image/*" data-media="'+item.key+'"></label></div></article>'}
+function mediaCard(item){const previewClass=(item.key==='navbarLogo'||item.key==='footerLogo')?'media-preview logo-preview':'media-preview';return '<article class="media-card"><div class="'+previewClass+'"><img src="'+getMedia(item)+'" alt=""></div><div class="media-card-body"><b>'+item.name+'</b><span>'+item.description+'</span><label class="upload-btn">Replace image<input type="file" accept="image/*" data-media="'+item.key+'"></label></div></article>'}
 function renderMedia(){document.getElementById('mediaGrid').innerHTML=mediaDefaults.map(mediaCard).join('');document.getElementById('quickMedia').innerHTML=mediaDefaults.map(mediaCard).join('');bindUploads()}
 
 function renderProducts(query=''){
