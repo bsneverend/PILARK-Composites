@@ -124,7 +124,7 @@ async function loadAdminChats(){
   if(error){console.warn('Live chat load failed:',error.message);return;}
   adminChatState.conversations=data||[];
   const list=document.getElementById('adminChatList');
-  if(list){list.innerHTML=(data||[]).map(x=>'<button class="admin-chat-row '+(adminChatState.selected?.id===x.id?'active':'')+'" data-chat-id="'+x.id+'"><span class="admin-chat-row-top"><b>'+escapeHtml(x.visitor_name||'Website visitor')+'</b><small>'+escapeHtml(x.status)+'</small></span><span>'+escapeHtml(x.visitor_email||'No email provided')+'</span><small>'+new Date(x.updated_at).toLocaleString()+'</small></button>').join('')||'<div class="admin-chat-empty small"><b>No conversations yet</b><span>New visitor messages will appear here.</span></div>';list.querySelectorAll('[data-chat-id]').forEach(b=>b.onclick=()=>selectAdminChat(b.dataset.chatId));}
+  if(list){list.innerHTML=(data||[]).map(x=>'<div class="admin-chat-row-wrap '+(adminChatState.selected?.id===x.id?'active':'')+'"><button class="admin-chat-row" data-chat-id="'+x.id+'"><span class="admin-chat-row-top"><b>'+escapeHtml(x.visitor_name||'Website visitor')+'</b><small>'+escapeHtml(x.status)+'</small></span><span>'+escapeHtml(x.visitor_email||'No email provided')+'</span><small>'+new Date(x.updated_at).toLocaleString()+'</small></button><button type="button" class="admin-chat-delete" data-delete-chat="'+x.id+'" aria-label="Delete conversation" title="Delete conversation">×</button></div>').join('')||'<div class="admin-chat-empty small"><b>No conversations yet</b><span>New visitor messages will appear here.</span></div>';list.querySelectorAll('[data-chat-id]').forEach(b=>b.onclick=()=>selectAdminChat(b.dataset.chatId));list.querySelectorAll('[data-delete-chat]').forEach(b=>b.onclick=async e=>{e.preventDefault();e.stopPropagation();const id=b.dataset.deleteChat;if(!confirm('Delete this entire conversation and all of its messages permanently?'))return;try{b.disabled=true;await deleteAdminChatConversation(id);}catch(err){b.disabled=false;alert('Delete failed: '+err.message);}});}
   const badge=document.getElementById('chatUnreadBadge');
   const openCount=(data||[]).filter(x=>x.status==='open').length;
   if(badge){badge.textContent=openCount;badge.hidden=!openCount;}
@@ -148,6 +148,24 @@ async function loadAdminChatMessages(){
   box.innerHTML=(data||[]).map(m=>'<div class="admin-msg '+(m.sender_type==='admin'?'admin':'visitor')+'" data-message-id="'+m.id+'"><div class="admin-msg-text">'+escapeHtml(m.message)+'</div><div class="admin-msg-foot"><small>'+new Date(m.created_at).toLocaleString()+'</small><button type="button" class="admin-msg-delete" data-delete-message="'+m.id+'" aria-label="Delete message" title="Delete message">Delete</button></div></div>').join('');
   box.querySelectorAll('[data-delete-message]').forEach(btn=>btn.onclick=async()=>{const id=btn.dataset.deleteMessage;if(!confirm('Delete this message permanently?'))return;try{await deleteAdminChatMessage(id);}catch(err){alert('Delete failed: '+err.message);}});
   box.scrollTop=box.scrollHeight;
+}
+async function deleteAdminChatConversation(conversationId){
+  if(!cloudReady())return;
+  const c=window.PILARK_CMS.client;
+  // Remove child messages first so this also works when the database does not
+  // have ON DELETE CASCADE configured for chat_messages.
+  const {error:messagesError}=await c.from('chat_messages').delete().eq('conversation_id',conversationId);
+  if(messagesError)throw messagesError;
+  const {error:conversationError}=await c.from('chat_conversations').delete().eq('id',conversationId);
+  if(conversationError)throw conversationError;
+  if(adminChatState.selected?.id===conversationId){
+    adminChatState.selected=null;
+    const thread=document.getElementById('adminChatThread');
+    const empty=document.getElementById('adminChatEmpty');
+    if(thread)thread.hidden=true;
+    if(empty)empty.hidden=false;
+  }
+  await loadAdminChats();
 }
 async function deleteAdminChatMessage(messageId){
   const convo=adminChatState.selected;if(!convo)return;
