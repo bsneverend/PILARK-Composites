@@ -126,30 +126,44 @@ function enterDashboard(){
   sessionStorage.setItem(SESSION_KEY,'1');
 }
 
+function showLogin(message=''){
+  document.getElementById('adminApp').hidden=true;
+  document.getElementById('loginView').hidden=false;
+  const status=document.getElementById('loginStatus');
+  if(status) status.textContent=message;
+}
+
 document.addEventListener('DOMContentLoaded',async()=>{
-  // Bind login first so the dashboard can always be opened even if an editor
-  // section has a missing asset or encounters a rendering error.
+  // The dashboard is protected by Supabase Auth. Never open the CMS unless
+  // Supabase is configured and the browser has a valid authenticated session.
   const loginForm=document.getElementById('loginForm');
-  await loadCloudState().catch(err=>console.warn('CMS not configured:',err));
   const loginStatus=document.getElementById('loginStatus');
 
+  if(!cloudReady()){
+    showLogin('Secure admin login is not available because Supabase is not configured.');
+    return;
+  }
+
+  await loadCloudState().catch(err=>console.warn('CMS data will load after sign-in:',err));
+
   if(loginForm){
-    loginForm.addEventListener('submit',e=>{
+    loginForm.addEventListener('submit',async e=>{
       e.preventDefault();
       const email=document.getElementById('adminEmail')?.value.trim()||'';
       const password=document.getElementById('adminPassword')?.value||'';
 
       if(!email||!password){if(loginStatus) loginStatus.textContent='Please enter your email and password.';return;}
-      if(cloudReady()){
+
+      try{
         if(loginStatus) loginStatus.textContent='Signing in...';
-        window.PILARK_CMS.client.auth.signInWithPassword({email,password}).then(async({error})=>{
-          if(error){if(loginStatus)loginStatus.textContent=error.message;return;}
-          await loadCloudState();if(loginStatus)loginStatus.textContent='';enterDashboard();
-        }).catch(err=>{if(loginStatus)loginStatus.textContent=err.message;});
-        return;
+        const {error}=await window.PILARK_CMS.client.auth.signInWithPassword({email,password});
+        if(error) throw error;
+        await loadCloudState();
+        if(loginStatus) loginStatus.textContent='';
+        enterDashboard();
+      }catch(err){
+        if(loginStatus) loginStatus.textContent=err?.message||'Unable to sign in.';
       }
-      if(loginStatus) loginStatus.textContent='';
-      enterDashboard();
     });
   }
 
@@ -164,11 +178,11 @@ document.addEventListener('DOMContentLoaded',async()=>{
     document.getElementById('productSearch')?.addEventListener('input',e=>renderProducts(e.target.value));
 
     const logoutBtn=document.getElementById('logoutBtn');
-    if(logoutBtn) logoutBtn.onclick=()=>{
-      sessionStorage.removeItem(SESSION_KEY);if(cloudReady())window.PILARK_CMS.client.auth.signOut();
-      document.getElementById('adminApp').hidden=true;
-      document.getElementById('loginView').hidden=false;
+    if(logoutBtn) logoutBtn.onclick=async()=>{
+      try{await window.PILARK_CMS.client.auth.signOut();}catch(err){console.warn('Sign out failed:',err);}
+      sessionStorage.removeItem(SESSION_KEY);
       document.getElementById('loginForm').reset();
+      showLogin('');
     };
 
     const resetBtn=document.getElementById('resetBtn');
@@ -184,8 +198,15 @@ document.addEventListener('DOMContentLoaded',async()=>{
     if(loginStatus) loginStatus.textContent='Editor initialization issue detected. You can still log in to open the dashboard.';
   }
 
-  if(cloudReady()){
+  try{
     const {data:{session}}=await window.PILARK_CMS.client.auth.getSession();
-    if(session){await loadCloudState();enterDashboard();}
-  }else if(sessionStorage.getItem(SESSION_KEY)==='1') enterDashboard();
+    if(session){
+      await loadCloudState();
+      enterDashboard();
+    }else{
+      showLogin('');
+    }
+  }catch(err){
+    showLogin('Unable to verify your login session. Please sign in again.');
+  }
 });
