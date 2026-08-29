@@ -124,3 +124,16 @@ document.addEventListener('DOMContentLoaded',()=>{
   visionModal?.addEventListener('click',e=>{if(e.target===visionModal)closeVisionModal();});
   document.addEventListener('keydown',e=>{if(e.key==='Escape'&&visionModal?.classList.contains('open'))closeVisionModal();});
 });
+
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const toggle=document.getElementById('solutionsMobileToggle');
+  const submenu=document.getElementById('solutionsMobileMenu');
+  if(toggle&&submenu){
+    toggle.addEventListener('click',()=>{
+      const open=!submenu.classList.contains('open');
+      submenu.classList.toggle('open',open);
+      toggle.setAttribute('aria-expanded',String(open));
+    });
+  }
+});
