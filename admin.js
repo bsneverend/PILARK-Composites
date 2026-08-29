@@ -186,6 +186,7 @@ async function sendAdminChatMessage(message){
 function showView(name){
   document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+name));
   document.querySelectorAll('.side-link').forEach(b=>b.classList.toggle('active',b.dataset.view===name));
+  document.querySelector('.admin-main')?.classList.toggle('chat-mode',name==='chat');
   document.getElementById('pageTitle').textContent={dashboard:'Website overview',media:'Media Library',products:'Product thumbnails',sections:'Website Content',chat:'Live Chat',settings:'Settings'}[name]||'PILARK Admin';
   if(name==='chat') loadAdminChats();
 }
