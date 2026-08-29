@@ -6,7 +6,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="admin.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script><script src="cms.js"></script></head><body>
-<div id="loginView" class="login-view" hidden style="display:none !important">
+<div id="loginView" class="login-view">
   <div class="login-card">
     <a class="admin-logo" href="index.html"><img src="assets/pilark-logo.svg" alt="PILARK Composites"></a>
     <div class="eyebrow">Admin access</div><h1>Welcome back.</h1>
@@ -16,12 +16,12 @@
       <label>Password<input id="adminPassword" type="password" placeholder="Enter password" required autocomplete="current-password"></label>
       <button id="loginBtn" class="primary-btn" type="submit">Login to dashboard →</button><div id="loginStatus" class="content-status"></div>
     </form>
-    <div class="prototype-note"><b>Local dashboard mode</b><span>The dashboard is functional for editing and previewing changes in this browser. Secure shared login, cloud storage and publishing will be connected in the backend phase.</span></div>
+    <div class="prototype-note"><b>Secure admin access</b><span>Sign in with your authorized Supabase account to manage website media, products and content stored in the cloud.</span></div>
     <a class="back-link" href="index.html">← Back to website</a>
   </div>
 </div>
 
-<div id="adminApp" class="admin-app">
+<div id="adminApp" class="admin-app" hidden>
   <aside class="sidebar">
     <a class="admin-logo" href="index.html"><img src="assets/pilark-logo.svg" alt="PILARK Composites"></a>
     <div class="sidebar-label">Content management</div>
@@ -35,7 +35,7 @@
 
   <main class="admin-main">
     <div class="topbar"><div><div class="eyebrow">PILARK Admin</div><h1 id="pageTitle">Website overview</h1></div><a class="preview-btn" href="index.html" target="_blank">Preview website ↗</a></div>
-    <div class="prototype-banner">Local editing is active. Changes are saved in this browser and can be previewed immediately on the website. A cloud backend is still required for shared, secure publishing.</div>
+    <div class="prototype-banner">Cloud CMS is active. Changes made here are saved to your Supabase database and storage for the live website.</div>
 
     <section class="view active" id="view-dashboard">
       <div class="stats-grid">
