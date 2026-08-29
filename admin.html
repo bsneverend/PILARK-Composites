@@ -29,6 +29,8 @@
     <button class="side-link" data-view="media">Media Library</button>
     <button class="side-link" data-view="products">Products</button>
     <button class="side-link" data-view="sections">Website Content</button>
+    <div class="sidebar-label chat-nav-label">Customer communication</div>
+    <button class="side-link" data-view="chat">Live Chat <span id="chatUnreadBadge" class="chat-unread-badge" hidden>0</span></button>
     <button class="side-link" data-view="settings">Settings</button>
     <div class="sidebar-bottom"><a href="index.html" target="_blank">View website ↗</a><button id="logoutBtn">Logout</button></div>
   </aside>
@@ -69,11 +71,19 @@
       <form id="contentEditor" class="content-editor"></form>
     </section>
 
+    <section class="view" id="view-chat">
+      <div class="section-intro"><h2>Live Chat</h2><p>Respond to website visitors and manage customer conversations in one place.</p></div>
+      <div class="chat-admin-layout">
+        <div class="chat-admin-list-panel"><div class="chat-admin-list-head"><b>Conversations</b><button id="chatRefreshBtn" class="text-btn">Refresh</button></div><div id="adminChatList" class="admin-chat-list"></div></div>
+        <div class="chat-admin-thread-panel"><div id="adminChatEmpty" class="admin-chat-empty"><b>Select a conversation</b><span>Choose a visitor from the inbox to view and reply.</span></div><div id="adminChatThread" hidden><div class="admin-chat-thread-head"><div><b id="adminChatName">Visitor</b><small id="adminChatMeta"></small></div><select id="adminChatStatus"><option value="open">Open</option><option value="pending">Pending</option><option value="resolved">Resolved</option></select></div><div id="adminChatMessages" class="admin-chat-messages"></div><form id="adminChatComposer" class="admin-chat-composer"><input id="adminChatReply" maxlength="4000" placeholder="Write a reply…"><button type="submit">Send →</button></form></div></div>
+      </div>
+    </section>
+
     <section class="view" id="view-settings">
       <div class="section-intro"><h2>Settings</h2><p>Manage your cloud-powered dashboard.</p></div>
       <div class="panel"><h2>Cloud CMS is active</h2><p>All media, product thumbnails and website content changes are saved directly to your Supabase database and storage. This dashboard no longer relies on local browser overrides.</p></div>
     </section>
   </main>
 </div>
-<script src="admin.js?v=20260830-footer-logo1"></script>
+<script src="admin.js?v=20260830-livechat1"></script>
 </body></html>
