@@ -1,35 +1,35 @@
 <!doctype html>
-<html lang="en"><head>
+<html lang="en"><head><base href="../">
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PILARK Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="../admin.css">
+<link rel="stylesheet" href="admin.css">
 </head><body>
 <div id="loginView" class="login-view">
   <div class="login-card">
-    <a class="admin-logo" href="../index.html"><img src="../assets/pilark-logo.svg" alt="PILARK Composites"></a>
+    <a class="admin-logo" href="index.html"><img src="assets/pilark-logo.svg" alt="PILARK Composites"></a>
     <div class="eyebrow">Admin access</div><h1>Welcome back.</h1>
     <p>Manage website images, product thumbnails and visual content from one place.</p>
     <form id="loginForm"><label>Email<input type="email" placeholder="admin@pilarkomposit.com" required></label><label>Password<input type="password" placeholder="Enter password" required></label><button class="primary-btn" type="submit">Login to dashboard →</button></form>
     <div class="prototype-note"><b>Prototype mode</b><span>This first version is a UI prototype. Login is not yet connected to a secure backend.</span></div>
-    <a class="back-link" href="../index.html">← Back to website</a>
+    <a class="back-link" href="index.html">← Back to website</a>
   </div>
 </div>
 
 <div id="adminApp" class="admin-app" hidden>
   <aside class="sidebar">
-    <a class="admin-logo" href="../index.html"><img src="../assets/pilark-logo.svg" alt="PILARK Composites"></a>
+    <a class="admin-logo" href="index.html"><img src="assets/pilark-logo.svg" alt="PILARK Composites"></a>
     <div class="sidebar-label">Content management</div>
     <button class="side-link active" data-view="dashboard">Overview</button>
     <button class="side-link" data-view="media">Media Library</button>
     <button class="side-link" data-view="products">Products</button>
     <button class="side-link" data-view="sections">Sections</button>
     <button class="side-link" data-view="settings">Settings</button>
-    <div class="sidebar-bottom"><a href="../index.html">View website ↗</a><button id="logoutBtn">Logout</button></div>
+    <div class="sidebar-bottom"><a href="index.html">View website ↗</a><button id="logoutBtn">Logout</button></div>
   </aside>
   <main class="admin-main">
-    <div class="topbar"><div><div class="eyebrow">PILARK Admin</div><h1 id="pageTitle">Website overview</h1></div><a class="preview-btn" href="../index.html" target="_blank">Preview website ↗</a></div>
+    <div class="topbar"><div><div class="eyebrow">PILARK Admin</div><h1 id="pageTitle">Website overview</h1></div><a class="preview-btn" href="index.html" target="_blank">Preview website ↗</a></div>
     <div class="prototype-banner">Prototype mode — changes currently save in this browser only. The next phase is to connect secure authentication, cloud storage and a shared database.</div>
 
     <section class="view active" id="view-dashboard">
@@ -44,5 +44,5 @@
     <section class="view" id="view-settings"><div class="section-intro"><h2>Settings</h2><p>Manage local prototype data.</p></div><div class="panel"><h2>Reset prototype changes</h2><p>Remove all image overrides saved in this browser and return the website to its repository defaults.</p><button id="resetBtn" class="danger-btn">Reset local changes</button></div></section>
   </main>
 </div>
-<script src="../admin.js"></script>
+<script src="admin.js"></script>
 </body></html>
