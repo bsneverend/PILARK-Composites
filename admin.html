@@ -4,7 +4,7 @@
 <title>PILARK Admin Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="admin.css?v=20260830-mobile-livechat3">
+<link rel="stylesheet" href="admin.css?v=20260830-mobile-popup-hamburger1">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script><script src="cms.js"></script></head><body>
 <div id="loginView" class="login-view">
   <div class="login-card">
@@ -23,6 +23,7 @@
 
 <div id="adminApp" class="admin-app" hidden>
   <aside class="sidebar">
+    <button id="mobileNavToggle" class="mobile-nav-toggle" type="button" aria-label="Open admin navigation" aria-expanded="false"><span></span><span></span><span></span></button>
     <a class="admin-logo" href="index.html"><img src="assets/pilark-logo-footer.svg" alt="PILARK Composites"></a>
     <div class="sidebar-label">Content management</div>
     <button class="side-link active" data-view="dashboard">Overview</button>
@@ -75,7 +76,7 @@
       <div class="section-intro"><h2>Live Chat</h2><p>Respond to website visitors and manage customer conversations in one place.</p></div>
       <div class="chat-admin-layout">
         <div class="chat-admin-list-panel"><div class="chat-admin-list-head"><b>Conversations</b><button id="chatRefreshBtn" class="text-btn">Refresh</button></div><div id="adminChatList" class="admin-chat-list"></div></div>
-        <div class="chat-admin-thread-panel"><div id="adminChatEmpty" class="admin-chat-empty"><b>Select a conversation</b><span>Choose a visitor from the inbox to view and reply.</span></div><div id="adminChatThread" hidden><div class="admin-chat-thread-head"><div><b id="adminChatName">Visitor</b><small id="adminChatMeta"></small></div><select id="adminChatStatus"><option value="open">Open</option><option value="pending">Pending</option><option value="resolved">Resolved</option></select></div><div id="adminChatMessages" class="admin-chat-messages"></div><form id="adminChatComposer" class="admin-chat-composer"><input id="adminChatReply" maxlength="4000" placeholder="Write a reply…"><button type="submit">Send →</button></form></div></div>
+        <div class="chat-admin-thread-panel"><div id="adminChatEmpty" class="admin-chat-empty"><b>Select a conversation</b><span>Choose a visitor from the inbox to view and reply.</span></div><div id="adminChatThread" hidden><div class="admin-chat-thread-head"><div><b id="adminChatName">Visitor</b><small id="adminChatMeta"></small></div><div class="admin-chat-thread-actions"><select id="adminChatStatus"><option value="open">Open</option><option value="pending">Pending</option><option value="resolved">Resolved</option></select><button id="adminChatCloseMobile" class="mobile-chat-close" type="button" aria-label="Close conversation">×</button></div></div><div id="adminChatMessages" class="admin-chat-messages"></div><form id="adminChatComposer" class="admin-chat-composer"><input id="adminChatReply" maxlength="4000" placeholder="Write a reply…"><button type="submit">Send →</button></form></div></div>
       </div>
     </section>
 
@@ -85,5 +86,5 @@
     </section>
   </main>
 </div>
-<script src="admin.js?v=20260830-chat-fixed2"></script>
+<script src="admin.js?v=20260830-mobile-popup-hamburger1"></script>
 </body></html>
