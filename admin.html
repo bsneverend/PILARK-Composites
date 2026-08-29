@@ -11,10 +11,10 @@
     <a class="admin-logo" href="index.html"><img src="assets/pilark-logo.svg" alt="PILARK Composites"></a>
     <div class="eyebrow">Admin access</div><h1>Welcome back.</h1>
     <p>Manage website images, product thumbnails and selected content from one place.</p>
-    <form id="loginForm">
-      <label>Email<input type="email" placeholder="admin@pilarkomposit.com" required autocomplete="email"></label>
-      <label>Password<input type="password" placeholder="Enter password" required autocomplete="current-password"></label>
-      <button class="primary-btn" type="submit">Login to dashboard →</button>
+    <form id="loginForm" novalidate>
+      <label>Email<input id="adminEmail" type="email" placeholder="admin@pilarkomposit.com" required autocomplete="email"></label>
+      <label>Password<input id="adminPassword" type="password" placeholder="Enter password" required autocomplete="current-password"></label>
+      <button id="loginBtn" class="primary-btn" type="submit">Login to dashboard →</button><div id="loginStatus" class="content-status"></div>
     </form>
     <div class="prototype-note"><b>Local dashboard mode</b><span>The dashboard is functional for editing and previewing changes in this browser. Secure shared login, cloud storage and publishing will be connected in the backend phase.</span></div>
     <a class="back-link" href="index.html">← Back to website</a>
@@ -75,5 +75,5 @@
     </section>
   </main>
 </div>
-<script src="admin.js"></script>
+<script src="admin.js?v=20260829-fix-login"></script>
 </body></html>
