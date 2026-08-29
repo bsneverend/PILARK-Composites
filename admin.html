@@ -8,7 +8,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script><script src="cms.js"></script></head><body>
 <div id="loginView" class="login-view">
   <div class="login-card">
-    <a class="admin-logo" href="index.html"><img src="assets/pilark-logo.svg" alt="PILARK Composites"></a>
+    <a class="admin-logo" href="index.html"><img src="assets/pilark-logo-footer.svg" alt="PILARK Composites"></a>
     <div class="eyebrow">Admin access</div><h1>Welcome back.</h1>
     <p>Manage website images, product thumbnails and selected content from one place.</p>
     <form id="loginForm" novalidate>
@@ -23,7 +23,7 @@
 
 <div id="adminApp" class="admin-app" hidden>
   <aside class="sidebar">
-    <a class="admin-logo" href="index.html"><img src="assets/pilark-logo.svg" alt="PILARK Composites"></a>
+    <a class="admin-logo" href="index.html"><img src="assets/pilark-logo-footer.svg" alt="PILARK Composites"></a>
     <div class="sidebar-label">Content management</div>
     <button class="side-link active" data-view="dashboard">Overview</button>
     <button class="side-link" data-view="media">Media Library</button>
@@ -54,12 +54,12 @@
     </section>
 
     <section class="view" id="view-media">
-      <div class="section-intro"><h2>Media Library</h2><p>Replace the main images used across the website. Supported files are saved locally in this browser during the current dashboard phase.</p></div>
+      <div class="section-intro"><h2>Media Library</h2><p>Replace the main images used across the website. Supported files are uploaded directly to your Supabase Storage and used by the live website.</p></div>
       <div id="mediaGrid" class="media-grid"></div>
     </section>
 
     <section class="view" id="view-products">
-      <div class="section-intro"><h2>Product thumbnails</h2><p>Replace the image shown on each product card. The website preview updates from the saved override.</p></div>
+      <div class="section-intro"><h2>Product thumbnails</h2><p>Replace the image shown on each product card. Changes are saved directly to Supabase and used by the live website.</p></div>
       <div class="product-search"><input id="productSearch" type="search" placeholder="Search product…"></div>
       <div id="productEditor" class="product-editor-grid"></div>
     </section>
@@ -70,8 +70,8 @@
     </section>
 
     <section class="view" id="view-settings">
-      <div class="section-intro"><h2>Settings</h2><p>Manage this browser's dashboard data.</p></div>
-      <div class="panel"><h2>Reset local changes</h2><p>Remove all image, thumbnail and content overrides saved in this browser and return the website to its repository defaults.</p><button id="resetBtn" class="danger-btn">Reset local changes</button></div>
+      <div class="section-intro"><h2>Settings</h2><p>Manage your cloud-powered dashboard.</p></div>
+      <div class="panel"><h2>Cloud CMS is active</h2><p>All media, product thumbnails and website content changes are saved directly to your Supabase database and storage. This dashboard no longer relies on local browser overrides.</p></div>
     </section>
   </main>
 </div>
