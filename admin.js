@@ -185,14 +185,6 @@ document.addEventListener('DOMContentLoaded',async()=>{
       showLogin('');
     };
 
-    const resetBtn=document.getElementById('resetBtn');
-    if(resetBtn) resetBtn.onclick=()=>{
-      if(confirm('Reset all local dashboard changes?')){
-        localStorage.removeItem(KEY);
-        renderMedia();renderProducts();renderContentEditor();updateStats();
-        alert('Local changes reset. The website will return to repository defaults in this browser.');
-      }
-    };
   }catch(err){
     console.error('Admin editor initialization failed:',err);
     if(loginStatus) loginStatus.textContent='Editor initialization issue detected. You can still log in to open the dashboard.';
