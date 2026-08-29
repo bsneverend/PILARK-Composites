@@ -130,6 +130,13 @@ async function loadAdminChats(){
   if(badge){badge.textContent=openCount;badge.hidden=!openCount;}
 }
 function escapeHtml(v){return String(v||'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));}
+function isMobileChatViewport(){return window.matchMedia('(max-width:900px)').matches}
+function setMobileChatOpen(open){
+  const main=document.querySelector('.admin-main');
+  const shouldOpen=!!open&&isMobileChatViewport();
+  main?.classList.toggle('mobile-chat-open',shouldOpen);
+  document.body.classList.toggle('mobile-chat-open',shouldOpen);
+}
 async function selectAdminChat(id){
   const convo=adminChatState.conversations.find(x=>x.id===id);if(!convo)return;
   adminChatState.selected=convo;
@@ -139,6 +146,7 @@ async function selectAdminChat(id){
   document.getElementById('adminChatMeta').textContent=(convo.visitor_email||'No email provided')+(convo.current_page?' · '+convo.current_page:'');
   document.getElementById('adminChatStatus').value=convo.status;
   await loadAdminChatMessages();
+  setMobileChatOpen(true);
 }
 async function loadAdminChatMessages(){
   const convo=adminChatState.selected;if(!convo||!cloudReady())return;
@@ -164,6 +172,7 @@ async function deleteAdminChatConversation(conversationId){
     const empty=document.getElementById('adminChatEmpty');
     if(thread)thread.hidden=true;
     if(empty)empty.hidden=false;
+    setMobileChatOpen(false);
   }
   await loadAdminChats();
 }
@@ -186,7 +195,9 @@ async function sendAdminChatMessage(message){
 function showView(name){
   document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+name));
   document.querySelectorAll('.side-link').forEach(b=>b.classList.toggle('active',b.dataset.view===name));
-  document.querySelector('.admin-main')?.classList.toggle('chat-mode',name==='chat');
+  const main=document.querySelector('.admin-main');
+  main?.classList.toggle('chat-mode',name==='chat');
+  if(name!=='chat')setMobileChatOpen(false);
   document.getElementById('pageTitle').textContent={dashboard:'Website overview',media:'Media Library',products:'Product thumbnails',sections:'Website Content',chat:'Live Chat',settings:'Settings'}[name]||'PILARK Admin';
   if(name==='chat') loadAdminChats();
 }
@@ -244,7 +255,25 @@ document.addEventListener('DOMContentLoaded',async()=>{
     renderContentEditor();
     updateStats();
 
-    document.querySelectorAll('.side-link').forEach(b=>b.onclick=()=>showView(b.dataset.view));
+    const mobileNavToggle=document.getElementById('mobileNavToggle');
+    const sidebar=document.querySelector('.sidebar');
+    if(mobileNavToggle&&sidebar){
+      mobileNavToggle.onclick=()=>{
+        const open=sidebar.classList.toggle('mobile-open');
+        mobileNavToggle.setAttribute('aria-expanded',String(open));
+        mobileNavToggle.setAttribute('aria-label',open?'Close admin navigation':'Open admin navigation');
+      };
+    }
+    document.querySelectorAll('.side-link').forEach(b=>b.onclick=()=>{
+      showView(b.dataset.view);
+      if(sidebar?.classList.contains('mobile-open')){
+        sidebar.classList.remove('mobile-open');
+        mobileNavToggle?.setAttribute('aria-expanded','false');
+        mobileNavToggle?.setAttribute('aria-label','Open admin navigation');
+      }
+    });
+    document.getElementById('adminChatCloseMobile')?.addEventListener('click',()=>setMobileChatOpen(false));
+    window.addEventListener('resize',()=>{if(!isMobileChatViewport())setMobileChatOpen(false);});
     document.querySelectorAll('[data-goto]').forEach(b=>b.onclick=()=>showView(b.dataset.goto));
     document.getElementById('productSearch')?.addEventListener('input',e=>renderProducts(e.target.value));
     document.getElementById('chatRefreshBtn')?.addEventListener('click',()=>{loadAdminChats();loadAdminChatMessages();});
