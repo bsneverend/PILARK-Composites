@@ -145,7 +145,18 @@ async function loadAdminChatMessages(){
   const {data,error}=await window.PILARK_CMS.client.from('chat_messages').select('id,sender_type,message,created_at').eq('conversation_id',convo.id).order('created_at',{ascending:true});
   if(error){console.warn('Chat messages load failed:',error.message);return;}
   const box=document.getElementById('adminChatMessages');if(!box)return;
-  box.innerHTML=(data||[]).map(m=>'<div class="admin-msg '+(m.sender_type==='admin'?'admin':'visitor')+'"><div>'+escapeHtml(m.message)+'</div><small>'+new Date(m.created_at).toLocaleString()+'</small></div>').join('');box.scrollTop=box.scrollHeight;
+  box.innerHTML=(data||[]).map(m=>'<div class="admin-msg '+(m.sender_type==='admin'?'admin':'visitor')+'" data-message-id="'+m.id+'"><div class="admin-msg-text">'+escapeHtml(m.message)+'</div><div class="admin-msg-foot"><small>'+new Date(m.created_at).toLocaleString()+'</small><button type="button" class="admin-msg-delete" data-delete-message="'+m.id+'" aria-label="Delete message" title="Delete message">Delete</button></div></div>').join('');
+  box.querySelectorAll('[data-delete-message]').forEach(btn=>btn.onclick=async()=>{const id=btn.dataset.deleteMessage;if(!confirm('Delete this message permanently?'))return;try{await deleteAdminChatMessage(id);}catch(err){alert('Delete failed: '+err.message);}});
+  box.scrollTop=box.scrollHeight;
+}
+async function deleteAdminChatMessage(messageId){
+  const convo=adminChatState.selected;if(!convo)return;
+  const {error}=await window.PILARK_CMS.client.from('chat_messages').delete().eq('id',messageId).eq('conversation_id',convo.id);
+  if(error)throw error;
+  await window.PILARK_CMS.client.from('chat_conversations').update({updated_at:new Date().toISOString()}).eq('id',convo.id);
+  convo.updated_at=new Date().toISOString();
+  await loadAdminChatMessages();
+  await loadAdminChats();
 }
 async function sendAdminChatMessage(message){
   const convo=adminChatState.selected;if(!convo)return;
