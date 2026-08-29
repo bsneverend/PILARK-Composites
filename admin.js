@@ -104,7 +104,19 @@ document.addEventListener('DOMContentLoaded',()=>{
 
   if(sessionStorage.getItem(SESSION_KEY)==='1')enterDashboard();
 
-  document.getElementById('loginForm').addEventListener('submit',e=>{e.preventDefault();enterDashboard();});
+  const loginForm=document.getElementById('loginForm');
+  const loginStatus=document.getElementById('loginStatus');
+  loginForm.addEventListener('submit',e=>{
+    e.preventDefault();
+    const email=document.getElementById('adminEmail').value.trim();
+    const password=document.getElementById('adminPassword').value;
+    if(!email||!password){
+      loginStatus.textContent='Please enter your email and password.';
+      return;
+    }
+    loginStatus.textContent='';
+    enterDashboard();
+  });
   document.querySelectorAll('.side-link').forEach(b=>b.onclick=()=>showView(b.dataset.view));
   document.querySelectorAll('[data-goto]').forEach(b=>b.onclick=()=>showView(b.dataset.goto));
   document.getElementById('productSearch')?.addEventListener('input',e=>renderProducts(e.target.value));
