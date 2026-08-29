@@ -16,3 +16,6 @@
 
 /* Admin live chat message deletion */
 .admin-msg-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:4px}.admin-msg-delete{border:0;background:transparent;color:inherit;opacity:.7;padding:2px 0;font-size:.66rem;font-weight:800;cursor:pointer}.admin-msg-delete:hover{opacity:1;text-decoration:underline;color:#e65a5a}.admin-msg.visitor .admin-msg-delete{color:#a53d3d}.admin-msg-text{word-break:break-word}
+
+/* Inbox conversation deletion */
+.admin-chat-row-wrap{position:relative;border-bottom:1px solid #edf3f6}.admin-chat-row-wrap.active{background:#f2f9fc}.admin-chat-row-wrap .admin-chat-row{border-bottom:0;padding-right:48px}.admin-chat-delete{position:absolute;right:10px;top:50%;transform:translateY(-50%);width:28px;height:28px;border:0;border-radius:9px;background:transparent;color:#9aafb8;font-size:1.35rem;line-height:1;cursor:pointer;opacity:0}.admin-chat-row-wrap:hover .admin-chat-delete,.admin-chat-row-wrap.active .admin-chat-delete{opacity:1}.admin-chat-delete:hover{background:#fff1f1;color:#d44a4a}.admin-chat-delete:disabled{cursor:wait;opacity:.45}
