@@ -19,3 +19,26 @@
 
 /* Inbox conversation deletion */
 .admin-chat-row-wrap{position:relative;border-bottom:1px solid #edf3f6;background:#fff;transition:background .18s ease,box-shadow .18s ease}.admin-chat-row-wrap:hover{background:#f7fbfd}.admin-chat-row-wrap.active{background:#e8f6fc;box-shadow:inset 4px 0 0 var(--blue)}.admin-chat-row-wrap .admin-chat-row{border-bottom:0;padding-right:48px;background:transparent}.admin-chat-row-wrap.active .admin-chat-row{background:transparent}.admin-chat-row-wrap.active .admin-chat-row b{color:#047bc2}.admin-chat-delete{position:absolute;right:10px;top:50%;transform:translateY(-50%);width:28px;height:28px;border:0;border-radius:9px;background:transparent;color:#9aafb8;font-size:1.35rem;line-height:1;cursor:pointer;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .16s ease,background .16s ease,color .16s ease}.admin-chat-row-wrap:hover .admin-chat-delete,.admin-chat-row-wrap:focus-within .admin-chat-delete{opacity:1;visibility:visible;pointer-events:auto}.admin-chat-delete:hover{background:#fff1f1;color:#d44a4a}.admin-chat-delete:disabled{cursor:wait;opacity:.45}
+
+
+/* Fixed live chat workspace: only inbox and conversation content scroll */
+.admin-main.chat-mode{height:100vh;overflow:hidden;padding-bottom:28px;display:flex;flex-direction:column}
+.admin-main.chat-mode .view-chat.active{display:flex;flex:1;min-height:0;flex-direction:column}
+.admin-main.chat-mode .view-chat .section-intro{flex:0 0 auto;margin-bottom:22px}
+.admin-main.chat-mode .chat-admin-layout{flex:1;min-height:0;height:auto}
+.admin-main.chat-mode .chat-admin-list-panel{min-height:0}
+.admin-main.chat-mode .admin-chat-list{flex:1;min-height:0;max-height:none;overflow-y:auto;overscroll-behavior:contain}
+.admin-main.chat-mode .chat-admin-thread-panel{min-height:0}
+.admin-main.chat-mode #adminChatThread{display:flex;flex:1;min-height:0;flex-direction:column}
+.admin-main.chat-mode .admin-chat-messages{flex:1;min-height:0;height:auto;overflow-y:auto;overscroll-behavior:contain}
+.admin-main.chat-mode .admin-chat-composer{flex:0 0 auto}
+.admin-main.chat-mode .admin-chat-empty{flex:1;min-height:0}
+
+@media(max-width:900px){
+  .admin-main.chat-mode{height:auto;overflow:visible;padding-bottom:70px;display:block}
+  .admin-main.chat-mode .view-chat.active{display:block}
+  .admin-main.chat-mode .chat-admin-layout{min-height:620px}
+  .admin-main.chat-mode .admin-chat-list{max-height:260px;overflow:auto}
+  .admin-main.chat-mode #adminChatThread{display:block}
+  .admin-main.chat-mode .admin-chat-messages{height:380px}
+}
