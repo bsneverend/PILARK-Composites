@@ -100,39 +100,57 @@ function enterDashboard(){
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
-  renderMedia();renderProducts();renderContentEditor();updateStats();
-
-  if(sessionStorage.getItem(SESSION_KEY)==='1')enterDashboard();
-
+  // Bind login first so the dashboard can always be opened even if an editor
+  // section has a missing asset or encounters a rendering error.
   const loginForm=document.getElementById('loginForm');
   const loginStatus=document.getElementById('loginStatus');
-  loginForm.addEventListener('submit',e=>{
-    e.preventDefault();
-    const email=document.getElementById('adminEmail').value.trim();
-    const password=document.getElementById('adminPassword').value;
-    if(!email||!password){
-      loginStatus.textContent='Please enter your email and password.';
-      return;
-    }
-    loginStatus.textContent='';
-    enterDashboard();
-  });
-  document.querySelectorAll('.side-link').forEach(b=>b.onclick=()=>showView(b.dataset.view));
-  document.querySelectorAll('[data-goto]').forEach(b=>b.onclick=()=>showView(b.dataset.goto));
-  document.getElementById('productSearch')?.addEventListener('input',e=>renderProducts(e.target.value));
 
-  document.getElementById('logoutBtn').onclick=()=>{
-    sessionStorage.removeItem(SESSION_KEY);
-    document.getElementById('adminApp').hidden=true;
-    document.getElementById('loginView').hidden=false;
-    document.getElementById('loginForm').reset();
-  };
+  if(loginForm){
+    loginForm.addEventListener('submit',e=>{
+      e.preventDefault();
+      const email=document.getElementById('adminEmail')?.value.trim()||'';
+      const password=document.getElementById('adminPassword')?.value||'';
 
-  document.getElementById('resetBtn').onclick=()=>{
-    if(confirm('Reset all local dashboard changes?')){
-      localStorage.removeItem(KEY);
-      renderMedia();renderProducts();renderContentEditor();updateStats();
-      alert('Local changes reset. The website will return to repository defaults in this browser.');
-    }
-  };
+      if(!email||!password){
+        if(loginStatus) loginStatus.textContent='Please enter your email and password.';
+        return;
+      }
+
+      if(loginStatus) loginStatus.textContent='';
+      enterDashboard();
+    });
+  }
+
+  try{
+    renderMedia();
+    renderProducts();
+    renderContentEditor();
+    updateStats();
+
+    document.querySelectorAll('.side-link').forEach(b=>b.onclick=()=>showView(b.dataset.view));
+    document.querySelectorAll('[data-goto]').forEach(b=>b.onclick=()=>showView(b.dataset.goto));
+    document.getElementById('productSearch')?.addEventListener('input',e=>renderProducts(e.target.value));
+
+    const logoutBtn=document.getElementById('logoutBtn');
+    if(logoutBtn) logoutBtn.onclick=()=>{
+      sessionStorage.removeItem(SESSION_KEY);
+      document.getElementById('adminApp').hidden=true;
+      document.getElementById('loginView').hidden=false;
+      document.getElementById('loginForm').reset();
+    };
+
+    const resetBtn=document.getElementById('resetBtn');
+    if(resetBtn) resetBtn.onclick=()=>{
+      if(confirm('Reset all local dashboard changes?')){
+        localStorage.removeItem(KEY);
+        renderMedia();renderProducts();renderContentEditor();updateStats();
+        alert('Local changes reset. The website will return to repository defaults in this browser.');
+      }
+    };
+  }catch(err){
+    console.error('Admin editor initialization failed:',err);
+    if(loginStatus) loginStatus.textContent='Editor initialization issue detected. You can still log in to open the dashboard.';
+  }
+
+  if(sessionStorage.getItem(SESSION_KEY)==='1') enterDashboard();
 });
