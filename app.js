@@ -4,11 +4,39 @@ function getAdminOverrides(){try{return JSON.parse(localStorage.getItem(ADMIN_OV
 function applyAdminOverrides(){
   const o=getAdminOverrides();
   if(o.products){products.forEach(p=>{if(o.products[p.id]?.img)p.img=o.products[p.id].img;});}
+
   const set=(id,src)=>{const el=document.getElementById(id);if(el&&src)el.src=src;};
   set('heroThumbnail',o.media?.hero);
   set('companyThumbnail',o.media?.company);
   set('visionMissionImage',o.media?.vision);
-  if(o.media?.applications){const el=document.getElementById('applicationsMedia');if(el)el.style.backgroundImage='url("'+o.media.applications.replace(/"/g,'\\"')+'")';}
+  if(o.media?.applications){const el=document.getElementById('applicationsMedia');if(el)el.style.backgroundImage='url("'+o.media.applications.replace(/"/g,'\\\"')+'")';}
+
+  const content=o.content||{};
+  const setText=(selector,value,index=0)=>{
+    if(value===undefined||value===null||value==='')return;
+    const nodes=document.querySelectorAll(selector),el=nodes[index];
+    if(el)el.textContent=value;
+  };
+
+  if(content.hero){
+    setText('.hero .eyebrow',content.hero.eyebrow);
+    setText('.hero h1',content.hero.title);
+    setText('.hero-copy',content.hero.copy);
+  }
+  if(content.company){
+    setText('.company-copy .eyebrow',content.company.eyebrow);
+    setText('.company-copy h2',content.company.title);
+    setText('.company-copy p',content.company.copy1,0);
+    setText('.company-copy p',content.company.copy2,1);
+  }
+  if(content.applications){
+    setText('#applications .section-head h2',content.applications.title);
+    setText('#applications .section-head p',content.applications.copy);
+  }
+  if(content.services){
+    setText('#services .section-head h2',content.services.title);
+    setText('#services .section-head p',content.services.copy);
+  }
 }
 
 const products=[
