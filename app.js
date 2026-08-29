@@ -41,3 +41,16 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(footerLogo){footerLogo.innerHTML='<img src="assets/pilark-logo-footer.svg?v=20260828" alt="PILARK Composites" style="height:58px;width:150px;object-fit:contain;object-position:left center">';}
   document.querySelectorAll('a[href^="mailto:"]').forEach(a=>{a.href='mailto:support@pilarkomposit.com';a.textContent='support@pilarkomposit.com';});
 });
+
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const visionModal=$('visionMissionModal');
+  const visionBtn=$('visionMissionBtn');
+  const closeVision=$('closeVisionMission');
+  const openVision=()=>{if(!visionModal)return;visionModal.classList.add('open');visionModal.setAttribute('aria-hidden','false');};
+  const closeVisionModal=()=>{if(!visionModal)return;visionModal.classList.remove('open');visionModal.setAttribute('aria-hidden','true');};
+  visionBtn?.addEventListener('click',openVision);
+  closeVision?.addEventListener('click',closeVisionModal);
+  visionModal?.addEventListener('click',e=>{if(e.target===visionModal)closeVisionModal();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&visionModal?.classList.contains('open'))closeVisionModal();});
+});
