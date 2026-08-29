@@ -1,7 +1,6 @@
 // PILARK CMS — Supabase public browser configuration.
-// Paste your Supabase Project URL and publishable/anon key here.
-// The anon key is designed for browser use; NEVER place the service_role key here.
+// Publishable key is safe to expose in the browser. NEVER place the service_role key here.
 window.PILARK_SUPABASE_CONFIG = {
-  url: '',
-  anonKey: ''
+  url: 'https://seelqcgjfuuwurslwtgf.supabase.co',
+  anonKey: 'sb_publishable_iFMv_9Lnt1q4YmW2Fys_lw_Xc4K-oMH'
 };
