@@ -231,3 +231,88 @@
     background:#fff;
   }
 }
+
+
+/* Mobile admin navigation compact layout */
+@media (max-width:800px){
+  /* The previous change affected the chat frame, but the full-height mobile
+     navigation was still pushing that frame far below the first viewport. */
+  .admin-app{
+    display:block;
+    min-height:100dvh;
+  }
+
+  .sidebar{
+    position:static;
+    top:auto;
+    height:auto;
+    min-height:0;
+    padding:14px 12px;
+    display:flex;
+    flex-direction:row;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:5px;
+  }
+
+  .sidebar .admin-logo{
+    flex:0 0 auto;
+    padding:4px 8px;
+    margin-right:auto;
+  }
+
+  .sidebar .admin-logo img{
+    width:118px;
+  }
+
+  .sidebar-label{
+    display:none;
+  }
+
+  .side-link{
+    flex:0 0 auto;
+    width:auto;
+    padding:8px 10px;
+    font-size:.76rem;
+    line-height:1.1;
+    border-radius:9px;
+  }
+
+  .sidebar-bottom{
+    display:none;
+  }
+
+  .admin-main.chat-mode{
+    padding-top:18px;
+    padding-bottom:24px;
+  }
+
+  .admin-main.chat-mode .topbar{
+    margin-bottom:14px;
+  }
+
+  .admin-main.chat-mode .topbar h1{
+    font-size:2rem;
+  }
+
+  .admin-main.chat-mode .prototype-banner{
+    margin-bottom:18px;
+  }
+
+  .admin-main.chat-mode .section-intro{
+    margin-bottom:16px;
+  }
+
+  .admin-main.chat-mode .section-intro h2{
+    font-size:1.35rem;
+  }
+
+  .admin-main.chat-mode .section-intro p{
+    font-size:.95rem;
+  }
+
+  .admin-main.chat-mode .chat-admin-layout{
+    border-radius:18px;
+    overflow:hidden;
+  }
+}
