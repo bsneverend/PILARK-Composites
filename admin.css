@@ -83,3 +83,84 @@
   min-height:0;
   overflow-y:auto;
 }
+
+
+/* Live chat hard frame: only inbox and message history scroll */
+@media (min-width:901px){
+  .admin-main.chat-mode{
+    box-sizing:border-box;
+    width:100%;
+    max-width:none;
+    height:100dvh;
+    min-height:0;
+    max-height:100dvh;
+    overflow:hidden;
+    display:grid;
+    grid-template-rows:auto auto minmax(0,1fr);
+  }
+
+  .admin-main.chat-mode .topbar{margin-bottom:22px}
+  .admin-main.chat-mode .prototype-banner{margin-bottom:28px}
+
+  .admin-main.chat-mode #view-chat.view.active{
+    display:grid;
+    grid-template-rows:auto minmax(0,1fr);
+    min-height:0;
+    height:100%;
+    overflow:hidden;
+  }
+
+  .admin-main.chat-mode #view-chat .section-intro{
+    margin-bottom:22px;
+  }
+
+  .admin-main.chat-mode .chat-admin-layout{
+    height:100%;
+    min-height:0;
+    max-height:100%;
+    overflow:hidden;
+  }
+
+  .admin-main.chat-mode .chat-admin-list-panel{
+    min-height:0;
+    height:100%;
+    overflow:hidden;
+  }
+
+  .admin-main.chat-mode .admin-chat-list{
+    flex:1 1 auto;
+    min-height:0;
+    max-height:none;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+  }
+
+  .admin-main.chat-mode .chat-admin-thread-panel{
+    min-height:0;
+    height:100%;
+    overflow:hidden;
+  }
+
+  .admin-main.chat-mode #adminChatThread:not([hidden]){
+    display:grid;
+    grid-template-rows:auto minmax(0,1fr) auto;
+    min-height:0;
+    height:100%;
+    overflow:hidden;
+  }
+
+  .admin-main.chat-mode .admin-chat-messages{
+    height:auto;
+    min-height:0;
+    max-height:none;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+  }
+
+  .admin-main.chat-mode .admin-chat-composer{
+    flex:none;
+    position:relative;
+    z-index:2;
+    background:#fff;
+  }
+}
