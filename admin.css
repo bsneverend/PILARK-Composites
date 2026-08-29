@@ -7,3 +7,5 @@
 @media(max-width:1100px){.quick-media,.media-grid{grid-template-columns:repeat(2,1fr)}.product-editor-grid{grid-template-columns:repeat(2,1fr)}}@media(max-width:800px){.admin-app{grid-template-columns:1fr}.sidebar{position:static;height:auto;min-height:auto}.sidebar-bottom{display:none}.admin-main{padding:24px 18px}.stats-grid{grid-template-columns:1fr}.quick-media,.media-grid,.product-editor-grid{grid-template-columns:1fr}.check-grid{grid-template-columns:1fr}.topbar{align-items:start}.preview-btn{display:none}.sidebar{gap:2px}.sidebar-label{margin-top:15px}.side-link{padding:10px 12px}.content-card{padding:18px}}
 /* Respect the HTML hidden attribute even when component styles set display values. */
 [hidden]{display:none!important}
+
+.logo-preview{background:#f5fafc;padding:22px}.logo-preview img{object-fit:contain;background:transparent}
