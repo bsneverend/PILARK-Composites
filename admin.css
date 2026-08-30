@@ -578,3 +578,9 @@
     padding-right:38px;
   }
 }
+
+/* iPhone viewport stability */
+html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+@media(max-width:760px){
+  input,textarea,select{font-size:16px}
+}
