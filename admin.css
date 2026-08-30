@@ -559,3 +559,22 @@
     }
   }
 }
+
+
+/* Inbox preview: latest customer message */
+.admin-chat-row .admin-chat-preview{
+  color:#667985;
+  font-size:.74rem;
+  line-height:1.35;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  padding-right:4px;
+}
+.admin-chat-row-wrap.active .admin-chat-preview{color:#4f6875}
+@media(max-width:900px){
+  .admin-chat-row .admin-chat-preview{
+    font-size:.78rem;
+    padding-right:38px;
+  }
+}
