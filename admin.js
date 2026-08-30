@@ -123,8 +123,35 @@ async function loadAdminChats(){
   const {data,error}=await c.from('chat_conversations').select('id,visitor_name,visitor_email,current_page,status,created_at,updated_at').order('updated_at',{ascending:false}).limit(100);
   if(error){console.warn('Live chat load failed:',error.message);return;}
   adminChatState.conversations=data||[];
+
+  // Load the newest message written by each visitor so the inbox itself gives
+  // the operator useful context before opening the conversation.
+  const conversationIds=(data||[]).map(x=>x.id);
+  const lastVisitorMessageByConversation={};
+  if(conversationIds.length){
+    const {data:visitorMessages,error:visitorMessagesError}=await c
+      .from('chat_messages')
+      .select('conversation_id,message,created_at')
+      .in('conversation_id',conversationIds)
+      .eq('sender_type','visitor')
+      .order('created_at',{ascending:false});
+    if(visitorMessagesError){
+      console.warn('Live chat preview load failed:',visitorMessagesError.message);
+    }else{
+      (visitorMessages||[]).forEach(message=>{
+        // Results are newest first, so keep only the first message per conversation.
+        if(!lastVisitorMessageByConversation[message.conversation_id]){
+          lastVisitorMessageByConversation[message.conversation_id]=message.message||'';
+        }
+      });
+    }
+  }
+
   const list=document.getElementById('adminChatList');
-  if(list){list.innerHTML=(data||[]).map(x=>'<div class="admin-chat-row-wrap '+(adminChatState.selected?.id===x.id?'active':'')+'"><button class="admin-chat-row" data-chat-id="'+x.id+'"><span class="admin-chat-row-top"><b>'+escapeHtml(x.visitor_name||'Website visitor')+'</b><small>'+escapeHtml(x.status)+'</small></span><span>'+escapeHtml(x.visitor_email||'No email provided')+'</span><small>'+new Date(x.updated_at).toLocaleString()+'</small></button><button type="button" class="admin-chat-delete" data-delete-chat="'+x.id+'" aria-label="Delete conversation" title="Delete conversation">×</button></div>').join('')||'<div class="admin-chat-empty small"><b>No conversations yet</b><span>New visitor messages will appear here.</span></div>';list.querySelectorAll('[data-chat-id]').forEach(b=>b.onclick=()=>selectAdminChat(b.dataset.chatId));list.querySelectorAll('[data-delete-chat]').forEach(b=>b.onclick=async e=>{e.preventDefault();e.stopPropagation();const id=b.dataset.deleteChat;if(!confirm('Delete this entire conversation and all of its messages permanently?'))return;try{b.disabled=true;await deleteAdminChatConversation(id);}catch(err){b.disabled=false;alert('Delete failed: '+err.message);}});}
+  if(list){list.innerHTML=(data||[]).map(x=>{
+    const preview=lastVisitorMessageByConversation[x.id]||'No customer message yet';
+    return '<div class="admin-chat-row-wrap '+(adminChatState.selected?.id===x.id?'active':'')+'"><button class="admin-chat-row" data-chat-id="'+x.id+'"><span class="admin-chat-row-top"><b>'+escapeHtml(x.visitor_name||'Website visitor')+'</b><small>'+escapeHtml(x.status)+'</small></span><span>'+escapeHtml(x.visitor_email||'No email provided')+'</span><span class="admin-chat-preview" title="'+escapeHtml(preview)+'">'+escapeHtml(preview)+'</span><small>'+new Date(x.updated_at).toLocaleString()+'</small></button><button type="button" class="admin-chat-delete" data-delete-chat="'+x.id+'" aria-label="Delete conversation" title="Delete conversation">×</button></div>';
+  }).join('')||'<div class="admin-chat-empty small"><b>No conversations yet</b><span>New visitor messages will appear here.</span></div>';list.querySelectorAll('[data-chat-id]').forEach(b=>b.onclick=()=>selectAdminChat(b.dataset.chatId));list.querySelectorAll('[data-delete-chat]').forEach(b=>b.onclick=async e=>{e.preventDefault();e.stopPropagation();const id=b.dataset.deleteChat;if(!confirm('Delete this entire conversation and all of its messages permanently?'))return;try{b.disabled=true;await deleteAdminChatConversation(id);}catch(err){b.disabled=false;alert('Delete failed: '+err.message);}});}
   const badge=document.getElementById('chatUnreadBadge');
   const openCount=(data||[]).filter(x=>x.status==='open').length;
   if(badge){badge.textContent=openCount;badge.hidden=!openCount;}
