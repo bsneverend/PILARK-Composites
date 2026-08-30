@@ -61,3 +61,9 @@ footer{background:#071017;color:#fff;padding:58px 0 25px}.footer-grid{display:gr
 
 /* Live chat state transitions: section layout rules must not override the HTML hidden attribute */
 .chat-lead[hidden],.chat-composer[hidden]{display:none !important}
+
+/* iPhone viewport stability */
+html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+@media(max-width:760px){
+  input,textarea,select{font-size:16px}
+}
