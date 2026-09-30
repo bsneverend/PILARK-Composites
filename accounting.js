@@ -30,7 +30,9 @@
   }
 
   async function postedLines() {
-    const { data, error } = await client().from('accounting_lines').select('account_id,debit,credit,accounting_accounts(code,name,account_type)').in('entry_id', state.entries.filter(e=>e.status==='posted').map(e=>e.id));
+    const ids = state.entries.filter(e=>e.status==='posted').map(e=>e.id);
+    if (!ids.length) return [];
+    const { data, error } = await client().from('accounting_lines').select('account_id,debit,credit,accounting_accounts(code,name,account_type)').in('entry_id', ids);
     if (error) throw error;
     return data || [];
   }
@@ -47,7 +49,7 @@
   async function renderOverview() {
     const lines = await postedLines();
     const balances = state.accounts.map(a=>({account:a,balance:balanceForAccount(lines,a.id)}));
-    const cash = balances.filter(x=>['asset_cash'].includes(x.account.account_type)).reduce((s,x)=>s+x.balance,0);
+    const cash = balances.filter(x=>x.account.account_type==='asset_cash').reduce((s,x)=>s+x.balance,0);
     const ar = balances.filter(x=>x.account.account_type==='asset_receivable').reduce((s,x)=>s+x.balance,0);
     const ap = balances.filter(x=>x.account.account_type==='liability_payable').reduce((s,x)=>s+x.balance,0);
     const revenue = balances.filter(x=>['income','income_other'].includes(x.account.account_type)).reduce((s,x)=>s+x.balance,0);
@@ -92,6 +94,8 @@
     state.tab=tab;
     document.querySelectorAll('[data-accounting-tab]').forEach(b=>b.classList.toggle('active',b.dataset.accountingTab===tab));
     document.querySelectorAll('.accounting-tab-panel').forEach(p=>p.hidden=p.dataset.accountingPanel!==tab);
+    const title=el('pageTitle');
+    if(title) title.textContent='Accounting';
     if(tab==='overview') renderOverview().catch(()=>{});
   }
 
@@ -143,7 +147,6 @@
     el('entryForm')?.addEventListener('submit',createEntry);
     el('accountingRefresh')?.addEventListener('click',()=>load().catch(err=>alert('Refresh failed: '+err.message)));
     el('entryDate').value=new Date().toISOString().slice(0,10);
-    window.addEventListener('resize',()=>{});
     const accountingNav=document.querySelector('.side-link[data-view="accounting"]');
     accountingNav?.addEventListener('click',()=>setTimeout(()=>load().catch(err=>console.warn('Accounting load:',err.message)),50));
   }
