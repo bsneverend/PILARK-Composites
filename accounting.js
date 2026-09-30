@@ -86,16 +86,16 @@
 
   function render() {
     renderAccounts(); renderPartners(); renderEntries();
-    showTab(state.tab);
+    showTab(state.tab, false);
     renderOverview().catch(err=>console.warn('Accounting overview:',err.message));
   }
 
-  function showTab(tab) {
+  function showTab(tab, updateTitle=true) {
     state.tab=tab;
     document.querySelectorAll('[data-accounting-tab]').forEach(b=>b.classList.toggle('active',b.dataset.accountingTab===tab));
     document.querySelectorAll('.accounting-tab-panel').forEach(p=>p.hidden=p.dataset.accountingPanel!==tab);
     const title=el('pageTitle');
-    if(title) title.textContent='Accounting';
+    if(updateTitle && title && el('view-accounting')?.classList.contains('active')) title.textContent='Accounting';
     if(tab==='overview') renderOverview().catch(()=>{});
   }
 
