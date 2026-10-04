@@ -4,14 +4,14 @@
   const today=()=>new Date().toISOString().slice(0,10);
   const money=v=>'Rp'+Number(v||0).toLocaleString('id-ID',{maximumFractionDigits:2});
   const esc=v=>String(v??'').replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[m]));
-  let state={orders:[],partners:[],accounts:[],tab:'overview'};
+  let state={orders:[],partners:[],accounts:[],products:[],tab:'overview'};
 
   async function load(){
     if(!client())return;
-    const [o,p,a]=await Promise.all([
+    const [o,p,a,pr]=await Promise.all([
       client().from('purchase_orders').select('*,accounting_partners(name,email)').order('quotation_date',{ascending:false}).limit(500),
       client().from('accounting_partners').select('*').eq('is_active',true).order('name'),
-      client().from('accounting_accounts').select('*').eq('is_active',true).order('code')
+      client().from('accounting_accounts').select('*').eq('is_active',true).order('code'),\n      client().from('inventory_products').select('id,product_code,name,unit,is_active').eq('is_active',true).order('product_code')
     ]);
     if(o.error)throw o.error;if(p.error)throw p.error;if(a.error)throw a.error;
     state.orders=o.data||[];state.partners=p.data||[];state.accounts=a.data||[];
@@ -31,7 +31,7 @@
     s.innerHTML='<option value="">Select vendor…</option>'+state.partners.filter(p=>['vendor','both'].includes(p.partner_type)).map(p=>'<option value="'+p.id+'">'+esc(p.name)+'</option>').join('');
   }
   function lineHtml(i){
-    return '<div class="purchase-line" data-line-index="'+i+'"><input class="purchase-desc" placeholder="Product / service description"><input class="purchase-qty" type="number" min="0.0001" step="0.0001" value="1"><input class="purchase-price" type="number" min="0" step="0.01" value="0"><input class="purchase-discount" type="number" min="0" max="100" step="0.01" value="0"><input class="purchase-tax" type="number" min="0" step="0.01" value="0"><select class="purchase-account" title="Expense account">'+accountOptions()+'</select><button type="button" class="purchase-line-remove" aria-label="Remove line">×</button></div>';
+    return '<div class="purchase-line" data-line-index="'+i+'"><select class="purchase-product"><option value="">Select inventory product…</option>'+state.products.map(p=>'<option value="'+p.id+'">'+esc(p.product_code)+' — '+esc(p.name)+'</option>').join('')+'</select><input class="purchase-desc" placeholder="Product / service description"><input class="purchase-qty" type="number" min="0.0001" step="0.0001" value="1"><input class="purchase-price" type="number" min="0" step="0.01" value="0"><input class="purchase-discount" type="number" min="0" max="100" step="0.01" value="0"><input class="purchase-tax" type="number" min="0" step="0.01" value="0"><select class="purchase-account" title="Expense account">'+accountOptions()+'</select><button type="button" class="purchase-line-remove" aria-label="Remove line">×</button></div>';
   }
   function resetLineOptions(){
     const box=el('purchaseLines');if(!box)return;
@@ -44,7 +44,7 @@
   }
   function readLines(){
     return [...document.querySelectorAll('.purchase-line')].map((r,i)=>({
-      line_no:i+1,description:r.querySelector('.purchase-desc').value.trim(),
+      line_no:i+1,product_id:r.querySelector('.purchase-product').value||null,description:r.querySelector('.purchase-desc').value.trim(),
       quantity:Number(r.querySelector('.purchase-qty').value||0),
       unit_price:Number(r.querySelector('.purchase-price').value||0),
       discount_percent:Number(r.querySelector('.purchase-discount').value||0),
