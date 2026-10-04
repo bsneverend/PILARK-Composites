@@ -647,3 +647,43 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:1
   .admin-main::-webkit-scrollbar-thumb{background:#c4d4da;border-radius:99px}
 }
 
+
+
+/* 2026-10-04 desktop workspace sizing: keep the sidebar fixed and let the main panel consume all remaining width. */
+@media (min-width:801px){
+  .admin-app{
+    width:100%;
+    height:100vh;
+    min-height:100vh;
+    grid-template-columns:260px minmax(0,1fr);
+    overflow:hidden;
+  }
+  .sidebar{
+    width:260px;
+    min-width:260px;
+    max-width:260px;
+    box-sizing:border-box;
+  }
+  .admin-main{
+    width:auto;
+    max-width:none;
+    min-width:0;
+    margin:0;
+    box-sizing:border-box;
+    overflow-x:hidden;
+  }
+  .panel,
+  .section-intro,
+  .sales-form-grid > *,
+  .purchase-form-grid > *,
+  .accounting-form-grid > *{
+    min-width:0;
+    max-width:100%;
+  }
+  .accounting-table-wrap,
+  .inventory-table-wrap{
+    min-width:0;
+    max-width:100%;
+    overflow-x:auto;
+  }
+}
