@@ -839,3 +839,22 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:1
   #view-erp-overview .dashboard-grid{grid-template-columns:1fr}
   #view-erp-overview .dashboard-grid>.dashboard-wide{grid-column:auto}
 }
+
+/* Settings & access control */
+.settings-grid{display:grid;grid-template-columns:minmax(280px,.7fr) minmax(0,1.3fr);gap:16px;align-items:start}
+.settings-access-list{display:grid;gap:10px}
+.settings-access-item{padding:12px 14px;border:1px solid #dce8ee;border-radius:12px;background:#f7fafb}
+.settings-access-item b{display:block;margin-bottom:4px}
+.settings-access-item span{font-size:12px;color:#637884;line-height:1.5}
+.settings-role-form{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(180px,.8fr) auto;gap:10px;align-items:end}
+.settings-role-form label{min-width:0}
+.settings-role-form input,.settings-role-form select{width:100%;box-sizing:border-box}
+.settings-users-wrap{margin-top:16px}
+.settings-role-chip{display:inline-flex;align-items:center;padding:4px 8px;margin:2px 4px 2px 0;border-radius:999px;background:#eef5f7;color:#375565;font-size:11px;font-weight:700}
+.settings-remove-btn{border:0;background:none;color:#b23b3b;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+.settings-remove-btn:hover{text-decoration:underline}
+.settings-bootstrap{margin-bottom:16px}
+@media(max-width:900px){
+  .settings-grid{grid-template-columns:1fr}
+  .settings-role-form{grid-template-columns:1fr}
+}
