@@ -124,7 +124,7 @@
         return;
       }
       if(channel==='REQUEST_PIC'){
-        const fallback=best||{contact_person:a?.contact_department||'Company switchboard',department:a?.contact_department||'Engineering / Project / Procurement'};
+        const fallback=crmBestContact(o)||{contact_person:o?.sales_accounts?.contact_department||'Company switchboard',department:o?.sales_accounts?.contact_department||'Engineering / Project / Procurement'};
         await logCRMContactInitiated(o,fallback,'CALL','No verified individual contact is available. Call the company route and request the appropriate Engineering / Project / Procurement PIC.');
         await loadCRM();
         renderOpportunityDetail(oppId);
