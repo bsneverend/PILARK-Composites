@@ -84,6 +84,7 @@ async function loadAdminAccess(){
   };
   applyAdminAccess();
   renderSettingsAccess();
+  if(!adminAccessState.roles.length) showView('settings');
 }
 
 function applyAdminAccess(){
@@ -365,6 +366,7 @@ function showView(name){
   }
   if(name==='chat') loadAdminChats();
   if(name==='settings') renderSettingsAccess();
+  if(name!=='settings' && !hasViewAccess(name)) showView('settings');
 }
 
 function enterDashboard(){
