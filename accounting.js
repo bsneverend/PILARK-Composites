@@ -205,13 +205,22 @@
   }
 
   async function printDocument(id){
-    const d=getDocument(id); if(!d)return; const lines=await getDocumentLines(id);
-    const w=window.open('','_blank','width=900,height=900'); if(!w)return alert('Please allow pop-ups for Print / PDF.');
-    const rows=lineRowsHtml(lines);
-    w.document.write('<!doctype html><html><head><title>'+esc(d.document_no)+'</title><style>body{font-family:Arial,sans-serif;margin:40px;color:#17212b}h1{margin:0 0 6px}small{color:#64748b}.meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:25px 0}table{width:100%;border-collapse:collapse;margin-top:25px}th,td{padding:10px;border-bottom:1px solid #ddd;text-align:left}th{text-transform:uppercase;font-size:11px;color:#64748b}.num{text-align:right}.total{margin:24px 0 0 auto;width:280px}.total div{display:flex;justify-content:space-between;padding:5px 0}.total strong{font-size:18px;border-top:2px solid #222;padding-top:10px}@media print{body{margin:15mm}}</style></head><body><h1>'+esc(documentLabel(d))+'</h1><small>'+esc(d.document_no)+'</small><div class="meta"><div><b>Partner</b><br>'+esc(d.accounting_partners?.name||'—')+'</div><div><b>Date / Due</b><br>'+dateText(d.document_date)+' / '+dateText(d.due_date)+'</div><div><b>Status</b><br>'+esc(d.status)+'</div><div><b>Reference</b><br>'+esc(d.reference||'—')+'</div></div><table><thead><tr><th>Description</th><th class="num">Qty</th><th class="num">Unit Price</th><th class="num">Subtotal</th><th class="num">Tax</th></tr></thead><tbody>'+rows+'</tbody></table><div class="total"><div><span>Subtotal</span><span>'+money(d.subtotal)+'</span></div><div><span>Tax</span><span>'+money(d.tax_amount)+'</span></div><div><span>Paid</span><span>'+money(d.amount_paid)+'</span></div><div><span>Outstanding</span><span>'+money(docOutstanding(d))+'</span></div><div><strong>Total</strong><strong>'+money(d.total_amount)+'</strong></div></div><script>window.onload=()=>window.print();</script></body></html>');
-    w.document.close();
+    const d=getDocument(id); if(!d)return;
+    const w=window.open('about:blank','_blank','width=900,height=900');
+    if(!w)return alert('Please allow pop-ups for Print / PDF.');
+    w.document.write('<!doctype html><html><head><title>Generating '+esc(d.document_no)+'</title></head><body style="font-family:Arial,sans-serif;padding:40px"><p>Generating PDF…</p></body></html>');
+    try{
+      const {data,error}=await client().functions.invoke('generate-accounting-pdf',{body:{document_id:id}});
+      if(error)throw error;
+      const blob=data instanceof Blob?data:new Blob([data],{type:'application/pdf'});
+      const url=URL.createObjectURL(blob);
+      w.location.href=url;
+      setTimeout(()=>URL.revokeObjectURL(url),60000);
+    }catch(err){
+      w.close();
+      alert('PDF generation failed: '+(err?.message||'Unknown error'));
+    }
   }
-
   function showDocumentHistory(id){
     const d=[...state.invoices,...state.bills].find(x=>x.id===id);
     const rows=state.allocations.filter(a=>a.document_id===id);
