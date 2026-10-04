@@ -4,7 +4,7 @@
 <title>PILARK Admin Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="admin.css?v=20261004-erp-overview-layout-v1"><link rel="stylesheet" href="accounting.css?v=20261004-ar-ap-lifecycle-v1"><link rel="stylesheet" href="bank-reconciliation.css?v=20261004-proportional-fix"><link rel="stylesheet" href="sales.css?v=20261004-final-line-fit"><link rel="stylesheet" href="purchase.css?v=20261004-final-line-fit"><link rel="stylesheet" href="inventory.css?v=20261004-adjustment-card-v1">
+<link rel="stylesheet" href="admin.css?v=20261004-roles-v1"><link rel="stylesheet" href="accounting.css?v=20261004-ar-ap-lifecycle-v1"><link rel="stylesheet" href="bank-reconciliation.css?v=20261004-proportional-fix"><link rel="stylesheet" href="sales.css?v=20261004-final-line-fit"><link rel="stylesheet" href="purchase.css?v=20261004-final-line-fit"><link rel="stylesheet" href="inventory.css?v=20261004-adjustment-card-v1">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script><script src="cms.js"></script></head><body>
 <div id="loginView" class="login-view"><div class="login-card"><a class="admin-logo" href="index.html"><img src="assets/pilark-logo-footer.svg" alt="PILARK Composites"></a><div class="eyebrow">Admin access</div><h1>Welcome back.</h1><p>Manage website images, product thumbnails and selected content from one place.</p><form id="loginForm" novalidate><label>Email<input id="adminEmail" type="email" placeholder="admin@pilarkomposit.com" required autocomplete="email"></label><label>Password<input id="adminPassword" type="password" placeholder="Enter password" required autocomplete="current-password"></label><button id="loginBtn" class="primary-btn" type="submit">Login to dashboard →</button><div id="loginStatus" class="content-status"></div></form><div class="prototype-note"><b>Secure admin access</b><span>Sign in with your authorized Supabase account to manage website media, products and content stored in the cloud.</span></div><a class="back-link" href="index.html">← Back to website</a></div></div>
 <div id="adminApp" class="admin-app" hidden><aside class="sidebar"><button id="mobileNavToggle" class="mobile-nav-toggle" type="button" aria-label="Open admin navigation" aria-expanded="false"><span></span><span></span><span></span></button><a class="admin-logo" href="index.html"><img src="assets/pilark-logo-footer.svg" alt="PILARK Composites"></a><div class="sidebar-label">Content management</div><button class="side-link active" data-view="dashboard">Overview</button><button class="side-link" data-view="media">Media Library</button><button class="side-link" data-view="products">Products</button><button class="side-link" data-view="sections">Website Content</button><div class="sidebar-label chat-nav-label">Customer communication</div><button class="side-link" data-view="chat">Live Chat <span id="chatUnreadBadge" class="chat-unread-badge" hidden>0</span></button><div class="sidebar-label accounting-nav-label">Finance</div><button class="side-link" data-view="erp-overview">Overview</button><button class="side-link" data-view="sales">Sales</button><button class="side-link" data-view="purchase">Purchase</button><button class="side-link" data-view="inventory">Inventory</button><button class="side-link" data-view="accounting">Accounting</button><button class="side-link" data-view="settings">Settings</button><div class="sidebar-bottom"><a href="index.html" target="_blank">View website ↗</a><button id="logoutBtn">Logout</button></div></aside>
@@ -376,5 +376,34 @@
 <div class="panel dashboard-wide"><div class="panel-head"><div><h2>Recent Accounting Activity</h2><p>Latest posted documents and payments.</p></div></div><div id="erpRecentActivity" class="accounting-table-wrap"></div></div>
 </div>
 </section>
-<section class="view" id="view-settings"><div class="section-intro"><h2>Settings</h2><p>Manage your cloud-powered dashboard.</p></div><div class="panel"><h2>Cloud CMS is active</h2><p>All media, product thumbnails and website content changes are saved directly to your Supabase database and storage. This dashboard no longer relies on local browser overrides.</p></div></section>
-</main></div><script src="admin.js?v=20261004-erp-overview-layout-v1"></script><script src="accounting.js?v=20261004-erp-live-v2"></script><script src="sales.js?v=20261004-v1"></script><script src="purchase.js?v=20261004-v1"></script><script src="inventory.js?v=20261004-adjustment-card-v1"></script><script src="bank-reconciliation.js?v=20261004-v1"></script></body></html>
+<section class="view" id="view-settings">
+  <div class="section-intro">
+    <div><h2>Settings & Access</h2><p>Manage PILARK CMS and ERP user roles. Access is enforced through Supabase database permissions as well as the dashboard navigation.</p></div>
+  </div>
+  <div id="settingsBootstrap" class="panel settings-bootstrap" hidden>
+    <div class="panel-head"><div><h2>Activate Administrator Access</h2><p>No application role is assigned to your account yet. If this is the first setup, activate Administrator access for the currently signed-in account.</p></div></div>
+    <button id="bootstrapAdminBtn" class="primary-btn" type="button">Activate Administrator Access →</button>
+    <div id="bootstrapStatus" class="content-status"></div>
+  </div>
+  <div id="settingsAccess" class="settings-grid">
+    <div class="panel">
+      <div class="panel-head"><div><h2>My access</h2><p>Roles and permissions currently assigned to this account.</p></div></div>
+      <div id="myAccessSummary" class="settings-access-list"></div>
+    </div>
+    <div class="panel" id="settingsUserManagement">
+      <div class="panel-head"><div><h2>User roles</h2><p>Assign multiple roles to existing Supabase Auth users. Passwords are never handled here.</p></div></div>
+      <form id="roleAssignForm" class="settings-role-form">
+        <label>User email<input id="roleUserEmail" type="email" placeholder="user@company.com" required></label>
+        <label>Role<select id="roleUserRole" required>
+          <option value="administrator">Administrator</option><option value="finance">Finance</option><option value="sales">Sales</option><option value="purchase">Purchase</option><option value="inventory">Inventory</option><option value="content_manager">Content Manager</option><option value="support">Support</option>
+        </select></label>
+        <button class="primary-btn" type="submit">Assign Role →</button>
+      </form>
+      <div id="roleAssignStatus" class="content-status"></div>
+      <div class="accounting-table-wrap settings-users-wrap">
+        <table class="accounting-table"><thead><tr><th>User</th><th>Created</th><th>Roles</th><th>Action</th></tr></thead><tbody id="settingsUsersBody"></tbody></table>
+      </div>
+    </div>
+  </div>
+</section>
+</main></div><script src="admin.js?v=20261004-roles-v1"></script><script src="accounting.js?v=20261004-erp-live-v2"></script><script src="sales.js?v=20261004-v1"></script><script src="purchase.js?v=20261004-v1"></script><script src="inventory.js?v=20261004-adjustment-card-v1"></script><script src="bank-reconciliation.js?v=20261004-v1"></script></body></html>
