@@ -1,5 +1,5 @@
 (() => {
-  const state = { accounts: [], partners: [], journals: [], entries: [], invoices: [], bills: [], payments: [], allocations: [], periods: [], tab: 'overview', reportFrom: '', reportTo: '' };
+  const state = { accounts: [], partners: [], journals: [], entries: [], invoices: [], bills: [], payments: [], allocations: [], sends: [], periods: [], tab: 'overview', reportFrom: '', reportTo: '' };
   const el = id => document.getElementById(id);
   const client = () => window.PILARK_CMS?.client;
   const ready = () => !!window.PILARK_CMS?.ready && !!client();
@@ -15,7 +15,7 @@
   async function load() {
     if(!ready()) return;
     const c=client();
-    const [a,p,j,e,i,b,py,al,pe] = await Promise.all([
+    const [a,p,j,e,i,b,py,al,se,pe] = await Promise.all([
       c.from('accounting_accounts').select('*').order('code'),
       c.from('accounting_partners').select('*').order('name'),
       c.from('accounting_journals').select('*').order('code'),
@@ -24,10 +24,11 @@
       c.from('accounting_documents').select('*,accounting_partners(name),accounting_journals(code,name)').eq('document_type','vendor_bill').order('document_date',{ascending:false}).limit(300),
       c.from('accounting_payments').select('*,accounting_partners(name),accounting_journals(code,name)').order('payment_date',{ascending:false}).limit(300),
       c.from('accounting_payment_allocations').select('*,accounting_payments(payment_no,payment_date,payment_type,status,amount),accounting_documents(document_no,document_type)').order('created_at',{ascending:false}).limit(500),
+      c.from('accounting_document_sends').select('*').order('sent_at',{ascending:false}).limit(500),
       c.from('accounting_periods').select('*').order('date_start',{ascending:false})
     ]);
-    for(const x of [a,p,j,e,i,b,py,al,pe]) if(x.error) throw x.error;
-    state.accounts=a.data||[]; state.partners=p.data||[]; state.journals=j.data||[]; state.entries=e.data||[]; state.invoices=i.data||[]; state.bills=b.data||[]; state.payments=py.data||[]; state.allocations=al.data||[]; state.periods=pe.data||[];
+    for(const x of [a,p,j,e,i,b,py,al,se,pe]) if(x.error) throw x.error;
+    state.accounts=a.data||[]; state.partners=p.data||[]; state.journals=j.data||[]; state.entries=e.data||[]; state.invoices=i.data||[]; state.bills=b.data||[]; state.payments=py.data||[]; state.allocations=al.data||[]; state.sends=se.data||[]; state.periods=pe.data||[];
     render();
   }
 
@@ -230,12 +231,16 @@
   function showDocumentHistory(id){
     const d=[...state.invoices,...state.bills].find(x=>x.id===id);
     const rows=state.allocations.filter(a=>a.document_id===id);
+    const sends=state.sends.filter(s=>s.document_id===id);
     const box=el('accountingDocumentHistory') || el('accountingDocumentHistoryBills'); if(!box) return;
     box.hidden=false;
     box.innerHTML=`<div class="document-history-head"><div><b>${esc(d?.document_no||'Document')}</b><span>${esc(d?.accounting_partners?.name||'')}</span></div><button type="button" class="text-btn" id="closeDocumentHistory">Close</button></div>`+
       (rows.length?'<div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Payment</th><th>Date</th><th>Type</th><th>Status</th><th class="num">Allocated</th></tr></thead><tbody>'+
       rows.map(a=>`<tr><td><b>${esc(a.accounting_payments?.payment_no||'—')}</b></td><td>${dateText(a.accounting_payments?.payment_date)}</td><td>${a.accounting_payments?.payment_type==='receive'?'Receive':'Pay'}</td><td>${esc(a.accounting_payments?.status||'—')}</td><td class="num">${money(a.amount)}</td></tr>`).join('')+
-      '</tbody></table></div>':'<div class="accounting-empty">No payment allocations yet.</div>');
+      '</tbody></table></div>':'<div class="accounting-empty">No payment allocations yet.</div>')+
+      `<div class="document-history-section"><div class="document-history-section-title">Email history</div>${sends.length?'<div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Sent</th><th>Recipient</th><th>Provider</th><th>Status</th><th>Message ID</th></tr></thead><tbody>'+
+      sends.map(s=>`<tr><td>${dateText(String(s.sent_at||'').slice(0,10))}</td><td>${esc(s.recipient_email)}</td><td>${esc(s.provider||'—')}</td><td>${esc(s.status||'—')}</td><td><small>${esc(s.provider_message_id||s.error_message||'—')}</small></td></tr>`).join('')+
+      '</tbody></table></div>':'<div class="accounting-empty">No email has been sent for this document yet.</div>'}</div>`;
     el('closeDocumentHistory')?.addEventListener('click',()=>{box.hidden=true;});
   }
   function renderPayments() {
