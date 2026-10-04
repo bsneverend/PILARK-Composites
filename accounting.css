@@ -32,3 +32,56 @@
 }
 @media(max-width:1050px){.accounting-document-layout{grid-template-columns:1fr}}
 
+/* PILARK Accounting — final proportional invoice editor */
+.accounting-document-layout{
+  grid-template-columns:minmax(0,0.92fr) minmax(0,1.08fr);
+  gap:20px;
+}
+.accounting-document-layout>.panel{min-width:0;overflow:hidden}
+.document-lines{width:100%;min-width:0;overflow:hidden}
+.document-line{
+  width:100%;
+  box-sizing:border-box;
+  grid-template-columns:minmax(0,2.45fr) minmax(0,1.55fr) minmax(0,.55fr) minmax(0,.95fr) minmax(0,.65fr) 32px;
+  gap:7px;
+}
+.document-line>*{min-width:0}
+.document-line input,.document-line select{
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  box-sizing:border-box;
+}
+.accounting-document-layout .accounting-table{
+  min-width:0;
+  table-layout:fixed;
+}
+.accounting-document-layout .accounting-table th,
+.accounting-document-layout .accounting-table td{
+  padding:11px 9px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.accounting-document-layout .accounting-table th:nth-child(1){width:13%}
+.accounting-document-layout .accounting-table th:nth-child(2){width:12%}
+.accounting-document-layout .accounting-table th:nth-child(3){width:18%}
+.accounting-document-layout .accounting-table th:nth-child(4){width:12%}
+.accounting-document-layout .accounting-table th:nth-child(5){width:14%}
+.accounting-document-layout .accounting-table th:nth-child(6){width:13%}
+.accounting-document-layout .accounting-table th:nth-child(7){width:10%}
+.accounting-document-layout .accounting-table th:nth-child(8){width:8%}
+@media(max-width:1050px){
+  .accounting-document-layout{grid-template-columns:1fr}
+}
+@media(max-width:760px){
+  .document-line{
+    grid-template-columns:minmax(0,1.7fr) minmax(0,1.3fr);
+  }
+  .document-line .line-desc{grid-column:1}
+  .document-line .line-account{grid-column:2}
+  .document-line .line-qty{grid-column:1}
+  .document-line .line-price{grid-column:2}
+  .document-line .line-tax{grid-column:1}
+  .document-line .line-remove{grid-column:2;justify-self:end}
+}
+
