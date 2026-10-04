@@ -155,9 +155,10 @@
     const {data:no,error:noErr}=await client().rpc('next_accounting_payment_no');if(noErr)return alert(noErr.message);
     const {data:p,error}=await client().from('accounting_payments').insert({payment_no:no,payment_type:type,partner_id:partner,journal_id:journal,payment_date:el('paymentDate').value||today(),amount,reference:el('paymentReference').value.trim()||null,memo:el('paymentMemo').value.trim()||null,status:'draft',created_by:userData?.user?.id||null}).select().single();
     if(error)return alert(error.message);
-    const {error:postErr}=await client().rpc('post_accounting_payment',{p_payment_id:p.id});if(postErr)return alert('Payment saved as draft but could not be posted: '+postErr.message);
     const docId=el('paymentDocument').value;
-    if(docId){const {error:aErr}=await client().from('accounting_payment_allocations').insert({payment_id:p.id,document_id:docId,amount});if(aErr)return alert('Payment posted, but allocation failed: '+aErr.message);}
+    const rpcParams={p_payment_id:p.id,p_document_id:docId||null,p_allocation_amount:docId?amount:null};
+    const {error:postErr}=await client().rpc('post_accounting_payment_with_allocation',rpcParams);
+    if(postErr)return alert('Payment could not be posted: '+postErr.message);
     e.target.reset();el('paymentDate').value=today();await load();showTab('payments');
   }
 
