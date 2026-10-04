@@ -233,3 +233,5 @@
 .crm-detail-side .text-btn.crm-route-research{margin-top:8px}
 @media(max-width:800px){.crm-route-contact{grid-template-columns:1fr}.crm-route-actions{justify-content:flex-start}.crm-route-primary{grid-template-columns:1fr 1fr}}
 @media(max-width:480px){.crm-route-primary{grid-template-columns:1fr}.crm-route-primary-btn{width:100%}}
+
+.crm-route-request{width:100%;margin-top:7px;appearance:none;border:1px dashed #c8dbe2;background:#f8fbfc;color:#59717d;border-radius:8px;padding:8px 9px;font:800 9px Inter,sans-serif;cursor:pointer}.crm-route-request:hover{border-color:#08a6e8;background:#f2fbff;color:#087fbd}
