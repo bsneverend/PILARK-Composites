@@ -4,10 +4,10 @@
 <title>PILARK Admin Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="admin.css?v=20260831-ios-viewport-fix"><link rel="stylesheet" href="accounting.css?v=20261004-v3"><link rel="stylesheet" href="sales.css?v=20261004-v1">
+<link rel="stylesheet" href="admin.css?v=20260831-ios-viewport-fix"><link rel="stylesheet" href="accounting.css?v=20261004-v3"><link rel="stylesheet" href="sales.css?v=20261004-v1"><link rel="stylesheet" href="purchase.css?v=20261004-v1">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script><script src="cms.js"></script></head><body>
 <div id="loginView" class="login-view"><div class="login-card"><a class="admin-logo" href="index.html"><img src="assets/pilark-logo-footer.svg" alt="PILARK Composites"></a><div class="eyebrow">Admin access</div><h1>Welcome back.</h1><p>Manage website images, product thumbnails and selected content from one place.</p><form id="loginForm" novalidate><label>Email<input id="adminEmail" type="email" placeholder="admin@pilarkomposit.com" required autocomplete="email"></label><label>Password<input id="adminPassword" type="password" placeholder="Enter password" required autocomplete="current-password"></label><button id="loginBtn" class="primary-btn" type="submit">Login to dashboard →</button><div id="loginStatus" class="content-status"></div></form><div class="prototype-note"><b>Secure admin access</b><span>Sign in with your authorized Supabase account to manage website media, products and content stored in the cloud.</span></div><a class="back-link" href="index.html">← Back to website</a></div></div>
-<div id="adminApp" class="admin-app" hidden><aside class="sidebar"><button id="mobileNavToggle" class="mobile-nav-toggle" type="button" aria-label="Open admin navigation" aria-expanded="false"><span></span><span></span><span></span></button><a class="admin-logo" href="index.html"><img src="assets/pilark-logo-footer.svg" alt="PILARK Composites"></a><div class="sidebar-label">Content management</div><button class="side-link active" data-view="dashboard">Overview</button><button class="side-link" data-view="media">Media Library</button><button class="side-link" data-view="products">Products</button><button class="side-link" data-view="sections">Website Content</button><div class="sidebar-label chat-nav-label">Customer communication</div><button class="side-link" data-view="chat">Live Chat <span id="chatUnreadBadge" class="chat-unread-badge" hidden>0</span></button><div class="sidebar-label accounting-nav-label">Finance</div><button class="side-link" data-view="sales">Sales</button><button class="side-link" data-view="accounting">Accounting</button><button class="side-link" data-view="settings">Settings</button><div class="sidebar-bottom"><a href="index.html" target="_blank">View website ↗</a><button id="logoutBtn">Logout</button></div></aside>
+<div id="adminApp" class="admin-app" hidden><aside class="sidebar"><button id="mobileNavToggle" class="mobile-nav-toggle" type="button" aria-label="Open admin navigation" aria-expanded="false"><span></span><span></span><span></span></button><a class="admin-logo" href="index.html"><img src="assets/pilark-logo-footer.svg" alt="PILARK Composites"></a><div class="sidebar-label">Content management</div><button class="side-link active" data-view="dashboard">Overview</button><button class="side-link" data-view="media">Media Library</button><button class="side-link" data-view="products">Products</button><button class="side-link" data-view="sections">Website Content</button><div class="sidebar-label chat-nav-label">Customer communication</div><button class="side-link" data-view="chat">Live Chat <span id="chatUnreadBadge" class="chat-unread-badge" hidden>0</span></button><div class="sidebar-label accounting-nav-label">Finance</div><button class="side-link" data-view="sales">Sales</button><button class="side-link" data-view="purchase">Purchase</button><button class="side-link" data-view="accounting">Accounting</button><button class="side-link" data-view="settings">Settings</button><div class="sidebar-bottom"><a href="index.html" target="_blank">View website ↗</a><button id="logoutBtn">Logout</button></div></aside>
 <main class="admin-main"><div class="topbar"><div><div class="eyebrow">PILARK Admin</div><h1 id="pageTitle">Website overview</h1></div><a class="preview-btn" href="index.html" target="_blank">Preview website ↗</a></div><div class="prototype-banner">Cloud CMS is active. Changes made here are saved to your Supabase database and storage for the live website.</div>
 <section class="view active" id="view-dashboard"><div class="stats-grid"><div class="metric"><span>Products</span><b id="productCount">18</b><small>Thumbnail management ready</small></div><div class="metric"><span>Media assets</span><b id="mediaCount">4</b><small>Upload and replace in one place</small></div><div class="metric"><span>Content blocks</span><b id="contentCount">0</b><small>Website copy ready to edit</small></div></div><div class="panel"><div class="panel-head"><div><h2>Quick media editing</h2><p>Replace the most visible website images without touching the code.</p></div><button class="text-btn" data-goto="media">Open media library →</button></div><div id="quickMedia" class="quick-media"></div></div><div class="panel"><div class="panel-head"><div><h2>How this dashboard works</h2><p>Use the editor to update visual assets and selected website content.</p></div></div><div class="check-grid"><div>✓ Upload replacement images</div><div>✓ Replace product thumbnails</div><div>✓ Edit selected website copy</div><div>✓ Preview changes immediately</div></div></div></section>
 <section class="view" id="view-media"><div class="section-intro"><h2>Media Library</h2><p>Replace the main images used across the website. Supported files are uploaded directly to your Supabase Storage and used by the live website.</p></div><div id="mediaGrid" class="media-grid"></div></section>
@@ -55,6 +55,50 @@
 <div class="accounting-tab-panel" data-sales-panel="orders" hidden>
   <div class="panel"><div class="panel-head"><div><h2>Sales Orders</h2><p>Confirmed orders ready to be invoiced.</p></div></div>
     <div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Number</th><th>Customer</th><th>Quote Date</th><th>Valid Until</th><th class="num">Total</th><th>Status</th><th>Action</th></tr></thead><tbody id="salesOrdersBody"></tbody></table></div>
+  </div>
+</div>
+</section>
+<section class="view" id="view-purchase">
+<div class="section-intro accounting-intro"><div><h2>Purchase</h2><p>RFQ → Purchase Order → Vendor Bill → Vendor Payment.</p></div><button id="purchaseRefresh" class="text-btn">Refresh data ↻</button></div>
+<div class="purchase-tabs" role="tablist">
+<button type="button" data-purchase-tab="overview" class="active">Overview</button>
+<button type="button" data-purchase-tab="quotations">RFQs</button>
+<button type="button" data-purchase-tab="orders">Purchase Orders</button>
+</div>
+<div class="accounting-tab-panel" data-purchase-panel="overview">
+  <div class="purchase-metrics">
+    <div class="purchase-metric"><span>Open RFQs</span><b id="purchaseMetricQuotations">0</b></div>
+    <div class="purchase-metric"><span>Confirmed POs</span><b id="purchaseMetricOrders">0</b></div>
+    <div class="purchase-metric"><span>Total procurement pipeline</span><b id="purchaseMetricValue">Rp0</b></div>
+    <div class="purchase-metric"><span>Open PO value</span><b id="purchaseMetricOpen">Rp0</b></div>
+  </div>
+  <div class="panel"><div class="panel-head"><div><h2>Procurement workflow</h2><p>Create an RFQ, confirm it into a Purchase Order, then generate the vendor bill.</p></div></div>
+    <div class="check-grid"><div>✓ RFQ numbering</div><div>✓ Vendor and line items</div><div>✓ Confirmation to Purchase Order</div><div>✓ Automatic vendor bill + AP</div></div>
+  </div>
+</div>
+<div class="accounting-tab-panel" data-purchase-panel="quotations" hidden>
+  <div class="purchase-form-grid">
+    <div class="panel"><div class="panel-head"><div><h2>New RFQ</h2><p>Request supplier pricing before committing the purchase.</p></div></div>
+      <form id="purchaseForm" class="accounting-form">
+        <label>Vendor<select id="purchasePartner" required></select></label>
+        <div class="accounting-form-row"><label>RFQ date<input id="purchaseDate" type="date" required></label><label>Valid until<input id="purchaseValidity" type="date"></label></div>
+        <label>Reference<input id="purchaseReference" placeholder="Supplier RFQ / reference"></label>
+        <div class="purchase-line-head"><span>Description</span><span>Qty</span><span>Unit price</span><span>Discount %</span><span>Tax %</span><span>Expense account</span><span></span></div>
+        <div id="purchaseLines" class="purchase-lines"></div>
+        <button id="addPurchaseLine" type="button" class="accounting-small-btn">+ Add line</button>
+        <div class="purchase-totals"><span>Subtotal <b id="purchaseSubtotal">Rp0</b></span><span>Input VAT <b id="purchaseTax">Rp0</b></span><strong>Total <b id="purchaseTotal">Rp0</b></strong></div>
+        <label>Notes<textarea id="purchaseNotes" rows="3" placeholder="Procurement notes / terms"></textarea></label>
+        <button class="primary-btn" type="submit">Create RFQ →</button>
+      </form>
+    </div>
+    <div class="panel"><div class="panel-head"><div><h2>RFQs</h2><p>Confirm an accepted supplier quotation to create a Purchase Order.</p></div></div>
+      <div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Number</th><th>Vendor</th><th>Date</th><th>Valid Until</th><th class="num">Total</th><th>Status</th><th>Action</th></tr></thead><tbody id="purchaseQuotationsBody"></tbody></table></div>
+    </div>
+  </div>
+</div>
+<div class="accounting-tab-panel" data-purchase-panel="orders" hidden>
+  <div class="panel"><div class="panel-head"><div><h2>Purchase Orders</h2><p>Confirmed supplier orders ready to be billed.</p></div></div>
+    <div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Number</th><th>Vendor</th><th>RFQ Date</th><th>Valid Until</th><th class="num">Total</th><th>Status</th><th>Action</th></tr></thead><tbody id="purchaseOrdersBody"></tbody></table></div>
   </div>
 </div>
 </section>
@@ -161,4 +205,4 @@
 </div>
 </section>
 <section class="view" id="view-settings"><div class="section-intro"><h2>Settings</h2><p>Manage your cloud-powered dashboard.</p></div><div class="panel"><h2>Cloud CMS is active</h2><p>All media, product thumbnails and website content changes are saved directly to your Supabase database and storage. This dashboard no longer relies on local browser overrides.</p></div></section>
-</main></div><script src="admin.js?v=20260830-chat-preview1"></script><script src="accounting.js?v=20260930-v1"></script><script src="sales.js?v=20261004-v1"></script></body></html>
+</main></div><script src="admin.js?v=20260830-chat-preview1"></script><script src="accounting.js?v=20260930-v1"></script><script src="sales.js?v=20261004-v1"></script><script src="purchase.js?v=20261004-v1"></script></body></html>
