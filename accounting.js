@@ -195,15 +195,21 @@
     if(le){await client().from('accounting_documents').delete().eq('id',copy.id);return alert(le.message);}
     await load(); alert('Draft '+no+' created from '+d.document_no+'.');
   }
-  function sendDocument(id){
+  async function sendDocument(id){
     const d=getDocument(id); if(!d)return;
     const email=d.accounting_partners?.email||'';
     if(!email) return alert('This partner does not have an email address. Add the partner email first.');
-    const subject=encodeURIComponent(documentLabel(d)+' '+d.document_no);
-    const body=encodeURIComponent('Dear '+(d.accounting_partners?.name||'Customer/Vendor')+',\n\nPlease find the '+documentLabel(d).toLowerCase()+' '+d.document_no+' for your reference.\n\nTotal: '+money(d.total_amount)+'\nOutstanding: '+money(docOutstanding(d))+'\nDue date: '+dateText(d.due_date)+'\n\nRegards,\nPILARK');
-    window.location.href='mailto:'+encodeURIComponent(email)+'?subject='+subject+'&body='+body;
+    if(d.status==='draft'||d.status==='cancelled') return alert('Only posted or paid documents can be sent.');
+    if(!confirm('Send '+documentLabel(d)+' '+d.document_no+' to '+email+' with the PDF attached?')) return;
+    const {data,error}=await client().functions.invoke('send-accounting-document',{body:{document_id:id}});
+    if(error){
+      let msg=error.message||'Email delivery failed.';
+      try{ if(error.context){const t=await error.context.json(); if(t?.error)msg=t.error;} }catch(_){}
+      return alert(msg);
+    }
+    alert('Sent '+documentLabel(d)+' '+d.document_no+' to '+email+'.');
+    await load();
   }
-
   async function printDocument(id){
     const d=getDocument(id); if(!d)return;
     const w=window.open('about:blank','_blank','width=900,height=900');
