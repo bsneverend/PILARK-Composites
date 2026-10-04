@@ -298,6 +298,33 @@
   </div>
 </div>
 
+<div class="accounting-tab-panel" data-accounting-panel="aging" hidden>
+  <div class="panel accounting-report-toolbar">
+    <div class="panel-head"><div><h2>AR / AP Aging & Statements</h2><p>Outstanding posted customer invoices and vendor bills as of a selected date, plus partner statements.</p></div></div>
+    <div class="accounting-form-row report-filter-row">
+      <label>As of<input id="agingAsOf" type="date"></label>
+      <label>Type<select id="agingType"><option value="customer">Accounts Receivable</option><option value="vendor">Accounts Payable</option></select></label>
+      <label>Partner<select id="agingPartner"><option value="">All partners</option></select></label>
+      <button id="agingApply" class="primary-btn" type="button">Apply</button>
+    </div>
+  </div>
+  <div class="accounting-report-grid aging-grid">
+    <div class="panel"><div class="panel-head"><div><h2>Aging Summary</h2><p>Outstanding balance grouped by age from due date.</p></div></div><div id="agingSummary" class="report-stack"></div></div>
+    <div class="panel"><div class="panel-head"><div><h2>Outstanding Documents</h2><p>Open invoices / bills included in the selected aging.</p></div></div><div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Document</th><th>Partner</th><th>Due</th><th>Age</th><th>Bucket</th><th class="num">Outstanding</th></tr></thead><tbody id="agingDocumentsBody"></tbody></table></div></div>
+  </div>
+  <div class="panel accounting-statement-panel">
+    <div class="panel-head"><div><h2>Partner Statement</h2><p>Print a chronological statement of invoices/bills and allocated payments.</p></div></div>
+    <div class="accounting-form-row report-filter-row">
+      <label>Partner<select id="statementPartner"><option value="">Select partner…</option></select></label>
+      <label>From<input id="statementFrom" type="date"></label>
+      <label>To<input id="statementTo" type="date"></label>
+      <button id="statementApply" class="primary-btn" type="button">View Statement</button>
+      <button id="statementPrint" class="accounting-small-btn" type="button">Print</button>
+    </div>
+    <div id="partnerStatement" class="partner-statement"></div>
+  </div>
+</div>
+
 <div class="accounting-tab-panel" data-accounting-panel="accounts" hidden>
   <div class="accounting-two-col"><div class="panel"><div class="panel-head"><div><h2>New account</h2><p>Add an account to the chart of accounts.</p></div></div><form id="accountForm" class="accounting-form"><label>Code<input id="accountCode" required placeholder="1100"></label><label>Name<input id="accountName" required placeholder="Accounts Receivable"></label><label>Account type<select id="accountType" required></select></label><label class="check-field"><input id="accountReconcile" type="checkbox"> Enable reconciliation</label><button class="primary-btn" type="submit">Create account →</button></form></div>
   <div class="panel"><div class="panel-head"><div><h2>Chart of Accounts</h2><p>Odoo-style account types used by the reporting engine.</p></div></div><div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Code</th><th>Name</th><th>Type</th><th>Reconcile</th><th>Status</th></tr></thead><tbody id="accountingAccountsBody"></tbody></table></div></div></div>
