@@ -17,3 +17,18 @@
 .report-row span{color:#5d717d}.report-row strong{color:#07121a}
 @media(max-width:900px){.accounting-report-grid{grid-template-columns:1fr}.document-line{grid-template-columns:1fr 1fr}.document-line .line-desc{grid-column:1/-1}}
 @media(max-width:600px){.accounting-form-row{grid-template-columns:1fr}.document-line{grid-template-columns:1fr}.document-line input,.document-line select{width:100%}}
+
+/* PILARK Accounting — proportional document layout fix */
+.accounting-document-layout{grid-template-columns:minmax(500px,.9fr) minmax(680px,1.35fr);gap:20px}
+.accounting-document-layout>.panel,.accounting-document-layout .accounting-form,.document-lines{min-width:0}
+.document-lines{width:100%}
+.document-line{grid-template-columns:minmax(190px,2.8fr) minmax(125px,1.55fr) minmax(65px,.7fr) minmax(115px,1.15fr) minmax(75px,.75fr) 34px;gap:8px}
+.document-line input,.document-line select{width:100%;min-width:0;box-sizing:border-box}
+.accounting-small-btn{width:100%;min-height:38px}
+.document-total-box{width:100%;box-sizing:border-box}
+@media(max-width:1250px){
+.accounting-document-layout{grid-template-columns:minmax(440px,.9fr) minmax(600px,1.25fr)}
+.document-line{grid-template-columns:minmax(155px,2.4fr) minmax(110px,1.35fr) 62px 105px 68px 34px}
+}
+@media(max-width:1050px){.accounting-document-layout{grid-template-columns:1fr}}
+
