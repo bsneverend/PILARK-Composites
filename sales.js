@@ -77,6 +77,52 @@
     else if(/Rebar/i.test(product))focus='GFRP Rebar application, corrosion resistance and structural considerations';
     return 'Dear '+name+',\\n\\nI am reaching out from PILARK Composite (PT. Panca Integra Laguna Reksa, ORI Group). We develop engineered GFRP / FRP / GRP solutions for infrastructure applications.\\n\\nWe would like to introduce our '+product+' solution in relation to '+project+'. We would be pleased to share '+focus+' for your engineering review.\\n\\nMay I send a short technical introduction to the appropriate Engineering / Project / Procurement team?\\n\\nThank you.';
   }
+  function crmActivityTargetStage(type){
+    const map={
+      'FIRST CONTACT':'CONTACTED',
+      'EMAIL':'CONTACTED',
+      'WHATSAPP':'CONTACTED',
+      'CALL':'CONTACTED',
+      'MEETING':'MEETING',
+      'TECHNICAL PRESENTATION':'TECHNICAL PRESENTATION',
+      'SPECIFICATION':'SPECIFICATION',
+      'RFQ':'RFQ',
+      'QUOTATION':'QUOTATION',
+      'NEGOTIATION':'NEGOTIATION',
+      'PO':'PO'
+    };
+    return map[String(type||'').toUpperCase()]||null;
+  }
+  async function ensureFirstContactStage(o,channel,name){
+    if(o?.stage!=='PROSPECT')return;
+    const followDate=crmTodayPlus(3);
+    const {error}=await client().from('sales_opportunities').update({
+      stage:'CONTACTED',
+      last_contact:null,
+      next_action:'Follow up after first contact',
+      next_follow_up:followDate
+    }).eq('id',o.id);
+    if(error)throw error;
+    const {data:existing,error:existingError}=await client().from('sales_activities')
+      .select('id')
+      .eq('opportunity_id',o.id)
+      .eq('status','PLANNED')
+      .eq('subject','Follow-up after first contact')
+      .limit(1);
+    if(existingError)throw existingError;
+    if(!existing?.length){
+      const {error:followError}=await client().from('sales_activities').insert({
+        opportunity_id:o.id,
+        activity_type:'FOLLOW-UP',
+        subject:'Follow-up after first contact',
+        activity_date:today(),
+        due_date:followDate,
+        status:'PLANNED',
+        notes:'Automatic follow-up created after '+channel+' contact initiation with '+name+'.'
+      });
+      if(followError)throw followError;
+    }
+  }
   async function logCRMContactInitiated(o,contact,channel,detail){
     const name=contact?.contact_person||contact?.department||o?.sales_accounts?.contact_department||'company contact';
     const subject=channel+' contact initiated — '+name;
@@ -91,10 +137,27 @@
       notes
     });
     if(error)throw error;
-    await client().from('sales_opportunities').update({
-      next_action:'Complete '+channel+' contact with '+name,
-      next_follow_up:today()
+    await ensureFirstContactStage(o,channel,name);
+  }
+  async function syncCRMStageFromCompletedActivity(o,activityType,completedId){
+    const target=crmActivityTargetStage(activityType);
+    if(!target||!o||['WON','LOST'].includes(o.stage))return;
+    const currentIndex=CRM_STAGES.indexOf(o.stage),targetIndex=CRM_STAGES.indexOf(target);
+    if(currentIndex<0||targetIndex<=currentIndex)return;
+    const {data:planned,error:plannedError}=await client().from('sales_activities')
+      .select('id,due_date,subject')
+      .eq('opportunity_id',o.id)
+      .eq('status','PLANNED')
+      .not('due_date','is',null)
+      .order('due_date',{ascending:true});
+    if(plannedError)throw plannedError;
+    const next=(planned||[]).find(x=>x.id!==completedId);
+    const {error}=await client().from('sales_opportunities').update({
+      stage:target,
+      next_action:next?.subject||'Execute '+target+' step',
+      next_follow_up:next?.due_date||null
     }).eq('id',o.id);
+    if(error)throw error;
   }
   async function handleCRMContactAction(oppId,contactId,channel){
     const o=(state.crm.opportunities||[]).find(x=>x.id===oppId); if(!o)return;
@@ -289,10 +352,30 @@
     renderCRM();
   }
   async function completeCRMActivity(id,oppId){
+    const activity=(state.crm.activities||[]).find(a=>a.id===id);
+    if(!activity)return;
     const {error}=await client().from('sales_activities').update({status:'DONE'}).eq('id',id);
     if(error)return alert(error.message);
-    const next=state.crm.activities.filter(a=>a.opportunity_id===oppId&&a.status==='PLANNED'&&a.id!==id).sort((x,y)=>String(x.due_date||'').localeCompare(String(y.due_date||'')))[0];
-    await client().from('sales_opportunities').update({last_contact:today(),next_follow_up:next?.due_date||null}).eq('id',oppId);
+    const o=(state.crm.opportunities||[]).find(x=>x.id===oppId);
+    if(!o)return loadCRM();
+    try{
+      await syncCRMStageFromCompletedActivity(o,activity.activity_type,id);
+      const {data:planned,error:plannedError}=await client().from('sales_activities')
+        .select('due_date,subject')
+        .eq('opportunity_id',oppId)
+        .eq('status','PLANNED')
+        .not('due_date','is',null)
+        .order('due_date',{ascending:true});
+      if(plannedError)throw plannedError;
+      const next=(planned||[])[0];
+      const {data:latestOpp,error:latestError}=await client().from('sales_opportunities').select('stage').eq('id',oppId).single();
+      if(latestError)throw latestError;
+      await client().from('sales_opportunities').update({
+        last_contact:today(),
+        next_action:next?.subject||('Execute '+(latestOpp?.stage||o.stage)+' step'),
+        next_follow_up:next?.due_date||null
+      }).eq('id',oppId);
+    }catch(err){alert(err.message||'Activity completed but stage synchronization failed.');}
     await loadCRM();
   }
   async function completeNextCRMActivity(oppId){
