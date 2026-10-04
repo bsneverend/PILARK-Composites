@@ -56,7 +56,7 @@
         '<div class="crm-detail-section"><h3>Recommended approach</h3><p>'+esc(o.first_contact_message||'—')+'</p><div class="crm-detail-attachment"><span>Attachment</span><b>'+esc(o.recommended_attachment||'—')+'</b></div></div>'+
         '<div class="crm-detail-section"><h3>Activity history</h3><div class="crm-timeline">'+(acts.map(x=>'<div class="crm-timeline-item"><div class="crm-timeline-dot"></div><div><b>'+esc(x.subject)+'</b><span>'+esc(x.activity_type)+' · '+esc(x.due_date||x.activity_date||'—')+' · '+esc(x.status)+'</span><p>'+esc(x.notes||'')+'</p></div></div>').join('')||'<p class="crm-empty">No activity yet.</p>')+'</div></div>'+
       '</div>'+
-      '<aside class="crm-detail-side"><div><h3>Contact routing</h3><b>'+esc(a.company_name||'—')+'</b><span>'+esc(a.contact_department||'—')+'</span><a href="'+(a.public_email?'mailto:'+encodeURIComponent(a.public_email):'#')+'">'+esc(a.public_email||'No public email')+'</a><a href="'+(a.public_phone?'tel:'+String(a.public_phone).replace(/[^+0-9]/g,''):'#')+'">'+esc(a.public_phone||'No public phone')+'</a></div><div><h3>Next action</h3><p>'+esc(o.next_action||'—')+'</p><b>Follow-up: '+esc(o.next_follow_up||'—')+'</b></div><div class="crm-detail-buttons"><button type="button" class="primary-btn crm-detail-email" data-id="'+o.id+'">✉ Email Contact</button><button type="button" class="primary-btn crm-detail-advance" data-id="'+o.id+'">Advance Stage →</button><button type="button" class="accounting-small-btn crm-detail-done" data-id="'+o.id+'">Complete next activity</button><button type="button" class="accounting-small-btn crm-detail-won" data-id="'+o.id+'">✓ Mark Won</button><button type="button" class="accounting-small-btn crm-detail-lost" data-id="'+o.id+'">Mark Lost</button></div></aside>'+
+      '<aside class="crm-detail-side"><div><h3>Contact routing</h3><b>'+esc(a.company_name||'—')+'</b><span>'+esc(a.contact_department||'—')+'</span><a href="'+(a.public_email?'mailto:'+encodeURIComponent(a.public_email):'#')+'">'+esc(a.public_email||'No public email')+'</a><a href="'+(a.public_phone?'tel:'+String(a.public_phone).replace(/[^+0-9]/g,''):'#')+'">'+esc(a.public_phone||'No public phone')+'</a></div><div><h3>Next action</h3><p>'+esc(o.next_action||'—')+'</p><b>Follow-up: '+esc(o.next_follow_up||'—')+'</b></div><div class="crm-contact-intelligence"><div class="eyebrow">Best Contact Route</div><strong>'+esc(best?.contact_person||a.contact_person||a.contact_department||'Company contact')+'</strong><small>'+esc(best?.position||best?.department||a.contact_department||'')+'</small><div class="crm-contact-channels">'+(best?.email||a.public_email?'<a href="mailto:'+esc(best?.email||a.public_email)+'">✉ Email</a>':'')+(best?.whatsapp_phone||best?.mobile_phone||a.whatsapp_phone||a.mobile_phone?'<a href="https://wa.me/'+String(best?.whatsapp_phone||best?.mobile_phone||a.whatsapp_phone||a.mobile_phone).replace(/[^0-9]/g,'')+'" target="_blank" rel="noopener">◉ WhatsApp</a>':'')+(best?.phone||a.public_phone?'<a href="tel:'+esc(best?.phone||a.public_phone)+'">☎ Call</a>':'')+(best?.linkedin_url||a.linkedin_url?'<a href="'+esc(best?.linkedin_url||a.linkedin_url)+'" target="_blank" rel="noopener">LinkedIn ↗</a>':'')+'</div><small>Confidence: '+esc(best?.confidence||a.contact_confidence||'—')+(best?.source_name?' · Source: '+esc(best.source_name):'')+'</small></div><div class="crm-detail-buttons"><button type="button" class="primary-btn crm-detail-email" data-id="'+o.id+'">✉ Email Contact</button><button type="button" class="primary-btn crm-detail-advance" data-id="'+o.id+'">Advance Stage →</button><button type="button" class="accounting-small-btn crm-detail-done" data-id="'+o.id+'">Complete next activity</button><button type="button" class="accounting-small-btn crm-detail-won" data-id="'+o.id+'">✓ Mark Won</button><button type="button" class="accounting-small-btn crm-detail-lost" data-id="'+o.id+'">Mark Lost</button></div></aside>'+
       '</div>';
     modal.hidden=false;
     el('crmDetailClose').onclick=()=>modal.hidden=true;
@@ -97,7 +97,7 @@
     document.querySelectorAll('.crm-detail-email').forEach(b=>b.onclick=()=>openCRMActivityModal(null,b.dataset.id,'EMAIL'));
   }
   function crmEmailTemplate(o){
-    const a=o?.sales_accounts||{},p=o?.sales_projects||{};
+    const a=o?.sales_accounts||{},p=o?.sales_projects||{};const contacts=(state.crm.contacts||[]).filter(x=>x.account_id===o?.account_id&&(!x.project_id||x.project_id===o?.project_id));const best=contacts.sort((x,y)=>({HIGH:0,MEDIUM:1,LOW:2}[x.confidence]??9)-({HIGH:0,MEDIUM:1,LOW:2}[y.confidence]??9))[0]||null;
     const company=a.company_name||'Engineering Team',project=p.project_name||o?.opportunity_name||'your project',location=p.location||'',product=o?.product||'GFRP / FRP / GRP solutions',stage=o?.stage||'PROSPECT';
     let subject='PILARK Composite — Technical Introduction for '+company;
     let body='Dear '+(a.contact_department||'Engineering / Project / BD Team')+',\n\nWe are PT. Panca Integra Laguna Reksa, through our PILARK Composite brand, part of ORI Group.\nPILARK Composite develops and supplies engineered GFRP / FRP / GRP solutions for infrastructure applications.\n\nWe would like to introduce our '+product+' solution in relation to '+project+(location?' in '+location:'')+'.\n\n';
@@ -141,14 +141,15 @@
   function closeCRMActivityModal(){const m=el('salesActivityModal');if(m)m.hidden=true;}
   async function loadCRM(){
     if(!client())return;
-    const [a,p,o,acts]=await Promise.all([
+    const [a,p,o,acts,contacts]=await Promise.all([
       client().from('sales_accounts').select('*').eq('is_active',true).order('priority').order('company_name'),
       client().from('sales_projects').select('*').order('project_name'),
       client().from('sales_opportunities').select('*,sales_accounts(company_name,priority,public_email,public_phone,contact_department),sales_projects(project_name,location,project_status)').order('next_follow_up',{ascending:true}),
-      client().from('sales_activities').select('*,sales_opportunities(opportunity_name,sales_accounts(company_name))').order('due_date',{ascending:true})
+      client().from('sales_activities').select('*,sales_opportunities(opportunity_name,sales_accounts(company_name))').order('due_date',{ascending:true}),
+      client().from('sales_contacts').select('*').eq('is_active',true).order('confidence',{ascending:false})
     ]);
-    for(const r of [a,p,o,acts])if(r.error)throw r.error;
-    state.crm={accounts:a.data||[],projects:p.data||[],opportunities:o.data||[],activities:acts.data||[]};
+    for(const r of [a,p,o,acts,contacts])if(r.error)throw r.error;
+    state.crm={accounts:a.data||[],projects:p.data||[],opportunities:o.data||[],activities:acts.data||[],contacts:contacts.data||[]};
     renderCRM();
   }
   async function completeCRMActivity(id,oppId){
