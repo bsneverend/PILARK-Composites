@@ -208,7 +208,7 @@
       <form id="documentForm" class="accounting-form">
         <input id="documentType" type="hidden" value="customer_invoice">
         <label>Customer<select id="documentPartner" required></select></label>
-        <div class="accounting-form-row"><label>Invoice date<input id="documentDate" type="date" required></label><label>Due date<input id="documentDueDate" type="date"></label></div>
+        <div class="accounting-form-row"><label>Invoice date<input id="documentDate" type="date" required></label><label>Payment terms<select id="documentPaymentTerms"><option value="0">Due on receipt</option><option value="7">Net 7</option><option value="14">Net 14</option><option value="30">Net 30</option><option value="45">Net 45</option><option value="60">Net 60</option><option value="90">Net 90</option></select></label></div><label>Due date<input id="documentDueDate" type="date" readonly></label>
         <label>Reference<input id="documentReference" placeholder="Customer PO / reference"></label>
         <div id="documentLines" class="document-lines"></div>
         <button id="addDocumentLine" type="button" class="accounting-small-btn">+ Add line</button>
@@ -218,7 +218,7 @@
         <small class="accounting-form-note">Posting creates the receivable and income/tax journal lines automatically.</small>
       </form>
     </div>
-    <div class="panel"><div class="panel-head"><div><h2>Customer invoices</h2><p>Draft, posted, partially paid and paid invoices.</p></div></div><div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Number</th><th>Date</th><th>Customer</th><th>Due</th><th class="num">Total</th><th class="num">Paid</th><th>Status</th><th></th></tr></thead><tbody id="accountingInvoicesBody"></tbody></table></div></div>
+    <div class="panel"><div class="panel-head"><div><h2>Customer invoices</h2><p>Draft, posted, partially paid and paid invoices.</p></div></div><div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Number</th><th>Date</th><th>Customer</th><th>Due</th><th class="num">Total</th><th class="num">Paid</th><th class="num">Outstanding</th><th>Status</th><th></th></tr></thead><tbody id="accountingInvoicesBody"></tbody></table></div><div id="accountingDocumentHistory" class="document-history" hidden></div></div>
   </div>
 </div>
 
@@ -227,7 +227,7 @@
     <div class="panel"><div class="panel-head"><div><h2>New vendor bill</h2><p>Record supplier costs and input tax as a posted payable.</p></div></div>
       <form id="billForm" class="accounting-form">
         <label>Vendor<select id="billPartner" required></select></label>
-        <div class="accounting-form-row"><label>Bill date<input id="billDate" type="date" required></label><label>Due date<input id="billDueDate" type="date"></label></div>
+        <div class="accounting-form-row"><label>Bill date<input id="billDate" type="date" required></label><label>Payment terms<select id="billPaymentTerms"><option value="0">Due on receipt</option><option value="7">Net 7</option><option value="14">Net 14</option><option value="30">Net 30</option><option value="45">Net 45</option><option value="60">Net 60</option><option value="90">Net 90</option></select></label></div><label>Due date<input id="billDueDate" type="date" readonly></label>
         <label>Reference<input id="billReference" placeholder="Vendor invoice number"></label>
         <div id="billLines" class="document-lines"></div>
         <button id="addBillLine" type="button" class="accounting-small-btn">+ Add line</button>
@@ -236,7 +236,7 @@
         <button class="primary-btn" type="submit">Create & Post Bill →</button>
       </form>
     </div>
-    <div class="panel"><div class="panel-head"><div><h2>Vendor bills</h2><p>Draft and posted supplier bills.</p></div></div><div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Number</th><th>Date</th><th>Vendor</th><th>Due</th><th class="num">Total</th><th class="num">Paid</th><th>Status</th><th></th></tr></thead><tbody id="accountingBillsBody"></tbody></table></div></div>
+    <div class="panel"><div class="panel-head"><div><h2>Vendor bills</h2><p>Draft and posted supplier bills.</p></div></div><div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Number</th><th>Date</th><th>Vendor</th><th>Due</th><th class="num">Total</th><th class="num">Paid</th><th class="num">Outstanding</th><th>Status</th><th></th></tr></thead><tbody id="accountingBillsBody"></tbody></table></div></div>
   </div>
 </div>
 
