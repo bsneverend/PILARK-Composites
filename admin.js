@@ -38,6 +38,117 @@ const contentGroups=[
 
 let cloudState={media:{},products:{},content:{}};
 let adminChatState={conversations:[],selected:null,timer:null,lastUnread:0};
+let adminAccessState={roles:[],permissions:[],userId:null,loaded:false};
+
+const accessMap={
+  dashboard:'cms.overview',
+  media:'cms.media',
+  products:'cms.products',
+  sections:'cms.content',
+  chat:'chat.manage',
+  'erp-overview':'erp.overview',
+  sales:'sales.manage',
+  purchase:'purchase.manage',
+  inventory:'inventory.manage',
+  accounting:'accounting.manage',
+  settings:'settings.manage'
+};
+
+const roleLabels={
+  administrator:'Administrator',
+  finance:'Finance',
+  sales:'Sales',
+  purchase:'Purchase',
+  inventory:'Inventory',
+  content_manager:'Content Manager',
+  support:'Support'
+};
+
+function hasAdminPermission(permission){return adminAccessState.permissions.includes(permission)}
+function hasViewAccess(view){
+  if(!adminAccessState.loaded)return true;
+  if(!adminAccessState.roles.length)return view==='settings';
+  const permission=accessMap[view];
+  return !permission||hasAdminPermission(permission);
+}
+
+async function loadAdminAccess(){
+  if(!cloudReady())return;
+  const {data,error}=await window.PILARK_CMS.client.rpc('cms_get_my_access');
+  if(error)throw error;
+  adminAccessState={
+    roles:Array.isArray(data?.roles)?data.roles:[],
+    permissions:Array.isArray(data?.permissions)?data.permissions:[],
+    userId:data?.user_id||null,
+    loaded:true
+  };
+  applyAdminAccess();
+  renderSettingsAccess();
+}
+
+function applyAdminAccess(){
+  document.querySelectorAll('.side-link[data-view]').forEach(button=>{
+    const view=button.dataset.view;
+    button.hidden=!hasViewAccess(view);
+  });
+  const settings= document.getElementById('settingsUserManagement');
+  if(settings) settings.hidden=!hasAdminPermission('settings.manage');
+  const bootstrap=document.getElementById('settingsBootstrap');
+  if(bootstrap) bootstrap.hidden=adminAccessState.roles.length!==0;
+}
+
+function renderSettingsAccess(){
+  const summary=document.getElementById('myAccessSummary');
+  if(!summary)return;
+  if(!adminAccessState.roles.length){
+    summary.innerHTML='<div class="settings-access-item"><b>No application role assigned</b><span>Use the first-time Administrator activation above if this is the initial setup.</span></div>';
+  }else{
+    const roles=adminAccessState.roles.map(r=>'<span class="settings-role-chip">'+escapeHtml(r.name||roleLabels[r.key]||r.key)+'</span>').join('');
+    const permissions=adminAccessState.permissions.map(p=>'<span class="settings-role-chip">'+escapeHtml(p)+'</span>').join('');
+    summary.innerHTML='<div class="settings-access-item"><b>Roles</b><span>'+roles+'</span></div><div class="settings-access-item"><b>Permissions</b><span>'+permissions+'</span></div>';
+  }
+  if(hasAdminPermission('settings.manage')) loadSettingsUsers();
+}
+
+async function loadSettingsUsers(){
+  const body=document.getElementById('settingsUsersBody');
+  if(!body||!hasAdminPermission('settings.manage'))return;
+  body.innerHTML='<tr><td colspan="4">Loading users…</td></tr>';
+  const {data,error}=await window.PILARK_CMS.client.rpc('cms_list_users');
+  if(error){body.innerHTML='<tr><td colspan="4">Unable to load users.</td></tr>';console.warn('Role user list failed:',error.message);return;}
+  body.innerHTML=(data||[]).map(user=>{
+    const roles=(user.roles||[]).map(role=>'<span class="settings-role-chip">'+escapeHtml(role)+'</span>').join('');
+    const actions=(user.roles||[]).map(role=>'<button type="button" class="settings-remove-btn" data-remove-email="'+escapeHtml(user.email||'')+'" data-remove-role="'+escapeHtml(role)+'">Remove '+escapeHtml(role)+'</button>').join(' ');
+    return '<tr><td><b>'+escapeHtml(user.email||'Unknown user')+'</b></td><td>'+new Date(user.created_at).toLocaleDateString()+'</td><td>'+roles+'</td><td>'+actions+'</td></tr>';
+  }).join('')||'<tr><td colspan="4">No users found.</td></tr>';
+  body.querySelectorAll('[data-remove-email]').forEach(button=>button.onclick=async()=>{
+    if(!confirm('Remove the '+button.dataset.removeRole+' role from '+button.dataset.removeEmail+'?'))return;
+    try{
+      button.disabled=true;
+      const {error}=await window.PILARK_CMS.client.rpc('cms_remove_role',{p_email:button.dataset.removeEmail,p_role_key:button.dataset.removeRole});
+      if(error)throw error;
+      await loadAdminAccess();
+    }catch(err){button.disabled=false;alert('Role removal failed: '+err.message);}
+  });
+}
+
+async function bootstrapAdmin(){
+  const status=document.getElementById('bootstrapStatus');
+  const button=document.getElementById('bootstrapAdminBtn');
+  try{
+    if(button)button.disabled=true;
+    if(status)status.textContent='Activating Administrator access…';
+    const {error}=await window.PILARK_CMS.client.rpc('cms_bootstrap_admin');
+    if(error)throw error;
+    if(status)status.textContent='Administrator access activated.';
+    await loadAdminAccess();
+    showView('settings');
+  }catch(err){
+    if(status)status.textContent=err.message||'Administrator activation failed.';
+  }finally{
+    if(button)button.disabled=false;
+  }
+}
 function cloudReady(){return !!window.PILARK_CMS?.ready}
 function load(){try{return JSON.parse(localStorage.getItem(KEY)||'{}')}catch{return {}}}
 function activeData(){return cloudReady()?cloudState:load()}
@@ -233,6 +344,7 @@ async function sendAdminChatMessage(message){
 }
 
 function showView(name){
+  if(!hasViewAccess(name))return;
   document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+name));
   document.querySelectorAll('.side-link').forEach(b=>b.classList.toggle('active',b.dataset.view===name));
   const main=document.querySelector('.admin-main');
@@ -252,6 +364,7 @@ function showView(name){
     document.querySelectorAll('[data-purchase-panel]').forEach(p=>p.hidden=p.dataset.purchasePanel!=='overview');
   }
   if(name==='chat') loadAdminChats();
+  if(name==='settings') renderSettingsAccess();
 }
 
 function enterDashboard(){
@@ -307,6 +420,22 @@ document.addEventListener('DOMContentLoaded',async()=>{
     renderContentEditor();
     updateStats();
 
+    document.getElementById('bootstrapAdminBtn')?.addEventListener('click',bootstrapAdmin);
+    document.getElementById('roleAssignForm')?.addEventListener('submit',async e=>{
+      e.preventDefault();
+      const email=document.getElementById('roleUserEmail')?.value.trim()||'';
+      const role=document.getElementById('roleUserRole')?.value||'';
+      const status=document.getElementById('roleAssignStatus');
+      if(!email||!role)return;
+      try{
+        const {error}=await window.PILARK_CMS.client.rpc('cms_assign_role',{p_email:email,p_role_key:role});
+        if(error)throw error;
+        if(status)status.textContent='Role assigned successfully.';
+        e.target.reset();
+        await loadSettingsUsers();
+      }catch(err){if(status)status.textContent=err.message||'Role assignment failed.';}
+    });
+
     const mobileNavToggle=document.getElementById('mobileNavToggle');
     const sidebar=document.querySelector('.sidebar');
     if(mobileNavToggle&&sidebar){
@@ -350,6 +479,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
     if(session){
       await loadCloudState();
       enterDashboard();
+      try{await loadAdminAccess();}catch(err){console.warn('Role access load failed:',err.message);}
       loadAdminChats();
       if(adminChatState.timer)clearInterval(adminChatState.timer);adminChatState.timer=setInterval(()=>{loadAdminChats();if(adminChatState.selected)loadAdminChatMessages();},5000);
     }else{
