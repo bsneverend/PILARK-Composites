@@ -90,3 +90,5 @@
   .document-line .line-remove{grid-column:2;justify-self:end}
 }
 
+
+.accounting-actions{display:flex;gap:6px;align-items:center}.accounting-overdue{display:inline-flex;margin-left:6px;padding:3px 7px;border-radius:999px;background:#fff0f0;color:#b42318;font-size:10px;font-weight:800}.document-history{margin-top:14px;border:1px solid #dce8ee;border-radius:14px;background:#fff;padding:14px}.document-history-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}.document-history-head b{display:block;color:#07121a}.document-history-head span{display:block;color:#71838e;font-size:12px;margin-top:3px}.document-history .accounting-table{min-width:0}@media(max-width:900px){.accounting-actions{flex-wrap:wrap}}
