@@ -105,3 +105,27 @@
 .statement-head span{display:block;color:#657783;margin-top:4px}
 .statement-total{display:flex;justify-content:flex-end;gap:28px;padding:14px 0;font-size:15px}
 @media(max-width:800px){.statement-head{display:block}.statement-head>div+div{margin-top:12px}.statement-total{justify-content:space-between}}
+
+.dashboard-toolbar{margin-bottom:16px}
+.dashboard-grid{display:grid;grid-template-columns:minmax(280px,.7fr) minmax(0,1.3fr);gap:16px;align-items:start}
+.dashboard-profit{min-height:150px}
+.dashboard-profit>strong{display:block;font-size:30px;line-height:1.2;margin:18px 0 8px}
+.dashboard-profit>span{color:#687985;font-size:12px}
+.dashboard-bars{display:flex;flex-direction:column;gap:10px}
+.dashboard-bar-group{display:grid;grid-template-columns:42px minmax(0,1fr) 115px;gap:10px;align-items:center;font-size:12px}
+.dashboard-bar-group>span{font-weight:600}
+.dashboard-bar-track{height:12px;border-radius:7px;background:#edf2f4;position:relative;overflow:hidden}
+.dashboard-bar-track i,.dashboard-bar-track em{display:block;height:6px;position:absolute;left:0;border-radius:7px}
+.dashboard-bar-track i{top:0;background:#32748f}
+.dashboard-bar-track em{bottom:0;background:#b7c6ce}
+.dashboard-bar-group small{text-align:right;color:#647783}
+.dashboard-exposure{display:flex;flex-direction:column;gap:12px}
+.exposure-row,.exposure-net{display:flex;justify-content:space-between;gap:20px;padding:10px 0;border-bottom:1px solid #e5ecef}
+.exposure-net{border-bottom:0;padding-top:14px;font-size:15px}
+.dashboard-activity{margin-top:16px}
+.dashboard-activity-list{display:flex;flex-direction:column}
+.activity-row{display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:12px;align-items:center;padding:11px 0;border-bottom:1px solid #edf1f3}
+.activity-dot{width:8px;height:8px;border-radius:50%;background:#32748f}
+.activity-row div span{display:block;color:#71818a;font-size:12px;margin-top:3px}
+@media(max-width:900px){.dashboard-grid{grid-template-columns:1fr}}
+@media(max-width:800px){.dashboard-bar-group{grid-template-columns:38px minmax(0,1fr) 95px}}
