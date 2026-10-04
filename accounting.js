@@ -371,7 +371,58 @@
     el('reportPayable').innerHTML=ageRows(state.bills);
   }
 
-  function showTab(tab,updateTitle=true){state.tab=tab;document.querySelectorAll('[data-accounting-tab]').forEach(b=>b.classList.toggle('active',b.dataset.accountingTab===tab));document.querySelectorAll('.accounting-tab-panel').forEach(p=>p.hidden=p.dataset.accountingPanel!==tab);if(updateTitle&&el('view-accounting')?.classList.contains('active'))el('pageTitle').textContent='Accounting';if(tab==='overview')renderOverview().catch(console.warn);if(tab==='reports')renderReports().catch(console.warn);if(tab==='periods')renderPeriods();}
+  function agingBucket(days){
+    if(days<=0)return 'Current';
+    if(days<=30)return '1–30 days';
+    if(days<=60)return '31–60 days';
+    if(days<=90)return '61–90 days';
+    return '90+ days';
+  }
+  function docOutstandingAsOf(d,asOf){
+    if(!d||d.status==='cancelled'||d.document_date>asOf)return 0;
+    const paid=state.allocations.filter(a=>a.document_id===d.id && a.accounting_payments?.status==='posted' && String(a.accounting_payments.payment_date||'')<=asOf).reduce((s,a)=>s+Number(a.amount||0),0);
+    return Math.max(0,Number(d.total_amount||0)-paid);
+  }
+  function renderAgingPartners(){
+    const type=el('agingType')?.value||'customer';
+    const opts=state.partners.filter(p=>p.partner_type===type||p.partner_type==='both').sort((a,b)=>a.name.localeCompare(b.name));
+    const html='<option value="">All partners</option>'+opts.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.name)+'</option>').join('');
+    if(el('agingPartner')){const v=el('agingPartner').value;el('agingPartner').innerHTML=html;if(opts.some(p=>p.id===v))el('agingPartner').value=v;}
+    const s='<option value="">Select partner…</option>'+opts.map(p=>'<option value="'+esc(p.id)+'">'+esc(p.name)+'</option>').join('');
+    if(el('statementPartner')){const v=el('statementPartner').value;el('statementPartner').innerHTML=s;if(opts.some(p=>p.id===v))el('statementPartner').value=v;}
+  }
+  function renderAging(){
+    const asOf=el('agingAsOf')?.value||today(), type=el('agingType')?.value||'customer', partner=el('agingPartner')?.value||'';
+    const docs=(type==='customer'?state.invoices:state.bills).filter(d=>!partner||d.partner_id===partner).map(d=>({...d,outstanding:docOutstandingAsOf(d,asOf)})).filter(d=>d.outstanding>0.005);
+    const buckets={'Current':0,'1–30 days':0,'31–60 days':0,'61–90 days':0,'90+ days':0};
+    docs.forEach(d=>{const due=d.due_date||d.document_date;const days=Math.max(0,Math.floor((new Date(asOf+'T00:00:00')-new Date(due+'T00:00:00'))/86400000));d.age=days;d.bucket=agingBucket(days);buckets[d.bucket]+=d.outstanding;});
+    el('agingSummary').innerHTML=Object.entries(buckets).map(([k,v])=>'<div class="report-row"><span>'+k+'</span><strong>'+money(v)+'</strong></div>').join('')+'<div class="report-row aging-total"><span><b>Total Outstanding</b></span><strong>'+money(docs.reduce((s,d)=>s+d.outstanding,0))+'</strong></div>';
+    el('agingDocumentsBody').innerHTML=docs.sort((a,b)=>b.age-a.age).map(d=>'<tr><td><b>'+esc(d.document_no)+'</b></td><td>'+esc(d.accounting_partners?.name||'—')+'</td><td>'+dateText(d.due_date)+'</td><td>'+d.age+' days</td><td>'+d.bucket+'</td><td class="num">'+money(d.outstanding)+'</td></tr>').join('')||'<tr><td colspan="6"><div class="accounting-empty">No outstanding documents as of this date.</div></td></tr>';
+  }
+  function renderStatement(){
+    const pid=el('statementPartner')?.value, from=el('statementFrom')?.value||monthStart(), to=el('statementTo')?.value||today();
+    const box=el('partnerStatement'); if(!box)return;
+    if(!pid){box.innerHTML='<div class="accounting-empty">Select a partner to view the statement.</div>';return;}
+    if(from>to){box.innerHTML='<div class="accounting-empty">Statement start date cannot be after the end date.</div>';return;}
+    const p=state.partners.find(x=>x.id===pid); const docs=[...state.invoices,...state.bills].filter(d=>d.partner_id===pid&&d.status!=='cancelled'&&d.document_date<=to&&d.document_date>=from);
+    const pays=state.allocations.filter(a=>a.accounting_payments?.partner_id===pid&&a.accounting_payments?.status==='posted'&&String(a.accounting_payments.payment_date||'')>=from&&String(a.accounting_payments.payment_date||'')<=to);
+    const rows=[];
+    docs.forEach(d=>rows.push({date:d.document_date,no:d.document_no,type:documentLabel(d),debit:d.document_type==='customer_invoice'?Number(d.total_amount||0):0,credit:d.document_type==='vendor_bill'?Number(d.total_amount||0):0}));
+    pays.forEach(a=>rows.push({date:a.accounting_payments.payment_date,no:a.accounting_payments.payment_no,type:a.accounting_payments.payment_type==='receive'?'Payment Received':'Payment Made',debit:a.accounting_payments.payment_type==='pay'?Number(a.amount||0):0,credit:a.accounting_payments.payment_type==='receive'?Number(a.amount||0):0}));
+    rows.sort((a,b)=>String(a.date).localeCompare(String(b.date))||String(a.no).localeCompare(String(b.no)));
+    let balance=0;
+    const body=rows.map(r=>{balance+=r.debit-r.credit;return '<tr><td>'+dateText(r.date)+'</td><td><b>'+esc(r.no)+'</b></td><td>'+esc(r.type)+'</td><td class="num">'+(r.debit?money(r.debit):'—')+'</td><td class="num">'+(r.credit?money(r.credit):'—')+'</td><td class="num"><b>'+money(balance)+'</b></td></tr>';}).join('');
+    const periodDocs=[...state.invoices,...state.bills].filter(d=>d.partner_id===pid&&d.status!=='cancelled'&&d.document_date<=to);
+    const totalDue=periodDocs.reduce((s,d)=>s+Number(d.total_amount||0),0)-state.allocations.filter(a=>a.accounting_payments?.partner_id===pid&&a.accounting_payments?.status==='posted'&&String(a.accounting_payments.payment_date||'')<=to).reduce((s,a)=>s+Number(a.amount||0),0);
+    box.innerHTML='<div class="statement-head"><div><b>'+esc(p?.name||'')+'</b><span>'+esc(p?.email||'')+'</span></div><div><b>Statement period</b><span>'+dateText(from)+' – '+dateText(to)+'</span></div></div><div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Date</th><th>Document</th><th>Type</th><th class="num">Debit</th><th class="num">Credit</th><th class="num">Balance</th></tr></thead><tbody>'+body+'</tbody></table></div><div class="statement-total"><span>Outstanding through '+dateText(to)+'</span><b>'+money(Math.max(0,totalDue))+'</b></div>';
+  }
+  function printStatement(){
+    const html=el('partnerStatement')?.innerHTML; const p=state.partners.find(x=>x.id===el('statementPartner')?.value); if(!html||!p)return alert('View a statement first.');
+    const w=window.open('','_blank');if(!w)return alert('Popup blocked. Allow popups for the CMS.');
+    w.document.write('<!doctype html><html><head><title>Statement - '+esc(p.name)+'</title><style>body{font:13px Arial,sans-serif;padding:32px;color:#17212b}h1{margin:0 0 6px;font-size:22px}.muted{color:#667}.accounting-table{width:100%;border-collapse:collapse;margin-top:18px}.accounting-table th,.accounting-table td{border-bottom:1px solid #ddd;padding:8px;text-align:left}.accounting-table .num{text-align:right}.statement-head{display:flex;justify-content:space-between;gap:30px}.statement-head span{display:block;color:#667;margin-top:4px}.statement-total{display:flex;justify-content:flex-end;gap:30px;margin-top:18px;font-size:16px}</style></head><body><h1>PILARK COMPOSITES</h1><div class="muted">Partner Statement</div>'+html+'</body></html>');w.document.close();w.focus();setTimeout(()=>w.print(),250);
+  }
+
+  function showTab(tab,updateTitle=true){state.tab=tab;document.querySelectorAll('[data-accounting-tab]').forEach(b=>b.classList.toggle('active',b.dataset.accountingTab===tab));document.querySelectorAll('.accounting-tab-panel').forEach(p=>p.hidden=p.dataset.accountingPanel!==tab);if(updateTitle&&el('view-accounting')?.classList.contains('active'))el('pageTitle').textContent='Accounting';if(tab==='overview')renderOverview().catch(console.warn);if(tab==='reports')renderReports().catch(console.warn);if(tab==='aging'){renderAgingPartners();renderAging();renderStatement();}if(tab==='periods')renderPeriods();}
   function render(){renderAccounts();renderPartners();renderEntries();renderDocuments();renderPayments();renderPeriods();renderOverview().catch(console.warn);renderReports().catch(console.warn);showTab(state.tab,false);}
 
   async function createAccount(e){e.preventDefault();const payload={code:el('accountCode').value.trim(),name:el('accountName').value.trim(),account_type:el('accountType').value,reconcile:el('accountReconcile').checked};if(!payload.code||!payload.name||!payload.account_type)return alert('Complete Code, Name and Type.');const {error}=await client().from('accounting_accounts').insert(payload);if(error)return alert(error.message);e.target.reset();await load();showTab('accounts');}
@@ -392,11 +443,11 @@
     el('addDocumentLine')?.addEventListener('click',()=>{el('documentLines').insertAdjacentHTML('beforeend',lineHtml('customer_invoice',el('documentLines').children.length));updateDocumentPreview('customer_invoice');});
     el('addBillLine')?.addEventListener('click',()=>{el('billLines').insertAdjacentHTML('beforeend',lineHtml('vendor_bill',el('billLines').children.length));updateDocumentPreview('vendor_bill');});
     el('paymentForm')?.addEventListener('submit',createPayment);el('paymentType')?.addEventListener('change',()=>{el('paymentPartner').innerHTML=partnerOptions('',el('paymentType').value==='receive'?'customer':'vendor');refreshPaymentDocuments();});el('paymentPartner')?.addEventListener('change',refreshPaymentDocuments);
-    el('accountingRefresh')?.addEventListener('click',()=>load().catch(err=>alert(err.message)));
+    el('accountingRefresh')?.addEventListener('click',()=>load().catch(err=>alert(err.message)));el('agingAsOf').value=today();el('statementFrom').value=monthStart();el('statementTo').value=today();
     el('entryDate').value=today();el('periodStart').value=monthStart();el('periodEnd').value=(()=>{const d=new Date();d.setMonth(d.getMonth()+1,0);return d.toISOString().slice(0,10)})();el('documentDate').value=today();el('billDate').value=today();el('paymentDate').value=today();el('documentPaymentTerms').value='30';el('billPaymentTerms').value='30';applyPaymentTerms('document');applyPaymentTerms('bill');el('documentPaymentTerms')?.addEventListener('change',()=>applyPaymentTerms('document'));el('billPaymentTerms')?.addEventListener('change',()=>applyPaymentTerms('bill'));el('documentDate')?.addEventListener('change',()=>applyPaymentTerms('document'));el('billDate')?.addEventListener('change',()=>applyPaymentTerms('bill'));
     bindLineContainer('documentLines','customer_invoice');bindLineContainer('billLines','vendor_bill');
     const nav=document.querySelector('.side-link[data-view="accounting"]');nav?.addEventListener('click',()=>setTimeout(()=>load().catch(console.warn),50));
-    el('reportApply')?.addEventListener('click',applyReportFilters);el('periodForm')?.addEventListener('submit',createPeriod);
+    el('reportApply')?.addEventListener('click',applyReportFilters);el('periodForm')?.addEventListener('submit',createPeriod);el('agingApply')?.addEventListener('click',renderAging);el('agingType')?.addEventListener('change',()=>{renderAgingPartners();renderAging();});el('statementApply')?.addEventListener('click',renderStatement);el('statementPrint')?.addEventListener('click',printStatement);
   }
 
   function populateDynamic(){el('entryJournal').innerHTML=journalOptions();el('entryPartner').innerHTML='<option value="">No partner</option>'+partnerOptions().replace('<option value="">Select partner…</option>','');el('entryDebitAccount').innerHTML=accountOptions();el('entryCreditAccount').innerHTML=accountOptions();el('documentPartner').innerHTML=partnerOptions('', 'customer');el('billPartner').innerHTML=partnerOptions('', 'vendor');el('paymentPartner').innerHTML=partnerOptions('', 'customer');el('paymentJournal').innerHTML=journalOptions('', ['bank','cash']);refreshPaymentDocuments();}
