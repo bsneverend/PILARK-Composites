@@ -609,3 +609,41 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:1
   }
 }
 
+/* PILARK Admin desktop workspace: fixed navigation + independently scrollable main */
+@media (min-width:801px){
+  html,body{
+    height:100%;
+    overflow:hidden;
+  }
+  .admin-app{
+    height:100vh;
+    min-height:100vh;
+    overflow:hidden;
+    align-items:stretch;
+  }
+  .sidebar{
+    position:static;
+    top:auto;
+    height:100vh;
+    min-height:100vh;
+    max-height:none;
+    overflow-y:auto;
+    overflow-x:hidden;
+    align-self:stretch;
+  }
+  .admin-main{
+    height:100vh;
+    min-height:0;
+    max-height:100vh;
+    overflow-y:auto;
+    overflow-x:hidden;
+    min-width:0;
+    box-sizing:border-box;
+    scrollbar-width:thin;
+    scrollbar-color:#c4d4da transparent;
+  }
+  .admin-main::-webkit-scrollbar{width:8px}
+  .admin-main::-webkit-scrollbar-track{background:transparent}
+  .admin-main::-webkit-scrollbar-thumb{background:#c4d4da;border-radius:99px}
+}
+
