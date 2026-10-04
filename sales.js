@@ -41,11 +41,118 @@
   const CRM_STAGES=['PROSPECT','CONTACTED','MEETING','TECHNICAL PRESENTATION','SPECIFICATION','RFQ','QUOTATION','NEGOTIATION','PO','WON'];
   function crmStageClass(stage){return 'crm-stage-'+stage.toLowerCase().replace(/[^a-z0-9]+/g,'-');}
   function crmPriorityClass(p){return 'crm-priority-'+String(p||'WARM').toLowerCase();}
+  function crmContactCandidates(o){
+    const contacts=(state.crm.contacts||[]).filter(x=>x.account_id===o?.account_id&&x.is_active!==false);
+    const rank={HIGH:0,MEDIUM:1,LOW:2};
+    return contacts.slice().sort((x,y)=>{
+      const px=x.project_id===o?.project_id?0:(x.project_id?1:2), py=y.project_id===o?.project_id?0:(y.project_id?1:2);
+      const cx=rank[x.confidence]??9, cy=rank[y.confidence]??9;
+      const rx=(x.whatsapp_phone||x.mobile_phone||x.phone||x.email||x.linkedin_url)?0:1;
+      const ry=(y.whatsapp_phone||y.mobile_phone||y.phone||y.email||y.linkedin_url)?0:1;
+      return px-py||cx-cy||rx-ry;
+    });
+  }
+  function crmBestContact(o){
+    const list=crmContactCandidates(o);
+    if(list[0])return list[0];
+    const a=o?.sales_accounts||{};
+    if(a.public_email||a.public_phone||a.contact_person||a.contact_department){
+      return {id:null,account_id:o?.account_id,contact_person:a.contact_person||a.contact_department||'Company contact',department:a.contact_department,email:a.public_email,phone:a.public_phone,mobile_phone:a.mobile_phone,whatsapp_phone:a.whatsapp_phone,linkedin_url:a.linkedin_url,confidence:a.contact_confidence||'—',source_name:'Account public contact',is_account_fallback:true};
+    }
+    return null;
+  }
+  function crmWhatsAppNumber(value){
+    const d=String(value||'').replace(/[^0-9]/g,'');
+    if(!d)return '';
+    return d.startsWith('0')?'62'+d.slice(1):d;
+  }
+  function crmWhatsAppMessage(o,contact){
+    const a=o?.sales_accounts||{},p=o?.sales_projects||{};
+    const name=contact?.contact_person||contact?.department||a.contact_department||'Pak/Bu';
+    const project=p.project_name||o?.opportunity_name||'project';
+    const product=o?.product||'GFRP / FRP / GRP solution';
+    let focus='technical characteristics, application suitability and project references';
+    if(/Jacking/i.test(product))focus='GRP Jacking Pipe configuration, stiffness, allowable jacking force, joint system and installation approach';
+    else if(/Sheet Pile/i.test(product))focus='FRP Sheet Pile structural performance and installation approach for river, marine or flood-control works';
+    else if(/Rebar/i.test(product))focus='GFRP Rebar application, corrosion resistance and structural considerations';
+    return 'Dear '+name+',\\n\\nI am reaching out from PILARK Composite (PT. Panca Integra Laguna Reksa, ORI Group). We develop engineered GFRP / FRP / GRP solutions for infrastructure applications.\\n\\nWe would like to introduce our '+product+' solution in relation to '+project+'. We would be pleased to share '+focus+' for your engineering review.\\n\\nMay I send a short technical introduction to the appropriate Engineering / Project / Procurement team?\\n\\nThank you.';
+  }
+  async function logCRMContactInitiated(o,contact,channel,detail){
+    const name=contact?.contact_person||contact?.department||o?.sales_accounts?.contact_department||'company contact';
+    const subject=channel+' contact initiated — '+name;
+    const notes=detail+'\\nContact: '+name+(contact?.position?' · '+contact.position:'')+(contact?.source_name?'\\nSource: '+contact.source_name:'')+'\\nStatus remains PLANNED until the salesperson confirms the actual conversation/contact.';
+    const {error}=await client().from('sales_activities').insert({
+      opportunity_id:o.id,
+      activity_type:channel==='WHATSAPP'?'WHATSAPP':channel==='CALL'?'CALL':'NOTE',
+      subject,
+      activity_date:today(),
+      due_date:today(),
+      status:'PLANNED',
+      notes
+    });
+    if(error)throw error;
+    await client().from('sales_opportunities').update({
+      next_action:'Complete '+channel+' contact with '+name,
+      next_follow_up:today()
+    }).eq('id',o.id);
+  }
+  async function handleCRMContactAction(oppId,contactId,channel){
+    const o=(state.crm.opportunities||[]).find(x=>x.id===oppId); if(!o)return;
+    const candidates=crmContactCandidates(o);
+    const contact=candidates.find(x=>x.id===contactId)||crmBestContact(o);
+    if(!contact)return;
+    try{
+      if(channel==='EMAIL'){
+        openCRMActivityModal(null,oppId,'EMAIL');
+        return;
+      }
+      if(channel==='WHATSAPP'){
+        const number=crmWhatsAppNumber(contact.whatsapp_phone||contact.mobile_phone);
+        if(!number)return alert('No WhatsApp/mobile number is available for this contact.');
+        const message=crmWhatsAppMessage(o,contact);
+        await logCRMContactInitiated(o,contact,'WHATSAPP','WhatsApp draft opened with a product/stage-specific introduction.');
+        window.open('https://wa.me/'+number+'?text='+encodeURIComponent(message),'_blank','noopener');
+        await loadCRM();
+        renderOpportunityDetail(oppId);
+        return;
+      }
+      if(channel==='CALL'){
+        const phone=String(contact.phone||contact.mobile_phone||'').trim();
+        if(!phone)return alert('No phone number is available for this contact.');
+        await logCRMContactInitiated(o,contact,'CALL','Call route opened for the verified business contact.');
+        window.location.href='tel:'+phone.replace(/[^+0-9]/g,'');
+        return;
+      }
+      if(channel==='LINKEDIN'){
+        if(!contact.linkedin_url)return alert('No LinkedIn URL is available for this contact.');
+        await logCRMContactInitiated(o,contact,'LINKEDIN','LinkedIn profile/company route opened for the verified business contact.');
+        window.open(contact.linkedin_url,'_blank','noopener');
+        await loadCRM();
+        renderOpportunityDetail(oppId);
+      }
+    }catch(err){alert(err.message||'Unable to initiate contact route.');}
+  }
   function renderOpportunityDetail(id){
     const o=(state.crm.opportunities||[]).find(x=>x.id===id); if(!o)return;
     const a=o.sales_accounts||{},p=o.sales_projects||{};
     const acts=(state.crm.activities||[]).filter(x=>x.opportunity_id===id).sort((x,y)=>String(y.due_date||'').localeCompare(String(x.due_date||'')));
+    const contacts=crmContactCandidates(o);
+    const best=crmBestContact(o);
     const modal=el('salesOpportunityModal'); if(!modal)return;
+    const contactRows=contacts.slice(0,4).map(c=>{
+      const wa=crmWhatsAppNumber(c.whatsapp_phone||c.mobile_phone);
+      return '<div class="crm-route-contact">'+
+        '<div class="crm-route-contact-main"><strong>'+esc(c.contact_person||'Business contact')+'</strong><span>'+esc(c.position||c.department||'Business contact')+(c.project_id===o.project_id?' · Project matched':'')+'</span><small>'+esc(c.confidence||'—')+(c.source_name?' · '+esc(c.source_name):'')+'</small></div>'+
+        '<div class="crm-route-actions">'+
+          (c.email?'<button type="button" class="crm-route-btn" data-action="EMAIL" data-opp="'+o.id+'" data-contact="'+c.id+'">✉ Email</button>':'')+
+          (wa?'<button type="button" class="crm-route-btn" data-action="WHATSAPP" data-opp="'+o.id+'" data-contact="'+c.id+'">◉ WhatsApp</button>':'')+
+          ((c.phone||c.mobile_phone)?'<button type="button" class="crm-route-btn" data-action="CALL" data-opp="'+o.id+'" data-contact="'+c.id+'">☎ Call</button>':'')+
+          (c.linkedin_url?'<button type="button" class="crm-route-btn" data-action="LINKEDIN" data-opp="'+o.id+'" data-contact="'+c.id+'">LinkedIn ↗</button>':'')+
+        '</div></div>';
+    }).join('');
+    const bestName=best?.contact_person||a.contact_person||a.contact_department||'No individual contact';
+    const bestRole=best?.position||best?.department||a.contact_department||'';
+    const bestSource=best?.source_name||a.contact_source||'';
     el('crmDetailTitle').textContent=a.company_name||'Opportunity';
     el('crmDetailSubtitle').textContent=o.opportunity_name||'';
     el('crmDetailBody').innerHTML='<div class="crm-detail-grid">'+
@@ -56,12 +163,27 @@
         '<div class="crm-detail-section"><h3>Recommended approach</h3><p>'+esc(o.first_contact_message||'—')+'</p><div class="crm-detail-attachment"><span>Attachment</span><b>'+esc(o.recommended_attachment||'—')+'</b></div></div>'+
         '<div class="crm-detail-section"><h3>Activity history</h3><div class="crm-timeline">'+(acts.map(x=>'<div class="crm-timeline-item"><div class="crm-timeline-dot"></div><div><b>'+esc(x.subject)+'</b><span>'+esc(x.activity_type)+' · '+esc(x.due_date||x.activity_date||'—')+' · '+esc(x.status)+'</span><p>'+esc(x.notes||'')+'</p></div></div>').join('')||'<p class="crm-empty">No activity yet.</p>')+'</div></div>'+
       '</div>'+
-      '<aside class="crm-detail-side"><div><h3>Contact routing</h3><b>'+esc(a.company_name||'—')+'</b><span>'+esc(a.contact_department||'—')+'</span><a href="'+(a.public_email?'mailto:'+encodeURIComponent(a.public_email):'#')+'">'+esc(a.public_email||'No public email')+'</a><a href="'+(a.public_phone?'tel:'+String(a.public_phone).replace(/[^+0-9]/g,''):'#')+'">'+esc(a.public_phone||'No public phone')+'</a></div><div><h3>Next action</h3><p>'+esc(o.next_action||'—')+'</p><b>Follow-up: '+esc(o.next_follow_up||'—')+'</b></div><div class="crm-contact-intelligence"><div class="eyebrow">Best Contact Route</div><strong>'+esc(best?.contact_person||a.contact_person||a.contact_department||'Company contact')+'</strong><small>'+esc(best?.position||best?.department||a.contact_department||'')+'</small><div class="crm-contact-channels">'+(best?.email||a.public_email?'<a href="mailto:'+esc(best?.email||a.public_email)+'">✉ Email</a>':'')+(best?.whatsapp_phone||best?.mobile_phone||a.whatsapp_phone||a.mobile_phone?'<a href="https://wa.me/'+String(best?.whatsapp_phone||best?.mobile_phone||a.whatsapp_phone||a.mobile_phone).replace(/[^0-9]/g,'')+'" target="_blank" rel="noopener">◉ WhatsApp</a>':'')+(best?.phone||a.public_phone?'<a href="tel:'+esc(best?.phone||a.public_phone)+'">☎ Call</a>':'')+(best?.linkedin_url||a.linkedin_url?'<a href="'+esc(best?.linkedin_url||a.linkedin_url)+'" target="_blank" rel="noopener">LinkedIn ↗</a>':'')+'</div><small>Confidence: '+esc(best?.confidence||a.contact_confidence||'—')+(best?.source_name?' · Source: '+esc(best.source_name):'')+'</small></div><div class="crm-detail-buttons"><button type="button" class="primary-btn crm-detail-email" data-id="'+o.id+'">✉ Email Contact</button><button type="button" class="primary-btn crm-detail-advance" data-id="'+o.id+'">Advance Stage →</button><button type="button" class="accounting-small-btn crm-detail-done" data-id="'+o.id+'">Complete next activity</button><button type="button" class="accounting-small-btn crm-detail-won" data-id="'+o.id+'">✓ Mark Won</button><button type="button" class="accounting-small-btn crm-detail-lost" data-id="'+o.id+'">Mark Lost</button></div></aside>'+
+      '<aside class="crm-detail-side">'+
+        '<div><h3>Contact routing</h3><b>'+esc(bestName)+'</b><span>'+esc(bestRole)+'</span><small>Confidence: '+esc(best?.confidence||a.contact_confidence||'—')+(bestSource?' · '+esc(bestSource):'')+'</small>'+
+          '<div class="crm-route-primary">'+
+            (best?.email||a.public_email?'<button type="button" class="crm-route-primary-btn" data-action="EMAIL" data-opp="'+o.id+'" data-contact="'+esc(best?.id||'')+'">✉ Email Contact</button>':'')+
+            (best?.whatsapp_phone||best?.mobile_phone||a.whatsapp_phone||a.mobile_phone?'<button type="button" class="crm-route-primary-btn" data-action="WHATSAPP" data-opp="'+o.id+'" data-contact="'+esc(best?.id||'')+'">◉ WhatsApp</button>':'')+
+            (best?.phone||best?.mobile_phone||a.public_phone?'<button type="button" class="crm-route-primary-btn" data-action="CALL" data-opp="'+o.id+'" data-contact="'+esc(best?.id||'')+'">☎ Call</button>':'')+
+            (best?.linkedin_url||a.linkedin_url?'<button type="button" class="crm-route-primary-btn" data-action="LINKEDIN" data-opp="'+o.id+'" data-contact="'+esc(best?.id||'')+'">LinkedIn ↗</button>':'')+
+          '</div>'+
+          '<div class="crm-route-status">'+(best?'Primary route selected using project match, verification confidence and available contact channels.':'No direct contact found — request the appropriate PIC.')+'</div>'+
+        '</div>'+
+        '<div><h3>Available contacts</h3><div class="crm-route-list">'+(contactRows||'<div class="crm-research-empty">No individual contact stored. Use Research Contacts to find a verified business PIC.</div>')+'</div><button type="button" class="text-btn crm-route-research">+ Research / Add Contact</button></div>'+
+        '<div><h3>Next action</h3><p>'+esc(o.next_action||'—')+'</p><b>Follow-up: '+esc(o.next_follow_up||'—')+'</b></div>'+
+        '<div class="crm-detail-buttons"><button type="button" class="primary-btn crm-detail-advance" data-id="'+o.id+'">Advance Stage →</button><button type="button" class="accounting-small-btn crm-detail-done" data-id="'+o.id+'">Complete next activity</button><button type="button" class="accounting-small-btn crm-detail-won" data-id="'+o.id+'">✓ Mark Won</button><button type="button" class="accounting-small-btn crm-detail-lost" data-id="'+o.id+'">Mark Lost</button></div>'+
+      '</aside>'+
       '</div>';
     modal.hidden=false;
     el('crmDetailClose').onclick=()=>modal.hidden=true;
     modal.querySelector('.crm-detail-advance').onclick=()=>advanceCRMStage(o.id,CRM_STAGES[Math.min(CRM_STAGES.indexOf(o.stage)+1,CRM_STAGES.length-1)]);
     modal.querySelector('.crm-detail-done').onclick=()=>completeNextCRMActivity(o.id);
+    modal.querySelector('.crm-route-research')?.addEventListener('click',()=>openContactResearchModal(o.account_id));
+    modal.querySelectorAll('.crm-route-btn,.crm-route-primary-btn').forEach(b=>b.onclick=()=>handleCRMContactAction(b.dataset.opp,b.dataset.contact||'',b.dataset.action));
   }
   function renderCRM(){
     const c=state.crm||{},os=c.opportunities||[],as=c.accounts||[],acts=c.activities||[];
