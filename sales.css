@@ -157,3 +157,11 @@
 
 /* 2026-10-05 CRM full pipeline */
 .crm-stage-po .crm-column-head{border-top:3px solid #16a085}.crm-stage-won .crm-column-head{border-top:3px solid #2e9d62}.crm-detail-won{border-color:#b8dfc8;color:#137342;background:#f4fbf6}.crm-detail-lost{border-color:#efcaca;color:#a82c2c;background:#fff7f7}
+
+/* 2026-10-05 CRM activity manager */
+.crm-activity-modal-card{width:min(720px,96vw)}
+.crm-email-hint{padding:10px 12px;border:1px solid #dce8ee;border-radius:10px;background:#f6fafc;color:#627883;font-size:11px;line-height:1.5}
+.crm-modal-form-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
+.crm-detail-email{width:100%;background:#f3fbff;border-color:#b9dfef;color:#087fbd}
+.crm-activity-modal-card label{font-size:11px}
+.crm-activity-modal-card textarea{min-height:130px}
