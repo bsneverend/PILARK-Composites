@@ -56,7 +56,7 @@
         '<div class="crm-detail-section"><h3>Recommended approach</h3><p>'+esc(o.first_contact_message||'—')+'</p><div class="crm-detail-attachment"><span>Attachment</span><b>'+esc(o.recommended_attachment||'—')+'</b></div></div>'+
         '<div class="crm-detail-section"><h3>Activity history</h3><div class="crm-timeline">'+(acts.map(x=>'<div class="crm-timeline-item"><div class="crm-timeline-dot"></div><div><b>'+esc(x.subject)+'</b><span>'+esc(x.activity_type)+' · '+esc(x.due_date||x.activity_date||'—')+' · '+esc(x.status)+'</span><p>'+esc(x.notes||'')+'</p></div></div>').join('')||'<p class="crm-empty">No activity yet.</p>')+'</div></div>'+
       '</div>'+
-      '<aside class="crm-detail-side"><div><h3>Contact routing</h3><b>'+esc(a.company_name||'—')+'</b><span>'+esc(a.contact_department||'—')+'</span><a href="'+(a.public_email?'mailto:'+encodeURIComponent(a.public_email):'#')+'">'+esc(a.public_email||'No public email')+'</a><a href="'+(a.public_phone?'tel:'+String(a.public_phone).replace(/[^+0-9]/g,''):'#')+'">'+esc(a.public_phone||'No public phone')+'</a></div><div><h3>Next action</h3><p>'+esc(o.next_action||'—')+'</p><b>Follow-up: '+esc(o.next_follow_up||'—')+'</b></div><div class="crm-detail-buttons"><button type="button" class="primary-btn crm-detail-advance" data-id="'+o.id+'">Advance Stage →</button><button type="button" class="accounting-small-btn crm-detail-done" data-id="'+o.id+'">Complete next activity</button></div></aside>'+
+      '<aside class="crm-detail-side"><div><h3>Contact routing</h3><b>'+esc(a.company_name||'—')+'</b><span>'+esc(a.contact_department||'—')+'</span><a href="'+(a.public_email?'mailto:'+encodeURIComponent(a.public_email):'#')+'">'+esc(a.public_email||'No public email')+'</a><a href="'+(a.public_phone?'tel:'+String(a.public_phone).replace(/[^+0-9]/g,''):'#')+'">'+esc(a.public_phone||'No public phone')+'</a></div><div><h3>Next action</h3><p>'+esc(o.next_action||'—')+'</p><b>Follow-up: '+esc(o.next_follow_up||'—')+'</b></div><div class="crm-detail-buttons"><button type="button" class="primary-btn crm-detail-advance" data-id="'+o.id+'">Advance Stage →</button><button type="button" class="accounting-small-btn crm-detail-done" data-id="'+o.id+'">Complete next activity</button><button type="button" class="accounting-small-btn crm-detail-won" data-id="'+o.id+'">✓ Mark Won</button><button type="button" class="accounting-small-btn crm-detail-lost" data-id="'+o.id+'">Mark Lost</button></div></aside>'+
       '</div>';
     modal.hidden=false;
     el('crmDetailClose').onclick=()=>modal.hidden=true;
@@ -75,12 +75,12 @@
     if(el('crmMetricTarget'))el('crmMetricTarget').textContent=money(target);
     const board=el('salesExecutionBoard');
     if(board){
-      board.innerHTML=CRM_STAGES.slice(0,8).map(stage=>{
+      board.innerHTML=CRM_STAGES.map(stage=>{
         const items=os.filter(o=>o.stage===stage);
         return '<div class="crm-column '+crmStageClass(stage)+'"><div class="crm-column-head"><b>'+esc(stage)+'</b><span>'+items.length+'</span></div><div class="crm-column-body">'+(items.length?items.map(o=>{
           const a=o.sales_accounts||{},p=o.sales_projects||{};
           const next=CRM_STAGES[Math.min(CRM_STAGES.indexOf(stage)+1,CRM_STAGES.length-1)];
-          return '<article class="crm-card" data-opp-id="'+o.id+'"><button type="button" class="crm-card-open" data-id="'+o.id+'" aria-label="Open opportunity">↗</button><div class="crm-card-top"><span class="crm-priority '+crmPriorityClass(a.priority||o.lead_status)+'">'+esc(a.priority||o.lead_status)+'</span><span class="crm-card-product">'+esc(o.product)+'</span></div><strong>'+esc(a.company_name||'—')+'</strong><small>'+esc(p.project_name||o.opportunity_name)+'</small><div class="crm-card-meta"><span>'+esc(o.sales_strategy)+'</span><span>Follow-up '+esc(o.next_follow_up||'—')+'</span></div><p>'+esc(o.next_action||'No next action')+'</p><div class="crm-card-actions"><button type="button" class="crm-action crm-done" data-id="'+o.id+'">Done</button>'+(CRM_STAGES.indexOf(stage)>0?'<button type="button" class="crm-action crm-undo" data-id="'+o.id+'">↶ Undo</button>':'')+'<button type="button" class="crm-action crm-advance" data-id="'+o.id+'" data-next="'+esc(next)+'">→ '+esc(next)+'</button></div></article>';
+          return '<article class="crm-card" data-opp-id="'+o.id+'"><button type="button" class="crm-card-open" data-id="'+o.id+'" aria-label="Open opportunity">↗</button><div class="crm-card-top"><span class="crm-priority '+crmPriorityClass(a.priority||o.lead_status)+'">'+esc(a.priority||o.lead_status)+'</span><span class="crm-card-product">'+esc(o.product)+'</span></div><strong>'+esc(a.company_name||'—')+'</strong><small>'+esc(p.project_name||o.opportunity_name)+'</small><div class="crm-card-meta"><span>'+esc(o.sales_strategy)+'</span><span>Follow-up '+esc(o.next_follow_up||'—')+'</span></div><p>'+esc(o.next_action||'No next action')+'</p><div class="crm-card-actions"><button type="button" class="crm-action crm-done" data-id="'+o.id+'">Done</button>'+(CRM_STAGES.indexOf(stage)>0?'<button type="button" class="crm-action crm-undo" data-id="'+o.id+'">↶ Undo</button>':'')+(CRM_STAGES.indexOf(stage)<CRM_STAGES.length-1?'<button type="button" class="crm-action crm-advance" data-id="'+o.id+'" data-next="'+esc(next)+'">→ '+esc(next)+'</button>':'')+'</div></article>';
         }).join(''):'<div class="crm-empty">No opportunities</div>')+'</div></div>';
       }).join('');
     }
@@ -91,6 +91,8 @@
     document.querySelectorAll('.crm-undo').forEach(b=>b.onclick=()=>undoCRMStage(b.dataset.id));
     document.querySelectorAll('.crm-advance').forEach(b=>b.onclick=()=>advanceCRMStage(b.dataset.id,b.dataset.next));
     document.querySelectorAll('.crm-activity-done').forEach(b=>b.onclick=()=>completeCRMActivity(b.dataset.id,b.dataset.opp));
+    document.querySelectorAll('.crm-detail-won').forEach(b=>b.onclick=()=>markCRMClosed(b.dataset.id,'WON'));
+    document.querySelectorAll('.crm-detail-lost').forEach(b=>b.onclick=()=>markCRMClosed(b.dataset.id,'LOST'));
   }
   async function loadCRM(){
     if(!client())return;
@@ -117,10 +119,23 @@
     alert('No planned activity found for this opportunity.');
   }
   async function advanceCRMStage(id,next){
-    if(!next||next==='WON')return;
+    if(!next||next===state.crm.opportunities.find(x=>x.id===id)?.stage||next==='LOST')return;
     const {error}=await client().from('sales_opportunities').update({stage:next,next_action:'Execute '+next+' step',next_follow_up:crmTodayPlus(3)}).eq('id',id);
     if(error)return alert(error.message);
     await client().from('sales_activities').insert({opportunity_id:id,activity_type:'FOLLOW-UP',subject:'Follow-up after stage → '+next,activity_date:today(),due_date:crmTodayPlus(3),status:'PLANNED',notes:'Follow up after advancing the opportunity.'});
+    await loadCRM();
+  }
+  async function markCRMClosed(id,status){
+    const o=(state.crm.opportunities||[]).find(x=>x.id===id); if(!o)return;
+    const label=status==='WON'?'WON':'LOST';
+    if(!confirm('Mark this opportunity as '+label+'?'))return;
+    const {error}=await client().from('sales_opportunities').update({
+      stage:status,
+      next_action:status==='WON'?'Closed — Won':'Closed — Lost',
+      next_follow_up:null
+    }).eq('id',id);
+    if(error)return alert(error.message);
+    await client().from('sales_activities').update({status:'CANCELLED'}).eq('opportunity_id',id).eq('status','PLANNED');
     await loadCRM();
   }
   async function undoCRMStage(id){
