@@ -1,5 +1,5 @@
 (() => {
-  const state = { accounts: [], partners: [], journals: [], entries: [], invoices: [], bills: [], payments: [], allocations: [], tab: 'overview', reportFrom: '', reportTo: '' };
+  const state = { accounts: [], partners: [], journals: [], entries: [], invoices: [], bills: [], payments: [], allocations: [], periods: [], tab: 'overview', reportFrom: '', reportTo: '' };
   const el = id => document.getElementById(id);
   const client = () => window.PILARK_CMS?.client;
   const ready = () => !!window.PILARK_CMS?.ready && !!client();
@@ -15,7 +15,7 @@
   async function load() {
     if(!ready()) return;
     const c=client();
-    const [a,p,j,e,i,b,py,al] = await Promise.all([
+    const [a,p,j,e,i,b,py,al,pe] = await Promise.all([
       c.from('accounting_accounts').select('*').order('code'),
       c.from('accounting_partners').select('*').order('name'),
       c.from('accounting_journals').select('*').order('code'),
@@ -23,10 +23,11 @@
       c.from('accounting_documents').select('*,accounting_partners(name),accounting_journals(code,name)').eq('document_type','customer_invoice').order('document_date',{ascending:false}).limit(300),
       c.from('accounting_documents').select('*,accounting_partners(name),accounting_journals(code,name)').eq('document_type','vendor_bill').order('document_date',{ascending:false}).limit(300),
       c.from('accounting_payments').select('*,accounting_partners(name),accounting_journals(code,name)').order('payment_date',{ascending:false}).limit(300),
-      c.from('accounting_payment_allocations').select('*,accounting_payments(payment_no,payment_date,payment_type,status,amount),accounting_documents(document_no,document_type)').order('created_at',{ascending:false}).limit(500)
+      c.from('accounting_payment_allocations').select('*,accounting_payments(payment_no,payment_date,payment_type,status,amount),accounting_documents(document_no,document_type)').order('created_at',{ascending:false}).limit(500),
+      c.from('accounting_periods').select('*').order('date_start',{ascending:false})
     ]);
-    for(const x of [a,p,j,e,i,b,py,al]) if(x.error) throw x.error;
-    state.accounts=a.data||[]; state.partners=p.data||[]; state.journals=j.data||[]; state.entries=e.data||[]; state.invoices=i.data||[]; state.bills=b.data||[]; state.payments=py.data||[]; state.allocations=al.data||[];
+    for(const x of [a,p,j,e,i,b,py,al,pe]) if(x.error) throw x.error;
+    state.accounts=a.data||[]; state.partners=p.data||[]; state.journals=j.data||[]; state.entries=e.data||[]; state.invoices=i.data||[]; state.bills=b.data||[]; state.payments=py.data||[]; state.allocations=al.data||[]; state.periods=pe.data||[];
     render();
   }
 
@@ -69,6 +70,39 @@
   }
   function journalOptions(selected='',types=null) {
     return state.journals.filter(j=>j.is_active&&(!types||types.includes(j.journal_type))).map(j=>`<option value="${j.id}" ${j.id===selected?'selected':''}>${esc(j.code)} — ${esc(j.name)}</option>`).join('');
+  }
+
+  function renderPeriods(){
+    const body=el('accountingPeriodsBody'); if(!body)return;
+    body.innerHTML=state.periods.map(p=>{
+      const status=p.status==='open'?'<span class="accounting-status posted">Open</span>':'<span class="accounting-status">Closed</span>';
+      const action=p.status==='open'?'<button class="accounting-small-btn close-period-btn" data-period-id="'+p.id+'">Close</button>':'<button class="accounting-small-btn reopen-period-btn" data-period-id="'+p.id+'">Reopen</button>';
+      return '<tr><td><b>'+esc(p.name)+'</b></td><td>'+dateText(p.date_start)+'</td><td>'+dateText(p.date_end)+'</td><td>'+status+'</td><td>'+dateText(p.closed_at?p.closed_at.slice(0,10):null)+'</td><td>'+action+'</td></tr>';
+    }).join('')||'<tr><td colspan="6" class="accounting-empty">No accounting periods configured.</td></tr>';
+    document.querySelectorAll('.close-period-btn').forEach(b=>b.onclick=()=>closePeriod(b.dataset.periodId));
+    document.querySelectorAll('.reopen-period-btn').forEach(b=>b.onclick=()=>reopenPeriod(b.dataset.periodId));
+    const current=state.periods.find(p=>today()>=p.date_start&&today()<=p.date_end);
+    const banner=el('accountingPeriodStatus');
+    if(banner) banner.innerHTML=current?(current.status==='open'?'<span class="period-dot open"></span><b>'+esc(current.name)+'</b> is open for posting.':'<span class="period-dot closed"></span><b>'+esc(current.name)+'</b> is closed. New postings are blocked.'):'<span class="period-dot closed"></span>No open accounting period covers today.';
+  }
+  async function createPeriod(e){
+    e.preventDefault();
+    const name=el('periodName').value.trim(), start=el('periodStart').value, end=el('periodEnd').value;
+    if(!name||!start||!end)return alert('Complete period name, start date and end date.');
+    if(end<start)return alert('End date must be on or after start date.');
+    const {error}=await client().from('accounting_periods').insert({name,date_start:start,date_end:end,status:'open',created_by:window.PILARK_CMS?.user?.id||null});
+    if(error)return alert(error.message);
+    e.target.reset();await load();showTab('periods');
+  }
+  async function closePeriod(id){
+    if(!confirm('Close this accounting period? New postings dated inside it will be blocked.'))return;
+    const {error}=await client().rpc('close_accounting_period',{p_period_id:id});
+    if(error)return alert(error.message); await load();showTab('periods');
+  }
+  async function reopenPeriod(id){
+    if(!confirm('Reopen this accounting period? Posting will be allowed again for its date range.'))return;
+    const {error}=await client().rpc('reopen_accounting_period',{p_period_id:id});
+    if(error)return alert(error.message); await load();showTab('periods');
   }
 
   function renderAccounts() {
@@ -317,8 +351,8 @@
     el('reportPayable').innerHTML=ageRows(state.bills);
   }
 
-  function showTab(tab,updateTitle=true){state.tab=tab;document.querySelectorAll('[data-accounting-tab]').forEach(b=>b.classList.toggle('active',b.dataset.accountingTab===tab));document.querySelectorAll('.accounting-tab-panel').forEach(p=>p.hidden=p.dataset.accountingPanel!==tab);if(updateTitle&&el('view-accounting')?.classList.contains('active'))el('pageTitle').textContent='Accounting';if(tab==='overview')renderOverview().catch(console.warn);if(tab==='reports')renderReports().catch(console.warn);}
-  function render(){renderAccounts();renderPartners();renderEntries();renderDocuments();renderPayments();renderOverview().catch(console.warn);renderReports().catch(console.warn);showTab(state.tab,false);}
+  function showTab(tab,updateTitle=true){state.tab=tab;document.querySelectorAll('[data-accounting-tab]').forEach(b=>b.classList.toggle('active',b.dataset.accountingTab===tab));document.querySelectorAll('.accounting-tab-panel').forEach(p=>p.hidden=p.dataset.accountingPanel!==tab);if(updateTitle&&el('view-accounting')?.classList.contains('active'))el('pageTitle').textContent='Accounting';if(tab==='overview')renderOverview().catch(console.warn);if(tab==='reports')renderReports().catch(console.warn);if(tab==='periods')renderPeriods();}
+  function render(){renderAccounts();renderPartners();renderEntries();renderDocuments();renderPayments();renderPeriods();renderOverview().catch(console.warn);renderReports().catch(console.warn);showTab(state.tab,false);}
 
   async function createAccount(e){e.preventDefault();const payload={code:el('accountCode').value.trim(),name:el('accountName').value.trim(),account_type:el('accountType').value,reconcile:el('accountReconcile').checked};if(!payload.code||!payload.name||!payload.account_type)return alert('Complete Code, Name and Type.');const {error}=await client().from('accounting_accounts').insert(payload);if(error)return alert(error.message);e.target.reset();await load();showTab('accounts');}
   async function createPartner(e){e.preventDefault();const payload={name:el('partnerName').value.trim(),partner_type:el('partnerType').value,email:el('partnerEmail').value.trim()||null,phone:el('partnerPhone').value.trim()||null,tax_id:el('partnerTax').value.trim()||null,address:el('partnerAddress').value.trim()||null};if(!payload.name)return alert('Partner name is required.');const {error}=await client().from('accounting_partners').insert(payload);if(error)return alert(error.message);e.target.reset();await load();showTab('partners');}
@@ -339,10 +373,10 @@
     el('addBillLine')?.addEventListener('click',()=>{el('billLines').insertAdjacentHTML('beforeend',lineHtml('vendor_bill',el('billLines').children.length));updateDocumentPreview('vendor_bill');});
     el('paymentForm')?.addEventListener('submit',createPayment);el('paymentType')?.addEventListener('change',()=>{el('paymentPartner').innerHTML=partnerOptions('',el('paymentType').value==='receive'?'customer':'vendor');refreshPaymentDocuments();});el('paymentPartner')?.addEventListener('change',refreshPaymentDocuments);
     el('accountingRefresh')?.addEventListener('click',()=>load().catch(err=>alert(err.message)));
-    el('entryDate').value=today();el('documentDate').value=today();el('billDate').value=today();el('paymentDate').value=today();el('documentPaymentTerms').value='30';el('billPaymentTerms').value='30';applyPaymentTerms('document');applyPaymentTerms('bill');el('documentPaymentTerms')?.addEventListener('change',()=>applyPaymentTerms('document'));el('billPaymentTerms')?.addEventListener('change',()=>applyPaymentTerms('bill'));el('documentDate')?.addEventListener('change',()=>applyPaymentTerms('document'));el('billDate')?.addEventListener('change',()=>applyPaymentTerms('bill'));
+    el('entryDate').value=today();el('periodStart').value=monthStart();el('periodEnd').value=(()=>{const d=new Date();d.setMonth(d.getMonth()+1,0);return d.toISOString().slice(0,10)})();el('documentDate').value=today();el('billDate').value=today();el('paymentDate').value=today();el('documentPaymentTerms').value='30';el('billPaymentTerms').value='30';applyPaymentTerms('document');applyPaymentTerms('bill');el('documentPaymentTerms')?.addEventListener('change',()=>applyPaymentTerms('document'));el('billPaymentTerms')?.addEventListener('change',()=>applyPaymentTerms('bill'));el('documentDate')?.addEventListener('change',()=>applyPaymentTerms('document'));el('billDate')?.addEventListener('change',()=>applyPaymentTerms('bill'));
     bindLineContainer('documentLines','customer_invoice');bindLineContainer('billLines','vendor_bill');
     const nav=document.querySelector('.side-link[data-view="accounting"]');nav?.addEventListener('click',()=>setTimeout(()=>load().catch(console.warn),50));
-    el('reportApply')?.addEventListener('click',applyReportFilters);
+    el('reportApply')?.addEventListener('click',applyReportFilters);el('periodForm')?.addEventListener('submit',createPeriod);
   }
 
   function populateDynamic(){el('entryJournal').innerHTML=journalOptions();el('entryPartner').innerHTML='<option value="">No partner</option>'+partnerOptions().replace('<option value="">Select partner…</option>','');el('entryDebitAccount').innerHTML=accountOptions();el('entryCreditAccount').innerHTML=accountOptions();el('documentPartner').innerHTML=partnerOptions('', 'customer');el('billPartner').innerHTML=partnerOptions('', 'vendor');el('paymentPartner').innerHTML=partnerOptions('', 'customer');el('paymentJournal').innerHTML=journalOptions('', ['bank','cash']);refreshPaymentDocuments();}
