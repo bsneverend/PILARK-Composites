@@ -1,1 +1,15 @@
 .inventory-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}.inventory-metric{padding:18px;border:1px solid var(--line,#e5e7eb);border-radius:14px;background:#fff}.inventory-metric span,.inventory-metric small{display:block;color:#6b7280}.inventory-metric b{display:block;font-size:25px;margin:5px 0}.inventory-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.inventory-order-list{display:flex;flex-direction:column;gap:8px}.inventory-order-row{display:flex;justify-content:space-between;align-items:center;gap:12px;border:1px solid var(--line,#e5e7eb);border-radius:10px;padding:12px}.inventory-order-row div{display:flex;flex-direction:column;gap:3px}.inventory-order-row span{font-size:12px;color:#6b7280}.inventory-table-wrap{overflow:auto}@media(max-width:900px){.inventory-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.inventory-grid{grid-template-columns:1fr}}
+.inventory-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}
+.inventory-tabs button{border:1px solid var(--line,#dce8ee);background:#fff;color:#526873;border-radius:10px;padding:10px 14px;font:inherit;font-weight:600;cursor:pointer}
+.inventory-tabs button.active{background:#07121a;color:#fff;border-color:#07121a}
+.inventory-tab-panel[hidden]{display:none}
+.inventory-adjustment-layout{grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr)}
+.inventory-adjustment-note{display:grid;gap:12px}
+.inventory-adjustment-note>div{display:grid;gap:4px;padding:12px;border:1px solid var(--line,#e5e7eb);border-radius:10px;background:#f8fafb}
+.inventory-adjustment-note span,.inventory-adjustment-note small{color:#667985}
+.inventory-card-filter{display:grid;grid-template-columns:minmax(180px,1.4fr) minmax(180px,1fr) minmax(150px,.8fr) minmax(150px,.8fr) 120px;gap:10px;align-items:end;margin-bottom:16px}
+.inventory-card-filter label{min-width:0}
+.inventory-card-filter select,.inventory-card-filter input,.inventory-card-filter button{width:100%;min-width:0;box-sizing:border-box}
+.inventory-card-filter button{min-height:44px}
+@media(max-width:1100px){.inventory-card-filter{grid-template-columns:1fr 1fr}.inventory-card-filter button{grid-column:1/-1}}
+@media(max-width:800px){.inventory-adjustment-layout{grid-template-columns:1fr}.inventory-card-filter{grid-template-columns:1fr}.inventory-card-filter button{grid-column:auto}}
