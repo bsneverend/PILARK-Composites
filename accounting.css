@@ -98,3 +98,10 @@
 .period-status{display:flex;align-items:center;gap:8px;margin:0 0 16px;padding:12px 14px;border:1px solid #dce8ee;border-radius:12px;background:#f7fafb;color:#536b78;font-size:13px}
 .period-dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:0 0 auto}.period-dot.open{background:#22a06b}.period-dot.closed{background:#d64545}
 @media(max-width:900px){.accounting-period-layout{grid-template-columns:1fr}}
+
+.accounting-statement-panel{margin-top:16px}
+.aging-total{margin-top:8px;border-top:1px solid #dce8ee;padding-top:10px}
+.statement-head{display:flex;justify-content:space-between;gap:20px;padding:14px 0}
+.statement-head span{display:block;color:#657783;margin-top:4px}
+.statement-total{display:flex;justify-content:flex-end;gap:28px;padding:14px 0;font-size:15px}
+@media(max-width:800px){.statement-head{display:block}.statement-head>div+div{margin-top:12px}.statement-total{justify-content:space-between}}
