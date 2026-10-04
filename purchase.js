@@ -11,10 +11,11 @@
     const [o,p,a,pr]=await Promise.all([
       client().from('purchase_orders').select('*,accounting_partners(name,email)').order('quotation_date',{ascending:false}).limit(500),
       client().from('accounting_partners').select('*').eq('is_active',true).order('name'),
-      client().from('accounting_accounts').select('*').eq('is_active',true).order('code'),\n      client().from('inventory_products').select('id,product_code,name,unit,is_active').eq('is_active',true).order('product_code')
+      client().from('accounting_accounts').select('*').eq('is_active',true).order('code'),
+      client().from('inventory_products').select('id,product_code,name,unit,is_active').eq('is_active',true).order('product_code')
     ]);
     if(o.error)throw o.error;if(p.error)throw p.error;if(a.error)throw a.error;
-    state.orders=o.data||[];state.partners=p.data||[];state.accounts=a.data||[];
+    state.orders=o.data||[];state.partners=p.data||[];state.accounts=a.data||[];state.products=pr.data||[];
     render();populateVendor();resetLineOptions();
   }
 
