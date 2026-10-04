@@ -239,6 +239,18 @@ function showView(name){
   main?.classList.toggle('chat-mode',name==='chat');
   if(name!=='chat')setMobileChatOpen(false);
   document.getElementById('pageTitle').textContent={dashboard:'Website overview',media:'Media Library',products:'Product thumbnails',sections:'Website Content',chat:'Live Chat',sales:'Sales',purchase:'Purchase',inventory:'Inventory',accounting:'Accounting',settings:'Settings'}[name]||'PILARK Admin';
+  // Sidebar navigation should always open Sales/Purchase at their Overview tab.
+  // The module tab state is local to the current DOM, so without resetting it here,
+  // returning from Quotations/RFQs could leave the panel hidden while Overview
+  // still appears visually active.
+  if(name==='sales'){
+    document.querySelectorAll('[data-sales-tab]').forEach(b=>b.classList.toggle('active',b.dataset.salesTab==='overview'));
+    document.querySelectorAll('[data-sales-panel]').forEach(p=>p.hidden=p.dataset.salesPanel!=='overview');
+  }
+  if(name==='purchase'){
+    document.querySelectorAll('[data-purchase-tab]').forEach(b=>b.classList.toggle('active',b.dataset.purchaseTab==='overview'));
+    document.querySelectorAll('[data-purchase-panel]').forEach(p=>p.hidden=p.dataset.purchasePanel!=='overview');
+  }
   if(name==='chat') loadAdminChats();
 }
 
