@@ -181,11 +181,20 @@
 </div>
 
 <div class="accounting-tab-panel" data-accounting-panel="reports" hidden>
+  <div class="panel accounting-report-toolbar">
+    <div class="panel-head"><div><h2>Financial Reports</h2><p>Run posted accounting reports for a specific period. Balance Sheet is shown as of the end date.</p></div></div>
+    <div class="accounting-form-row report-filter-row">
+      <label>From<input id="reportFrom" type="date"></label>
+      <label>To<input id="reportTo" type="date"></label>
+      <button id="reportApply" class="primary-btn" type="button">Apply</button>
+    </div>
+  </div>
   <div class="accounting-report-grid">
-    <div class="panel"><div class="panel-head"><div><h2>Profit & Loss</h2><p>Posted balances by income and expense accounts.</p></div></div><div id="reportProfitLoss" class="report-stack"></div></div>
-    <div class="panel"><div class="panel-head"><div><h2>Balance Sheet</h2><p>Posted asset, liability and equity balances.</p></div></div><div id="reportBalanceSheet" class="report-stack"></div></div>
-    <div class="panel"><div class="panel-head"><div><h2>Aged Receivable</h2><p>Outstanding customer invoices grouped by age.</p></div></div><div id="reportReceivable" class="report-stack"></div></div>
-    <div class="panel"><div class="panel-head"><div><h2>Aged Payable</h2><p>Outstanding vendor bills grouped by age.</p></div></div><div id="reportPayable" class="report-stack"></div></div>
+    <div class="panel"><div class="panel-head"><div><h2>Profit & Loss</h2><p>Income and expenses posted within the selected period.</p></div></div><div id="reportProfitLoss" class="report-stack"></div></div>
+    <div class="panel"><div class="panel-head"><div><h2>Balance Sheet</h2><p>Assets, liabilities and equity through the selected end date.</p></div></div><div id="reportBalanceSheet" class="report-stack"></div></div>
+    <div class="panel"><div class="panel-head"><div><h2>Trial Balance</h2><p>Debit / credit movement within the selected period.</p></div></div><div id="reportTrialBalance" class="report-stack"></div></div>
+    <div class="panel"><div class="panel-head"><div><h2>Aged Receivable</h2><p>Current outstanding customer invoices grouped by age.</p></div></div><div id="reportReceivable" class="report-stack"></div></div>
+    <div class="panel"><div class="panel-head"><div><h2>Aged Payable</h2><p>Current outstanding vendor bills grouped by age.</p></div></div><div id="reportPayable" class="report-stack"></div></div>
   </div>
 </div>
 
@@ -218,4 +227,4 @@
 </div>
 </section>
 <section class="view" id="view-settings"><div class="section-intro"><h2>Settings</h2><p>Manage your cloud-powered dashboard.</p></div><div class="panel"><h2>Cloud CMS is active</h2><p>All media, product thumbnails and website content changes are saved directly to your Supabase database and storage. This dashboard no longer relies on local browser overrides.</p></div></section>
-</main></div><script src="admin.js?v=20261004-sales-purchase-overview"></script><script src="accounting.js?v=20260930-v1"></script><script src="sales.js?v=20261004-v1"></script><script src="purchase.js?v=20261004-v1"></script><script src="inventory.js?v=20261004-v1"></script><script src="bank-reconciliation.js?v=20261004-v1"></script></body></html>
+</main></div><script src="admin.js?v=20261004-sales-purchase-overview"></script><script src="accounting.js?v=20261004-reporting-v1"></script><script src="sales.js?v=20261004-v1"></script><script src="purchase.js?v=20261004-v1"></script><script src="inventory.js?v=20261004-v1"></script><script src="bank-reconciliation.js?v=20261004-v1"></script></body></html>
