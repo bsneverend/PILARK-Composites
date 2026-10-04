@@ -101,7 +101,7 @@
   function showDocumentHistory(id){
     const d=[...state.invoices,...state.bills].find(x=>x.id===id);
     const rows=state.allocations.filter(a=>a.document_id===id);
-    const box=el('accountingDocumentHistory'); if(!box) return;
+    const box=el('accountingDocumentHistory') || el('accountingDocumentHistoryBills'); if(!box) return;
     box.hidden=false;
     box.innerHTML=`<div class="document-history-head"><div><b>${esc(d?.document_no||'Document')}</b><span>${esc(d?.accounting_partners?.name||'')}</span></div><button type="button" class="text-btn" id="closeDocumentHistory">Close</button></div>`+
       (rows.length?'<div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Payment</th><th>Date</th><th>Type</th><th>Status</th><th class="num">Allocated</th></tr></thead><tbody>'+
