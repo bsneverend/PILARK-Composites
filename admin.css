@@ -584,3 +584,28 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:1
 @media(max-width:760px){
   input,textarea,select{font-size:16px}
 }
+
+/* PILARK Admin — sidebar follows the page, with its own bounded scroll */
+@media (min-width:801px){
+  .admin-app{
+    align-items:start;
+  }
+  .sidebar{
+    position:sticky;
+    top:0;
+    height:100vh;
+    max-height:100vh;
+    overflow-y:auto;
+    overflow-x:hidden;
+    align-self:start;
+    scrollbar-width:thin;
+    scrollbar-color:#29414b transparent;
+  }
+  .sidebar::-webkit-scrollbar{width:6px}
+  .sidebar::-webkit-scrollbar-track{background:transparent}
+  .sidebar::-webkit-scrollbar-thumb{background:#29414b;border-radius:99px}
+  .admin-main{
+    min-width:0;
+  }
+}
+
