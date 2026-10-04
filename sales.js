@@ -123,6 +123,13 @@
         window.location.href='tel:'+phone.replace(/[^+0-9]/g,'');
         return;
       }
+      if(channel==='REQUEST_PIC'){
+        const fallback=best||{contact_person:a?.contact_department||'Company switchboard',department:a?.contact_department||'Engineering / Project / Procurement'};
+        await logCRMContactInitiated(o,fallback,'CALL','No verified individual contact is available. Call the company route and request the appropriate Engineering / Project / Procurement PIC.');
+        await loadCRM();
+        renderOpportunityDetail(oppId);
+        return;
+      }
       if(channel==='LINKEDIN'){
         if(!contact.linkedin_url)return alert('No LinkedIn URL is available for this contact.');
         await logCRMContactInitiated(o,contact,'LINKEDIN','LinkedIn profile/company route opened for the verified business contact.');
@@ -172,6 +179,7 @@
             (best?.linkedin_url||a.linkedin_url?'<button type="button" class="crm-route-primary-btn" data-action="LINKEDIN" data-opp="'+o.id+'" data-contact="'+esc(best?.id||'')+'">LinkedIn ↗</button>':'')+
           '</div>'+
           '<div class="crm-route-status">'+(best?'Primary route selected using project match, verification confidence and available contact channels.':'No direct contact found — request the appropriate PIC.')+'</div>'+
+          '<button type="button" class="crm-route-request" data-action="REQUEST_PIC" data-opp="'+o.id+'">☎ Request Engineering / Project / Procurement PIC</button>'+
         '</div>'+
         '<div><h3>Available contacts</h3><div class="crm-route-list">'+(contactRows||'<div class="crm-research-empty">No individual contact stored. Use Research Contacts to find a verified business PIC.</div>')+'</div><button type="button" class="text-btn crm-route-research">+ Research / Add Contact</button></div>'+
         '<div><h3>Next action</h3><p>'+esc(o.next_action||'—')+'</p><b>Follow-up: '+esc(o.next_follow_up||'—')+'</b></div>'+
@@ -183,7 +191,7 @@
     modal.querySelector('.crm-detail-advance').onclick=()=>advanceCRMStage(o.id,CRM_STAGES[Math.min(CRM_STAGES.indexOf(o.stage)+1,CRM_STAGES.length-1)]);
     modal.querySelector('.crm-detail-done').onclick=()=>completeNextCRMActivity(o.id);
     modal.querySelector('.crm-route-research')?.addEventListener('click',()=>openContactResearchModal(o.account_id));
-    modal.querySelectorAll('.crm-route-btn,.crm-route-primary-btn').forEach(b=>b.onclick=()=>handleCRMContactAction(b.dataset.opp,b.dataset.contact||'',b.dataset.action));
+    modal.querySelectorAll('.crm-route-btn,.crm-route-primary-btn,.crm-route-request').forEach(b=>b.onclick=()=>handleCRMContactAction(b.dataset.opp,b.dataset.contact||'',b.dataset.action));
   }
   function renderCRM(){
     const c=state.crm||{},os=c.opportunities||[],as=c.accounts||[],acts=c.activities||[];
