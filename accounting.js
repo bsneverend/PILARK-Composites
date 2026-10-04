@@ -1,5 +1,5 @@
 (() => {
-  const state = { accounts: [], partners: [], journals: [], entries: [], invoices: [], bills: [], payments: [], tab: 'overview' };
+  const state = { accounts: [], partners: [], journals: [], entries: [], invoices: [], bills: [], payments: [], tab: 'overview', reportFrom: '', reportTo: '' };
   const el = id => document.getElementById(id);
   const client = () => window.PILARK_CMS?.client;
   const ready = () => !!window.PILARK_CMS?.ready && !!client();
@@ -7,6 +7,7 @@
   const money = value => new Intl.NumberFormat('id-ID', { style:'currency', currency:'IDR', maximumFractionDigits:0 }).format(Number(value||0));
   const dateText = value => value ? new Date(value+'T00:00:00').toLocaleDateString('id-ID') : '-';
   const today = () => new Date().toISOString().slice(0,10);
+  const monthStart = () => { const d=new Date(); d.setDate(1); return d.toISOString().slice(0,10); };
   const typeLabel = type => ({asset_receivable:'Receivable',asset_cash:'Bank & Cash',asset_current:'Current Asset',asset_non_current:'Non-current Asset',asset_prepayments:'Prepayments',asset_fixed:'Fixed Asset',liability_payable:'Payable',liability_credit_card:'Credit Card',liability_current:'Current Liability',liability_non_current:'Non-current Liability',equity:'Equity',equity_unaffected:'Current Year Earnings',income:'Income',income_other:'Other Income',expense:'Expense',expense_other:'Other Expense',expense_depreciation:'Depreciation',expense_direct_cost:'Cost of Revenue',off_balance:'Off-balance'}[type]||type);
   const statusClass = s => 'accounting-status '+esc(s);
   const docOutstanding = d => Math.max(0, Number(d.total_amount||0)-Number(d.amount_paid||0));
@@ -28,10 +29,14 @@
     render();
   }
 
-  async function postedLines() {
-    const ids=state.entries.filter(x=>x.status==='posted').map(x=>x.id);
+  async function postedLines(fromDate=null,toDate=null) {
+    const ids=state.entries
+      .filter(x=>x.status==='posted')
+      .filter(x=>!fromDate||x.entry_date>=fromDate)
+      .filter(x=>!toDate||x.entry_date<=toDate)
+      .map(x=>x.id);
     if(!ids.length) return [];
-    const {data,error}=await client().from('accounting_lines').select('account_id,debit,credit,accounting_accounts(code,name,account_type)').in('entry_id',ids);
+    const {data,error}=await client().from('accounting_lines').select('entry_id,account_id,debit,credit,accounting_accounts(code,name,account_type)').in('entry_id',ids);
     if(error) throw error; return data||[];
   }
   function balanceForAccount(lines,a) {
@@ -163,13 +168,33 @@
   }
 
   async function renderReports(){
-    const lines=await postedLines();
-    const balances=state.accounts.map(a=>({account:a,balance:balanceForAccount(lines,a.id)})).filter(x=>Math.abs(x.balance)>0.005);
+    const from=el('reportFrom')?.value||monthStart();
+    const to=el('reportTo')?.value||today();
+    if(el('reportFrom')&&!el('reportFrom').value) el('reportFrom').value=from;
+    if(el('reportTo')&&!el('reportTo').value) el('reportTo').value=to;
+    if(from>to){
+      if(el('reportProfitLoss')) el('reportProfitLoss').innerHTML='<div class="accounting-empty">Report start date cannot be after the end date.</div>';
+      if(el('reportBalanceSheet')) el('reportBalanceSheet').innerHTML='<div class="accounting-empty">Report start date cannot be after the end date.</div>';
+      if(el('reportTrialBalance')) el('reportTrialBalance').innerHTML='<div class="accounting-empty">Report start date cannot be after the end date.</div>';
+      return;
+    }
+    state.reportFrom=from; state.reportTo=to;
+    const [periodLines,closingLines]=await Promise.all([postedLines(from,to),postedLines(null,to)]);
+    const balances=state.accounts.map(a=>({account:a,balance:balanceForAccount(periodLines,a.id)})).filter(x=>Math.abs(x.balance)>0.005);
+    const closingBalances=state.accounts.map(a=>({account:a,balance:balanceForAccount(closingLines,a.id)})).filter(x=>Math.abs(x.balance)>0.005);
     const renderRows=rows=>rows.sort((a,b)=>a.account.code.localeCompare(b.account.code)).map(x=>`<div class="report-row"><span><b>${esc(x.account.code)}</b> ${esc(x.account.name)}</span><strong>${money(x.balance)}</strong></div>`).join('')||'<div class="accounting-empty">No posted data.</div>';
     el('reportProfitLoss').innerHTML=renderRows(balances.filter(x=>['income','income_other','expense','expense_other','expense_depreciation','expense_direct_cost'].includes(x.account.account_type)));
-    el('reportBalanceSheet').innerHTML=renderRows(balances.filter(x=>['asset_receivable','asset_cash','asset_current','asset_non_current','asset_prepayments','asset_fixed','liability_payable','liability_credit_card','liability_current','liability_non_current','equity','equity_unaffected'].includes(x.account.account_type)));
-    const ageRows=(docs)=>{const now=new Date();const buckets=[['Current',0],['1–30 days',0],['31–60 days',0],['61–90 days',0],['90+ days',0]];docs.filter(d=>docOutstanding(d)>0.005).forEach(d=>{const days=Math.max(0,Math.floor((now-new Date((d.due_date||d.document_date)+'T00:00:00'))/86400000));const i=days===0?0:days<=30?1:days<=60?2:days<=90?3:4;buckets[i][1]+=docOutstanding(d);});return buckets.map(x=>`<div class="report-row"><span>${x[0]}</span><strong>${money(x[1])}</strong></div>`).join('');};
-    el('reportReceivable').innerHTML=ageRows(state.invoices);el('reportPayable').innerHTML=ageRows(state.bills);
+    el('reportBalanceSheet').innerHTML=renderRows(closingBalances.filter(x=>['asset_receivable','asset_cash','asset_current','asset_non_current','asset_prepayments','asset_fixed','liability_payable','liability_credit_card','liability_current','liability_non_current','equity','equity_unaffected'].includes(x.account.account_type)));
+
+    const trialRows=state.accounts.map(a=>{
+      const rows=periodLines.filter(x=>x.account_id===a.id);
+      return {account:a,debit:rows.reduce((s,x)=>s+Number(x.debit||0),0),credit:rows.reduce((s,x)=>s+Number(x.credit||0),0)};
+    }).filter(x=>x.debit>0.005||x.credit>0.005).sort((a,b)=>a.account.code.localeCompare(b.account.code));
+    el('reportTrialBalance').innerHTML=trialRows.map(x=>`<div class="report-row"><span><b>${esc(x.account.code)}</b> ${esc(x.account.name)}</span><strong>${money(x.debit)} / ${money(x.credit)}</strong></div>`).join('')||'<div class="accounting-empty">No posted data.</div>';
+
+    const ageRows=(docs)=>{const buckets=[['Current',0],['1–30 days',0],['31–60 days',0],['61–90 days',0],['90+ days',0]];docs.filter(d=>docOutstanding(d)>0.005).forEach(d=>{const days=Math.max(0,Math.floor((new Date()-new Date((d.due_date||d.document_date)+'T00:00:00'))/86400000));const i=days===0?0:days<=30?1:days<=60?2:days<=90?3:4;buckets[i][1]+=docOutstanding(d);});return buckets.map(x=>`<div class="report-row"><span>${x[0]}</span><strong>${money(x[1])}</strong></div>`).join('');};
+    el('reportReceivable').innerHTML=ageRows(state.invoices);
+    el('reportPayable').innerHTML=ageRows(state.bills);
   }
 
   function showTab(tab,updateTitle=true){state.tab=tab;document.querySelectorAll('[data-accounting-tab]').forEach(b=>b.classList.toggle('active',b.dataset.accountingTab===tab));document.querySelectorAll('.accounting-tab-panel').forEach(p=>p.hidden=p.dataset.accountingPanel!==tab);if(updateTitle&&el('view-accounting')?.classList.contains('active'))el('pageTitle').textContent='Accounting';if(tab==='overview')renderOverview().catch(console.warn);if(tab==='reports')renderReports().catch(console.warn);}
@@ -179,6 +204,12 @@
   async function createPartner(e){e.preventDefault();const payload={name:el('partnerName').value.trim(),partner_type:el('partnerType').value,email:el('partnerEmail').value.trim()||null,phone:el('partnerPhone').value.trim()||null,tax_id:el('partnerTax').value.trim()||null,address:el('partnerAddress').value.trim()||null};if(!payload.name)return alert('Partner name is required.');const {error}=await client().from('accounting_partners').insert(payload);if(error)return alert(error.message);e.target.reset();await load();showTab('partners');}
   async function createEntry(e){e.preventDefault();const debit=el('entryDebitAccount').value,credit=el('entryCreditAccount').value,amount=Number(el('entryAmount').value);if(!debit||!credit||debit===credit||amount<=0)return alert('Select two different accounts and a positive amount.');const {data:userData}=await client().auth.getUser();const {data:entry,error}=await client().from('accounting_entries').insert({entry_no:'JE-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'-'+Math.random().toString(36).slice(2,7).toUpperCase(),entry_date:el('entryDate').value||today(),journal_id:el('entryJournal').value,partner_id:el('entryPartner').value||null,reference:el('entryReference').value.trim()||null,memo:el('entryMemo').value.trim()||null,status:'draft',created_by:userData?.user?.id||null}).select().single();if(error)return alert(error.message);const {error:le}=await client().from('accounting_lines').insert([{entry_id:entry.id,account_id:debit,partner_id:entry.partner_id,description:entry.memo||entry.reference||'Journal entry',debit:amount,credit:0},{entry_id:entry.id,account_id:credit,partner_id:entry.partner_id,description:entry.memo||entry.reference||'Journal entry',debit:0,credit:amount}]);if(le)return alert(le.message);const {error:pe}=await client().rpc('post_accounting_entry',{p_entry_id:entry.id});if(pe)return alert(pe.message);e.target.reset();el('entryDate').value=today();await load();showTab('entries');}
   async function postEntry(id){if(!confirm('Post this journal entry?'))return;const {error}=await client().rpc('post_accounting_entry',{p_entry_id:id});if(error)return alert(error.message);await load();}
+
+  function applyReportFilters(){
+    if(!el('reportFrom')||!el('reportTo')) return;
+    if(el('reportFrom').value>el('reportTo').value){ alert('Report start date cannot be after the end date.'); return; }
+    renderReports().catch(e=>console.warn(e));
+  }
 
   function bind(){
     document.querySelectorAll('[data-accounting-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.accountingTab));
@@ -193,6 +224,9 @@
     const nav=document.querySelector('.side-link[data-view="accounting"]');nav?.addEventListener('click',()=>setTimeout(()=>load().catch(console.warn),50));
   }
 
+    el('reportApply')?.addEventListener('click',applyReportFilters);
+    el('reportFrom')?.addEventListener('change',()=>{});
+    el('reportTo')?.addEventListener('change',()=>{});
   function populateDynamic(){el('entryJournal').innerHTML=journalOptions();el('entryPartner').innerHTML='<option value="">No partner</option>'+partnerOptions().replace('<option value="">Select partner…</option>','');el('entryDebitAccount').innerHTML=accountOptions();el('entryCreditAccount').innerHTML=accountOptions();el('documentPartner').innerHTML=partnerOptions('', 'customer');el('billPartner').innerHTML=partnerOptions('', 'vendor');el('paymentPartner').innerHTML=partnerOptions('', 'customer');el('paymentJournal').innerHTML=journalOptions('', ['bank','cash']);refreshPaymentDocuments();}
   const originalRender=render; // populate after data loads
   const oldLoad=load;
