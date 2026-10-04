@@ -102,7 +102,86 @@
   </div>
 </div>
 </section>
-<section class="view" id="view-inventory"><div class="section-intro accounting-intro"><div><h2>Inventory</h2><p>Stock receipts, deliveries, inventory valuation and COGS.</p></div><button id="inventoryRefresh" class="text-btn">Refresh data ↻</button></div><div class="inventory-metrics"><div class="inventory-metric"><span>Active products</span><b id="inventoryMetricProducts">0</b><small>ERP inventory master</small></div><div class="inventory-metric"><span>Units on hand</span><b id="inventoryMetricQty">0</b><small>Main Warehouse</small></div><div class="inventory-metric"><span>Inventory value</span><b id="inventoryMetricValue">Rp0</b><small>Average cost valuation</small></div><div class="inventory-metric"><span>Zero-stock items</span><b id="inventoryMetricLow">0</b><small>Current balance</small></div></div><div class="panel"><div class="panel-head"><div><h2>Stock balance</h2><p>Current quantity and valuation by ERP product.</p></div></div><div class="inventory-table-wrap"><table class="accounting-table"><thead><tr><th>Code</th><th>Product</th><th>Unit</th><th class="num">Qty</th><th class="num">Stock Value</th><th class="num">Standard Cost</th></tr></thead><tbody id="inventoryProductsBody"></tbody></table></div></div><div class="inventory-grid"><div class="panel"><div class="panel-head"><div><h2>Purchase Receipts</h2><p>Receive confirmed Purchase Orders into Main Warehouse.</p></div></div><div id="inventoryReceipts" class="inventory-order-list"></div></div><div class="panel"><div class="panel-head"><div><h2>Sales Deliveries</h2><p>Deliver confirmed Sales Orders and post COGS.</p></div></div><div id="inventoryDeliveries" class="inventory-order-list"></div></div></div></section><section class="view" id="view-accounting">
+<section class="view" id="view-inventory">
+  <div class="section-intro accounting-intro">
+    <div><h2>Inventory</h2><p>Stock balances, receipts, deliveries, adjustments and stock card.</p></div>
+    <button id="inventoryRefresh" class="text-btn">Refresh data ↻</button>
+  </div>
+
+  <div class="inventory-tabs" role="tablist">
+    <button type="button" data-inventory-tab="stock" class="active">Stock</button>
+    <button type="button" data-inventory-tab="receipts">Purchase Receipts</button>
+    <button type="button" data-inventory-tab="deliveries">Sales Deliveries</button>
+    <button type="button" data-inventory-tab="adjustment">Inventory Adjustment</button>
+    <button type="button" data-inventory-tab="card">Stock Card</button>
+  </div>
+
+  <div class="inventory-tab-panel" data-inventory-panel="stock">
+    <div class="inventory-metrics">
+      <div class="inventory-metric"><span>Active products</span><b id="inventoryMetricProducts">0</b><small>ERP inventory master</small></div>
+      <div class="inventory-metric"><span>Units on hand</span><b id="inventoryMetricQty">0</b><small>Main Warehouse</small></div>
+      <div class="inventory-metric"><span>Inventory value</span><b id="inventoryMetricValue">Rp0</b><small>Average cost valuation</small></div>
+      <div class="inventory-metric"><span>Zero-stock items</span><b id="inventoryMetricLow">0</b><small>Current balance</small></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div><h2>Stock balance</h2><p>Current quantity and valuation by ERP product.</p></div></div>
+      <div class="inventory-table-wrap"><table class="accounting-table"><thead><tr><th>Code</th><th>Product</th><th>Unit</th><th class="num">Qty</th><th class="num">Stock Value</th><th class="num">Average Cost</th></tr></thead><tbody id="inventoryProductsBody"></tbody></table></div>
+    </div>
+  </div>
+
+  <div class="inventory-tab-panel" data-inventory-panel="receipts" hidden>
+    <div class="panel">
+      <div class="panel-head"><div><h2>Purchase Receipts</h2><p>Receive confirmed Purchase Orders into Main Warehouse.</p></div></div>
+      <div id="inventoryReceipts" class="inventory-order-list"></div>
+    </div>
+  </div>
+
+  <div class="inventory-tab-panel" data-inventory-panel="deliveries" hidden>
+    <div class="panel">
+      <div class="panel-head"><div><h2>Sales Deliveries</h2><p>Deliver confirmed Sales Orders and post COGS using actual inventory average cost.</p></div></div>
+      <div id="inventoryDeliveries" class="inventory-order-list"></div>
+    </div>
+  </div>
+
+  <div class="inventory-tab-panel" data-inventory-panel="adjustment" hidden>
+    <div class="accounting-two-col inventory-adjustment-layout">
+      <div class="panel">
+        <div class="panel-head"><div><h2>Inventory Adjustment</h2><p>Correct physical stock differences with an accounting entry.</p></div></div>
+        <form id="inventoryAdjustmentForm" class="accounting-form">
+          <label>Product<select id="inventoryAdjustmentProduct" required></select></label>
+          <label>Warehouse<select id="inventoryAdjustmentLocation" required></select></label>
+          <label>Adjustment type<select id="inventoryAdjustmentType"><option value="increase">Increase stock</option><option value="decrease">Decrease stock</option></select></label>
+          <label>Quantity<input id="inventoryAdjustmentQty" type="number" min="0.0001" step="0.0001" required placeholder="0"></label>
+          <label>Unit cost (IDR)<input id="inventoryAdjustmentCost" type="number" min="0" step="0.01" placeholder="Required for increase if no standard cost"></label>
+          <label>Reason<textarea id="inventoryAdjustmentReason" rows="3" required placeholder="Physical count correction, damaged goods, stock found, etc."></textarea></label>
+          <button class="primary-btn" type="submit">Post Adjustment</button>
+        </form>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><div><h2>Adjustment accounting</h2><p>Increase: Inventory vs Other Income. Decrease: Inventory Loss vs Inventory.</p></div></div>
+        <div class="inventory-adjustment-note">
+          <div><b>Increase stock</b><span>Dr Inventory 1300 / Cr Other Income 4200</span></div>
+          <div><b>Decrease stock</b><span>Dr Operating Expense 6100 / Cr Inventory 1300</span></div>
+          <small>Adjustments do not alter Sales Revenue or COGS. Sales delivery continues to generate COGS from actual average inventory cost.</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="inventory-tab-panel" data-inventory-panel="card">
+    <div class="panel">
+      <div class="panel-head"><div><h2>Stock Card</h2><p>Movement history and running quantity/value by product and warehouse.</p></div></div>
+      <div class="inventory-card-filter">
+        <label>Product<select id="inventoryCardProduct"></select></label>
+        <label>Warehouse<select id="inventoryCardLocation"></select></label>
+        <label>From<input id="inventoryCardFrom" type="date"></label>
+        <label>To<input id="inventoryCardTo" type="date"></label>
+        <button id="inventoryCardApply" class="primary-btn" type="button">Apply</button>
+      </div>
+      <div class="inventory-table-wrap"><table class="accounting-table"><thead><tr><th>Date</th><th>Move No.</th><th>Type</th><th class="num">In</th><th class="num">Out</th><th class="num">Unit Cost</th><th class="num">Value</th><th class="num">Balance</th><th>Reason / Reference</th></tr></thead><tbody id="inventoryStockCardBody"></tbody></table></div>
+    </div>
+  </div>
+</section><section class="view" id="view-accounting">
 <div class="section-intro accounting-intro"><div><h2>Accounting</h2><p>Odoo-style accounting foundation for PILARK: invoices, vendor bills, payments, journals and reports.</p></div><button id="accountingRefresh" class="text-btn">Refresh data ↻</button></div>
 <div class="accounting-tabs" role="tablist" aria-label="Accounting sections">
 <button type="button" data-accounting-tab="overview" class="active">Overview</button>
