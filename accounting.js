@@ -491,7 +491,6 @@
 
     const activeProducts=new Set(state.inventoryBalances.map(x=>x.product_id)).size;
     const units=state.inventoryBalances.reduce((s,x)=>s+Number(x.quantity||0),0);
-    const zeroStock=Math.max(0,state.accounts.length?0:0);
     el('erpInventory').innerHTML=[
       ['Products with balance',String(activeProducts)],
       ['Units on hand',Number(units).toLocaleString('id-ID')],
