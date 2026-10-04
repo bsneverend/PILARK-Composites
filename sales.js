@@ -209,15 +209,52 @@
   const v=id=>el(id)?.value?.trim()||null;
   const contact={account_id:accountId,contact_person:v('crmContactPerson'),position:v('crmContactPosition'),department:v('crmContactDepartment'),email:v('crmContactEmail'),phone:v('crmContactPhone'),mobile_phone:v('crmContactMobile'),whatsapp_phone:v('crmContactWhatsapp'),linkedin_url:v('crmContactLinkedin'),source_url:v('crmContactSourceUrl'),source_name:v('crmContactSourceName'),confidence:v('crmContactConfidence')||'MEDIUM',preferred_channel:v('crmContactPreferred'),notes:v('crmContactNotes')};
   if(!contact.contact_person){alert('Contact name is required.');return;}
-  const r=await client().from('sales_contacts').insert(contact); if(r.error){alert(r.error.message);return;}
-  await loadCRM(); openContactResearchModal(accountId);
+  const r=await client().from('sales_contacts').insert(contact);
+  if(r.error){alert(r.error.message);return;}
+  await loadCRM();
+  openContactResearchModal(accountId);
 }
 function openContactResearchModal(accountId){
-  const accounts=state.crm.accounts||[], a=accounts.find(x=>x.id===accountId)||accounts[0]; if(!a)return;
+  const accounts=state.crm.accounts||[];
+  if(!accounts.length)return;
+  const selected=accounts.find(x=>x.id===accountId)||null;
+  const a=selected||accounts[0];
   const contacts=(state.crm.contacts||[]).filter(x=>x.account_id===a.id);
-  const rows=contacts.length?contacts.map(x=>'<div class="crm-research-contact"><strong>'+x.contact_person+'</strong> · '+(x.position||x.department||'Business contact')+' · <b>'+x.confidence+'</b><br><small>'+(x.email||'')+' '+(x.mobile_phone||x.phone||'')+'</small></div>').join(''):'No individual contacts stored yet.';
-  const html='<div class="crm-research-card"><div class="eyebrow">Contact Intelligence Research</div><h3>'+a.company_name+'</h3><p>Save verified public business contacts and make them available to Sales.</p><div class="crm-research-grid"><div class="crm-research-item"><strong>Official / Project / Procurement</strong><span>Engineering, Project, Procurement, SCM or BD contacts.</span><button type="button" class="text-btn crm-research-open" data-query="'+encodeURIComponent(a.company_name+' official contact engineering procurement project')+'">Search ↗</button></div><div class="crm-research-item"><strong>LinkedIn</strong><span>Public professional/company information.</span><button type="button" class="text-btn crm-research-open" data-query="'+encodeURIComponent(a.company_name+' LinkedIn engineering project procurement')+'">Search ↗</button></div></div><hr><div class="eyebrow">Add verified business contact</div><div class="accounting-form-row"><label>Name<input id="crmContactPerson"></label><label>Position<input id="crmContactPosition"></label></div><div class="accounting-form-row"><label>Department<input id="crmContactDepartment" placeholder="Engineering / Project / Procurement / SCM"></label><label>Confidence<select id="crmContactConfidence"><option>HIGH</option><option selected>MEDIUM</option><option>LOW</option></select></label></div><div class="accounting-form-row"><label>Email<input id="crmContactEmail" type="email"></label><label>Office Phone<input id="crmContactPhone"></label></div><div class="accounting-form-row"><label>Mobile<input id="crmContactMobile"></label><label>WhatsApp<input id="crmContactWhatsapp"></label></div><div class="accounting-form-row"><label>LinkedIn<input id="crmContactLinkedin"></label><label>Preferred Channel<select id="crmContactPreferred"><option>WhatsApp</option><option>Mobile</option><option>Phone</option><option>Email</option><option>LinkedIn</option></select></label></div><div class="accounting-form-row"><label>Source Name<input id="crmContactSourceName"></label><label>Source URL<input id="crmContactSourceUrl"></label></div><label>Notes<textarea id="crmContactNotes"></textarea></label><button type="button" class="primary-btn" id="crmSaveContact">+ Save Verified Contact</button><hr><div class="eyebrow">Known contacts</div><div>__ROWS__</div></div>';
-  const m=el('salesOpportunityModal'); if(!m)return; el('crmDetailTitle').textContent='Contact Research'; el('crmDetailSubtitle').textContent=a.company_name; el('crmDetailBody').innerHTML=html.replace('__ROWS__',rows); m.hidden=false;
+  const rows=contacts.length?contacts.map(x=>'<div class="crm-research-contact"><strong>'+esc(x.contact_person)+'</strong><span>'+(esc(x.position||x.department||'Business contact'))+' · <b>'+esc(x.confidence)+'</b></span><small>'+(esc(x.email||''))+' '+(esc(x.mobile_phone||x.phone||''))+'</small></div>').join(''):'<div class="crm-research-empty">No individual contacts stored yet.</div>';
+  const accountOptions=accounts.map(x=>'<option value="'+x.id+'" '+(x.id===a.id?'selected':'')+'>'+esc(x.company_name)+'</option>').join('');
+  const html='<div class="crm-research-card">'+
+    '<div class="crm-research-toolbar"><label>Account<select id="crmResearchAccount">'+accountOptions+'</select></label><div><span class="crm-confidence-badge">'+contacts.length+' contact'+(contacts.length===1?'':'s')+'</span></div></div>'+
+    '<p class="crm-research-intro">Research and save verified <b>public business contacts</b> for the selected account. Personal/private contact data is not collected.</p>'+
+    '<div class="crm-research-grid">'+
+      '<div class="crm-research-item"><strong>Official / Project / Procurement</strong><span>Engineering, Project, Procurement, SCM or BD contacts.</span><button type="button" class="text-btn crm-research-open" data-query="'+encodeURIComponent(a.company_name+' official contact engineering procurement project')+'">Search ↗</button></div>'+
+      '<div class="crm-research-item"><strong>LinkedIn</strong><span>Public professional/company information.</span><button type="button" class="text-btn crm-research-open" data-query="'+encodeURIComponent(a.company_name+' LinkedIn engineering project procurement')+'">Search ↗</button></div>'+
+    '</div>'+
+    '<div class="crm-research-section"><div class="eyebrow">Add verified business contact</div>'+
+      '<div class="crm-contact-form-grid">'+
+        '<label>Name<input id="crmContactPerson" placeholder="e.g. Project Manager"></label>'+
+        '<label>Position<input id="crmContactPosition" placeholder="e.g. Engineering Manager"></label>'+
+        '<label>Department<input id="crmContactDepartment" placeholder="Engineering / Project / Procurement / SCM"></label>'+
+        '<label>Confidence<select id="crmContactConfidence"><option>HIGH</option><option selected>MEDIUM</option><option>LOW</option></select></label>'+
+        '<label>Email<input id="crmContactEmail" type="email" placeholder="business email"></label>'+
+        '<label>Office Phone<input id="crmContactPhone" placeholder="+62 ..."></label>'+
+        '<label>Mobile<input id="crmContactMobile" placeholder="+62 ..."></label>'+
+        '<label>WhatsApp<input id="crmContactWhatsapp" placeholder="+62 ..."></label>'+
+        '<label>LinkedIn<input id="crmContactLinkedin" placeholder="https://linkedin.com/..."></label>'+
+        '<label>Preferred Channel<select id="crmContactPreferred"><option>WhatsApp</option><option>Mobile</option><option>Phone</option><option>Email</option><option>LinkedIn</option></select></label>'+
+        '<label>Source Name<input id="crmContactSourceName" placeholder="Official website / procurement portal / project page"></label>'+
+        '<label>Source URL<input id="crmContactSourceUrl" placeholder="https://..."></label>'+
+        '<label class="crm-contact-notes">Notes<textarea id="crmContactNotes" placeholder="Why this contact is relevant / verification note"></textarea></label>'+
+      '</div><button type="button" class="primary-btn crm-save-contact" id="crmSaveContact">+ Save Verified Contact</button></div>'+
+    '<div class="crm-research-section"><div class="eyebrow">Known contacts</div><div class="crm-known-contacts">'+rows+'</div></div>'+
+  '</div>';
+  const modal=el('salesOpportunityModal'); if(!modal)return;
+  el('crmDetailTitle').textContent='Contact Research';
+  el('crmDetailSubtitle').textContent=a.company_name;
+  const eyebrow=modal.querySelector('.crm-modal-head .eyebrow'); if(eyebrow)eyebrow.textContent='CONTACT INTELLIGENCE';
+  el('crmDetailBody').innerHTML=html;
+  modal.hidden=false;
+  el('crmDetailClose').onclick=()=>{modal.hidden=true; if(eyebrow)eyebrow.textContent='SALES OPPORTUNITY';};
+  el('crmResearchAccount').onchange=e=>openContactResearchModal(e.target.value);
   el('crmDetailBody').querySelectorAll('.crm-research-open').forEach(b=>b.onclick=()=>window.open('https://www.google.com/search?q='+b.dataset.query,'_blank','noopener'));
   el('crmSaveContact').onclick=()=>saveCRMContact(a.id);
 }
