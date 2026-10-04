@@ -197,3 +197,14 @@
   .crm-research-contact{grid-template-columns:1fr}
   .crm-save-contact{width:100%}
 }
+
+/* 2026-10-05 compact Sales Activity action menu */
+.crm-activity-menu{position:relative;display:inline-flex;justify-content:center;align-items:center;width:100%}
+.crm-activity-more{width:38px;height:38px;border:1px solid #d8e5eb;border-radius:999px;background:#fff;color:#4d6673;font-size:22px;font-weight:900;line-height:1;letter-spacing:2px;cursor:pointer;display:grid;place-items:center;transition:.15s ease}
+.crm-activity-more:hover,.crm-activity-more:focus{border-color:#08a6e8;color:#047bc2;background:#f4fbff;box-shadow:0 5px 14px rgba(4,31,44,.10);outline:none}
+.crm-activity-popover{position:absolute;right:0;top:calc(100% + 7px);z-index:30;min-width:120px;padding:5px;background:#fff;border:1px solid #dce8ee;border-radius:12px;box-shadow:0 14px 30px rgba(4,31,44,.15);display:grid;gap:3px;opacity:0;visibility:hidden;transform:translateY(-4px);transition:.14s ease}
+.crm-activity-menu:hover .crm-activity-popover,.crm-activity-menu:focus-within .crm-activity-popover{opacity:1;visibility:visible;transform:translateY(0)}
+.crm-activity-popover button{appearance:none;border:0;background:#fff;border-radius:8px;padding:9px 11px;text-align:left;color:#35515f;font:700 11px Inter,sans-serif;cursor:pointer}
+.crm-activity-popover button:hover{background:#f3f9fb;color:#047bc2}
+.crm-activity-popover .crm-activity-done{color:#137342}
+.crm-activity-popover .crm-activity-done:hover{background:#edf9f2;color:#0d6a3b}
