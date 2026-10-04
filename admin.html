@@ -15,9 +15,12 @@
 <section class="view" id="view-sections"><div class="section-intro"><h2>Website Content</h2><p>Edit key text content without opening the website source code.</p></div><form id="contentEditor" class="content-editor"></form></section>
 <section class="view" id="view-chat"><div class="section-intro"><h2>Live Chat</h2><p>Respond to website visitors and manage customer conversations in one place.</p></div><div class="chat-admin-layout"><div class="chat-admin-list-panel"><div class="chat-admin-list-head"><b>Conversations</b><button id="chatRefreshBtn" class="text-btn">Refresh</button></div><div id="adminChatList" class="admin-chat-list"></div></div><div class="chat-admin-thread-panel"><div id="adminChatEmpty" class="admin-chat-empty"><b>Select a conversation</b><span>Choose a visitor from the inbox to view and reply.</span></div><div id="adminChatThread" hidden><div class="admin-chat-thread-head"><div><b id="adminChatName">Visitor</b><small id="adminChatMeta"></small></div><div class="admin-chat-thread-actions"><select id="adminChatStatus"><option value="open">Open</option><option value="pending">Pending</option><option value="resolved">Resolved</option></select><button id="adminChatCloseMobile" class="mobile-chat-close" type="button" aria-label="Close conversation">×</button></div></div><div id="adminChatMessages" class="admin-chat-messages"></div><form id="adminChatComposer" class="admin-chat-composer"><input id="adminChatReply" maxlength="4000" placeholder="Write a reply…"><button type="submit">Send →</button></form></div></div></div></section>
 <section class="view" id="view-sales">
-<div class="section-intro accounting-intro"><div><h2>Sales</h2><p>Quotation → Sales Order → Customer Invoice → Payment.</p></div><button id="salesRefresh" class="text-btn">Refresh data ↻</button></div>
+<div class="section-intro accounting-intro"><div><h2>Sales</h2><p>Prospect → Contacted → Meeting → Technical Presentation → Specification → RFQ → Quotation → Negotiation → PO.</p></div><button id="salesRefresh" class="text-btn">Refresh data ↻</button></div>
 <div class="sales-tabs" role="tablist">
 <button type="button" data-sales-tab="overview" class="active">Overview</button>
+<button type="button" data-sales-tab="execution">Execution Board</button>
+<button type="button" data-sales-tab="accounts">Accounts</button>
+<button type="button" data-sales-tab="activities">Activities</button>
 <button type="button" data-sales-tab="quotations">Quotations</button>
 <button type="button" data-sales-tab="orders">Sales Orders</button>
 </div>
@@ -30,6 +33,26 @@
   </div>
   <div class="panel"><div class="panel-head"><div><h2>Sales workflow</h2><p>Start with a quotation, confirm it into a Sales Order, then create the customer invoice.</p></div></div>
     <div class="check-grid"><div>✓ Quotation numbering</div><div>✓ Customer and line items</div><div>✓ Confirmation to Sales Order</div><div>✓ Automatic accounting invoice</div></div>
+  </div>
+</div>
+<div class="accounting-tab-panel" data-sales-panel="execution" hidden>
+  <div class="section-intro accounting-intro crm-execution-head"><div><h2>Sales Execution Board</h2><p>15 priority accounts, project context, next action and follow-up cadence.</p></div><button id="salesCrmRefresh" class="text-btn">Refresh CRM ↻</button></div>
+  <div class="sales-metrics crm-metrics">
+    <div class="sales-metric"><span>HOT opportunities</span><b id="crmMetricHot">0</b></div>
+    <div class="sales-metric"><span>Activities due</span><b id="crmMetricDue">0</b></div>
+    <div class="sales-metric"><span>Meetings / technical</span><b id="crmMetricMeetings">0</b></div>
+    <div class="sales-metric"><span>Target project value</span><b id="crmMetricTarget">Rp0</b></div>
+  </div>
+  <div id="salesExecutionBoard" class="crm-board"></div>
+</div>
+<div class="accounting-tab-panel" data-sales-panel="accounts" hidden>
+  <div class="panel"><div class="panel-head"><div><h2>Priority Accounts</h2><p>Account-level contact routing for the first sales campaign.</p></div></div>
+    <div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Company</th><th>Target Department</th><th>Email</th><th>Phone</th><th>Priority</th></tr></thead><tbody id="salesAccountsBody"></tbody></table></div>
+  </div>
+</div>
+<div class="accounting-tab-panel" data-sales-panel="activities" hidden>
+  <div class="panel"><div class="panel-head"><div><h2>Sales Activities</h2><p>D+0 / D+3 / D+7 / D+14 execution cadence. Mark activities done as they happen.</p></div></div>
+    <div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Due</th><th>Account / Opportunity</th><th>Activity</th><th>Status</th><th>Action</th></tr></thead><tbody id="salesActivitiesBody"></tbody></table></div>
   </div>
 </div>
 <div class="accounting-tab-panel" data-sales-panel="quotations" hidden>
