@@ -165,3 +165,35 @@
 .crm-detail-email{width:100%;background:#f3fbff;border-color:#b9dfef;color:#087fbd}
 .crm-activity-modal-card label{font-size:11px}
 .crm-activity-modal-card textarea{min-height:130px}
+
+/* 2026-10-05 Contact Intelligence modal layout */
+.crm-research-card{display:grid;gap:18px}
+.crm-research-toolbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:end;padding:14px 16px;background:#f7fafb;border:1px solid #dce8ee;border-radius:14px}
+.crm-research-toolbar label{display:grid;gap:7px;color:#506672;font-size:11px;font-weight:800}
+.crm-research-toolbar select{width:100%;border:1px solid #d5e3e9;border-radius:10px;background:#fff;padding:10px 11px;color:#07121a;font:500 13px Inter,sans-serif}
+.crm-confidence-badge{display:inline-flex;align-items:center;justify-content:center;padding:8px 11px;border-radius:999px;background:#eef7fb;color:#087fbd;font-size:11px;font-weight:800;white-space:nowrap}
+.crm-research-intro{margin:0;color:#536a75;font-size:12px;line-height:1.5}
+.crm-research-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.crm-research-item{border:1px solid #dce8ee;border-radius:13px;padding:14px;background:#fbfcfd;display:grid;gap:7px}
+.crm-research-item strong{font-size:12px;color:#243b45}
+.crm-research-item span{font-size:11px;color:#718491;line-height:1.4}
+.crm-research-section{border-top:1px solid #e5edf1;padding-top:16px}
+.crm-contact-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:10px}
+.crm-contact-form-grid label{display:grid;gap:6px;color:#506672;font-size:11px;font-weight:800}
+.crm-contact-form-grid input,.crm-contact-form-grid select,.crm-contact-form-grid textarea{width:100%;min-width:0;box-sizing:border-box;border:1px solid #d5e3e9;border-radius:10px;background:#fff;color:#07121a;padding:10px 11px;font:500 13px Inter,sans-serif;outline:none}
+.crm-contact-form-grid input:focus,.crm-contact-form-grid select:focus,.crm-contact-form-grid textarea:focus{border-color:#10a7e7;box-shadow:0 0 0 3px rgba(16,167,231,.1)}
+.crm-contact-form-grid textarea{min-height:82px;resize:vertical}
+.crm-contact-notes{grid-column:1/-1}
+.crm-save-contact{width:max-content;margin-top:12px}
+.crm-known-contacts{display:grid;gap:8px;margin-top:10px}
+.crm-research-contact{display:grid;grid-template-columns:minmax(160px,1fr) minmax(160px,1fr) minmax(120px,1fr);gap:10px;align-items:center;padding:10px 12px;border:1px solid #e1eaee;border-radius:10px;background:#fbfcfd}
+.crm-research-contact strong{font-size:11px;color:#243b45}
+.crm-research-contact span,.crm-research-contact small{font-size:10px;color:#718491}
+.crm-research-empty{padding:12px;border:1px dashed #dce8ee;border-radius:10px;color:#8999a3;font-size:11px}
+@media(max-width:700px){
+  .crm-research-grid,.crm-contact-form-grid{grid-template-columns:1fr}
+  .crm-contact-notes{grid-column:auto}
+  .crm-research-toolbar{grid-template-columns:1fr}
+  .crm-research-contact{grid-template-columns:1fr}
+  .crm-save-contact{width:100%}
+}
