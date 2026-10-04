@@ -234,11 +234,15 @@
 </div>
 
 <div class="accounting-tab-panel" data-accounting-panel="overview">
-  <div id="accountingCards" class="accounting-metrics"></div>
-  <div class="accounting-overview-grid">
-    <div class="panel accounting-profit-card"><div class="panel-head"><div><h2>Current period result</h2><p>Posted income less posted expenses.</p></div></div><strong id="accountingProfit">Rp0</strong><span><b id="accountingEntryCount">0</b> posted journal entries</span></div>
-    <div class="panel"><div class="panel-head"><div><h2>Open receivables & payables</h2><p>Posted customer invoices and vendor bills not fully paid.</p></div></div><div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Type</th><th>Number</th><th>Partner</th><th>Due</th><th class="num">Outstanding</th></tr></thead><tbody id="accountingOpenDocs"></tbody></table></div></div>
+  <div class="dashboard-toolbar panel"><div class="panel-head"><div><h2>ERP Dashboard</h2><p>Management snapshot from posted accounting, invoices, bills, payments and inventory.</p></div><button id="dashboardRefresh" class="accounting-small-btn" type="button">Refresh</button></div></div>
+  <div id="accountingCards" class="accounting-metrics dashboard-kpis"></div>
+  <div class="dashboard-grid">
+    <div class="panel dashboard-profit"><div class="panel-head"><div><h2>Profit & Loss</h2><p>Current month</p></div></div><strong id="accountingProfit">Rp0</strong><span><b id="accountingEntryCount">0</b> posted journal entries</span></div>
+    <div class="panel"><div class="panel-head"><div><h2>Sales vs Purchases</h2><p>Last 6 months</p></div></div><div id="dashboardMonthly" class="dashboard-bars"></div></div>
+    <div class="panel"><div class="panel-head"><div><h2>Receivables & Payables</h2><p>Current outstanding exposure</p></div></div><div id="dashboardExposure" class="dashboard-exposure"></div></div>
+    <div class="panel"><div class="panel-head"><div><h2>Open Receivables & Payables</h2><p>Nearest due documents</p></div></div><div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Type</th><th>Number</th><th>Partner</th><th>Due</th><th class="num">Outstanding</th></tr></thead><tbody id="accountingOpenDocs"></tbody></table></div></div>
   </div>
+  <div class="panel dashboard-activity"><div class="panel-head"><div><h2>Recent Accounting Activity</h2><p>Latest posted invoices, bills and payments.</p></div></div><div id="dashboardActivity" class="dashboard-activity-list"></div></div>
 </div>
 
 <div class="accounting-tab-panel" data-accounting-panel="invoices" hidden>
