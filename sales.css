@@ -19,8 +19,8 @@
   .sales-line-head,.sales-line{
     width:100%;
     box-sizing:border-box;
-    grid-template-columns:minmax(140px,2.2fr) minmax(95px,1.35fr) minmax(42px,.55fr) minmax(70px,1fr) minmax(62px,.8fr) minmax(50px,.7fr) 32px;
-    gap:7px;
+    grid-template-columns:minmax(0,1.45fr) minmax(0,1.05fr) minmax(0,.48fr) minmax(0,.82fr) minmax(0,.62fr) minmax(0,.55fr) 28px;
+    gap:5px;
   }
   .sales-line-head>*,.sales-line>*{
     min-width:0;
@@ -39,5 +39,33 @@
     width:100%;
     min-width:0;
     max-width:100%;
+  }
+}
+
+/* 2026-10-04 final compact line-item fit */
+@media (min-width:801px){
+  .sales-lines{
+    width:100%;
+    max-width:100%;
+    overflow:visible;
+  }
+  .sales-line-head,.sales-line{
+    grid-template-columns:minmax(0,1.45fr) minmax(0,1.05fr) minmax(0,.48fr) minmax(0,.82fr) minmax(0,.62fr) minmax(0,.55fr) 28px;
+    gap:5px;
+  }
+  .sales-line-head{
+    font-size:10px;
+    line-height:1.1;
+  }
+  .sales-line input,.sales-line select{
+    width:100%;
+    min-width:0;
+    max-width:100%;
+    box-sizing:border-box;
+  }
+  .sales-line-remove{
+    width:28px;
+    min-width:28px;
+    padding:0;
   }
 }
