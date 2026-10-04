@@ -19,11 +19,15 @@
   .purchase-line-head,.purchase-line{
     width:100%;
     box-sizing:border-box;
-    grid-template-columns:minmax(0,2.25fr) minmax(0,1.45fr) minmax(0,.5fr) minmax(0,.85fr) minmax(0,.6fr) minmax(0,.55fr) minmax(0,1.15fr) 32px;
+    grid-template-columns:minmax(120px,1.9fr) minmax(90px,1.25fr) minmax(40px,.5fr) minmax(65px,.9fr) minmax(58px,.7fr) minmax(50px,.65fr) minmax(90px,1.1fr) 32px;
     gap:6px;
   }
   .purchase-line-head>*,.purchase-line>*{
     min-width:0;
+  }
+  .purchase-line-head{
+    line-height:1.15;
+    overflow-wrap:anywhere;
   }
   .purchase-line input,.purchase-line select{
     width:100%;
