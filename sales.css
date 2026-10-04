@@ -19,11 +19,15 @@
   .sales-line-head,.sales-line{
     width:100%;
     box-sizing:border-box;
-    grid-template-columns:minmax(0,2.45fr) minmax(0,1.55fr) minmax(0,.55fr) minmax(0,.95fr) minmax(0,.65fr) minmax(0,.65fr) 32px;
+    grid-template-columns:minmax(140px,2.2fr) minmax(95px,1.35fr) minmax(42px,.55fr) minmax(70px,1fr) minmax(62px,.8fr) minmax(50px,.7fr) 32px;
     gap:7px;
   }
   .sales-line-head>*,.sales-line>*{
     min-width:0;
+  }
+  .sales-line-head{
+    line-height:1.15;
+    overflow-wrap:anywhere;
   }
   .sales-line input,.sales-line select{
     width:100%;
