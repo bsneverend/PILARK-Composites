@@ -205,24 +205,21 @@
     el('crmActivityCancel')?.addEventListener('click',closeCRMActivityModal);
     document.querySelectorAll('[data-crm-activity-close]').forEach(b=>b.addEventListener('click',closeCRMActivityModal));
     el('crmActivityOpportunity')?.addEventListener('change',()=>{const o=(state.crm.opportunities||[]).find(x=>x.id===el('crmActivityOpportunity').value);if(o)el('crmActivityTo').value=o.sales_accounts?.public_email||'';});el('salesDate').value=today();el('salesLines').innerHTML=lineHtml(0);updatePreview();document.querySelector('.side-link[data-view="sales"]')?.addEventListener('click',()=>setTimeout(()=>Promise.all([load(),loadCRM()]).catch(console.warn),50));}
-  function openContactResearchModal(accountId){
-  const accounts=state.crm.accounts||[];
-  const a=accounts.find(x=>x.id===accountId)||accounts[0];
-  if(!a)return;
+  async function saveCRMContact(accountId){
+  const v=id=>el(id)?.value?.trim()||null;
+  const contact={account_id:accountId,contact_person:v('crmContactPerson'),position:v('crmContactPosition'),department:v('crmContactDepartment'),email:v('crmContactEmail'),phone:v('crmContactPhone'),mobile_phone:v('crmContactMobile'),whatsapp_phone:v('crmContactWhatsapp'),linkedin_url:v('crmContactLinkedin'),source_url:v('crmContactSourceUrl'),source_name:v('crmContactSourceName'),confidence:v('crmContactConfidence')||'MEDIUM',preferred_channel:v('crmContactPreferred'),notes:v('crmContactNotes')};
+  if(!contact.contact_person){alert('Contact name is required.');return;}
+  const r=await client().from('sales_contacts').insert(contact); if(r.error){alert(r.error.message);return;}
+  await loadCRM(); openContactResearchModal(accountId);
+}
+function openContactResearchModal(accountId){
+  const accounts=state.crm.accounts||[], a=accounts.find(x=>x.id===accountId)||accounts[0]; if(!a)return;
   const contacts=(state.crm.contacts||[]).filter(x=>x.account_id===a.id);
-  const routes=[
-    ['Official website / contact page','OFFICIAL_WEBSITE','Search the company website for Engineering, Project, Procurement, SCM, Sales or Business Development contacts.'],
-    ['Project / tender source','PROJECT','Search the relevant project owner, tender, procurement or project page for named PICs and business contacts.'],
-    ['LinkedIn / professional source','LINKEDIN','Search the company and relevant public engineering/project roles.'],
-    ['Public directory / secondary source','DIRECTORY','Use only as a secondary lead and keep confidence LOW until independently verified.']
-  ];
-  const html='<div class="crm-research-card"><div class="eyebrow">Contact Intelligence Research</div><h3>'+a.company_name+'</h3><p>Research public business contacts and route the salesperson to the most effective channel. Personal/private data is not collected.</p><div class="crm-research-grid">'+routes.map(r=>'<div class="crm-research-item"><strong>'+r[0]+'</strong><span>'+r[2]+'</span><button type="button" class="text-btn crm-research-open" data-query="'+a.company_name.replace(/"/g,'&quot;')+' '+r[0].replace(/"/g,'&quot;')+'">Search ↗</button></div>').join('')+'</div><hr><div class="eyebrow">Known verified contacts</div><div>'+(contacts.length?contacts.map(x=>'<div class="crm-research-contact"><strong>'+x.contact_person+'</strong> · '+(x.position||x.department||'Business contact')+' · <b>'+x.confidence+'</b><br><small>'+(x.email||'')+' '+(x.mobile_phone||x.phone||'')+'</small></div>').join(''):'No individual project contacts stored yet.')+'</div></div>';
-  const m=el('salesOpportunityModal');if(!m)return;
-  el('crmDetailTitle').textContent='Contact Research';
-  el('crmDetailSubtitle').textContent=a.company_name;
-  el('crmDetailBody').innerHTML=html;
-  m.hidden=false;
-  el('crmDetailBody').querySelectorAll('.crm-research-open').forEach(b=>b.onclick=()=>window.open('https://www.google.com/search?q='+encodeURIComponent(b.dataset.query),'_blank','noopener'));
+  const rows=contacts.length?contacts.map(x=>'<div class="crm-research-contact"><strong>'+x.contact_person+'</strong> · '+(x.position||x.department||'Business contact')+' · <b>'+x.confidence+'</b><br><small>'+(x.email||'')+' '+(x.mobile_phone||x.phone||'')+'</small></div>').join(''):'No individual contacts stored yet.';
+  const html='<div class="crm-research-card"><div class="eyebrow">Contact Intelligence Research</div><h3>'+a.company_name+'</h3><p>Save verified public business contacts and make them available to Sales.</p><div class="crm-research-grid"><div class="crm-research-item"><strong>Official / Project / Procurement</strong><span>Engineering, Project, Procurement, SCM or BD contacts.</span><button type="button" class="text-btn crm-research-open" data-query="'+encodeURIComponent(a.company_name+' official contact engineering procurement project')+'">Search ↗</button></div><div class="crm-research-item"><strong>LinkedIn</strong><span>Public professional/company information.</span><button type="button" class="text-btn crm-research-open" data-query="'+encodeURIComponent(a.company_name+' LinkedIn engineering project procurement')+'">Search ↗</button></div></div><hr><div class="eyebrow">Add verified business contact</div><div class="accounting-form-row"><label>Name<input id="crmContactPerson"></label><label>Position<input id="crmContactPosition"></label></div><div class="accounting-form-row"><label>Department<input id="crmContactDepartment" placeholder="Engineering / Project / Procurement / SCM"></label><label>Confidence<select id="crmContactConfidence"><option>HIGH</option><option selected>MEDIUM</option><option>LOW</option></select></label></div><div class="accounting-form-row"><label>Email<input id="crmContactEmail" type="email"></label><label>Office Phone<input id="crmContactPhone"></label></div><div class="accounting-form-row"><label>Mobile<input id="crmContactMobile"></label><label>WhatsApp<input id="crmContactWhatsapp"></label></div><div class="accounting-form-row"><label>LinkedIn<input id="crmContactLinkedin"></label><label>Preferred Channel<select id="crmContactPreferred"><option>WhatsApp</option><option>Mobile</option><option>Phone</option><option>Email</option><option>LinkedIn</option></select></label></div><div class="accounting-form-row"><label>Source Name<input id="crmContactSourceName"></label><label>Source URL<input id="crmContactSourceUrl"></label></div><label>Notes<textarea id="crmContactNotes"></textarea></label><button type="button" class="primary-btn" id="crmSaveContact">+ Save Verified Contact</button><hr><div class="eyebrow">Known contacts</div><div>__ROWS__</div></div>';
+  const m=el('salesOpportunityModal'); if(!m)return; el('crmDetailTitle').textContent='Contact Research'; el('crmDetailSubtitle').textContent=a.company_name; el('crmDetailBody').innerHTML=html.replace('__ROWS__',rows); m.hidden=false;
+  el('crmDetailBody').querySelectorAll('.crm-research-open').forEach(b=>b.onclick=()=>window.open('https://www.google.com/search?q='+b.dataset.query,'_blank','noopener'));
+  el('crmSaveContact').onclick=()=>saveCRMContact(a.id);
 }
 function init(){if(!el('view-sales'))return;bind();if(client())Promise.all([load(),loadCRM()]).catch(e=>console.warn('Sales init:',e));}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
