@@ -87,14 +87,14 @@
       const outstanding=docOutstanding(d);
       const overdue=outstanding>0.005&&d.due_date&&d.due_date<today()&&['posted','partially_paid'].includes(d.status);
       const actions=[];
-      actions.push('<button class="accounting-small-btn view-document-btn" data-document-id="'+d.id+'">View</button>'); if(d.status==='draft') actions.push('<button class="accounting-small-btn edit-document-btn" data-document-id="'+d.id+'">Edit</button>'); if(d.status==='draft'){ actions.push('<button class="accounting-small-btn post-document-btn" data-document-id="'+d.id+'">Post</button>'); actions.push('<button class="accounting-small-btn cancel-document-btn" data-document-id="'+d.id+'">Cancel</button>'); } actions.push('<button class="accounting-small-btn duplicate-document-btn" data-document-id="'+d.id+'">Duplicate</button>'); actions.push('<button class="accounting-small-btn print-document-btn" data-document-id="'+d.id+'">Print / PDF</button>');
+      actions.push('<button class="accounting-small-btn view-document-btn" data-document-id="'+d.id+'">View</button>'); if(d.status==='draft') actions.push('<button class="accounting-small-btn edit-document-btn" data-document-id="'+d.id+'">Edit</button>'); if(d.status==='draft'){ actions.push('<button class="accounting-small-btn post-document-btn" data-document-id="'+d.id+'">Post</button>'); actions.push('<button class="accounting-small-btn cancel-document-btn" data-document-id="'+d.id+'">Cancel</button>'); } actions.push('<button class="accounting-small-btn duplicate-document-btn" data-document-id="'+d.id+'">Duplicate</button>'); actions.push('<button class="accounting-small-btn print-document-btn" data-document-id="'+d.id+'">Print / PDF</button>'); actions.push('<button class="accounting-small-btn send-document-btn" data-document-id="'+d.id+'">Send</button>');
       if(d.status==='posted'&&Number(d.amount_paid||0)<=0.005) actions.push('<button class="accounting-small-btn cancel-document-btn" data-document-id="'+d.id+'">Cancel</button>');
       actions.push('<button class="accounting-small-btn history-document-btn" data-document-id="'+d.id+'">History</button>');
       return `<tr><td><b>${esc(d.document_no)}</b></td><td>${dateText(d.document_date)}</td><td>${esc(d.accounting_partners?.name||'—')}</td><td>${dateText(d.due_date)}</td><td class="num">${money(d.total_amount)}</td><td class="num">${money(d.amount_paid)}</td><td class="num">${money(outstanding)}</td><td><span class="${statusClass(d.status)}">${esc(d.status.replace('_',' '))}</span>${overdue?'<span class="accounting-overdue">Overdue</span>':''}</td><td class="accounting-actions">${actions.join('')}</td></tr>`;
     };
     el('accountingInvoicesBody').innerHTML=state.invoices.map(row).join('')||'<tr><td colspan="9" class="accounting-empty">No customer invoices yet.</td></tr>';
     el('accountingBillsBody').innerHTML=state.bills.map(row).join('')||'<tr><td colspan="9" class="accounting-empty">No vendor bills yet.</td></tr>';
-    document.querySelectorAll('.view-document-btn').forEach(b=>b.onclick=()=>showDocumentDetail(b.dataset.documentId)); document.querySelectorAll('.edit-document-btn').forEach(b=>b.onclick=()=>editDocument(b.dataset.documentId)); document.querySelectorAll('.duplicate-document-btn').forEach(b=>b.onclick=()=>duplicateDocument(b.dataset.documentId)); document.querySelectorAll('.print-document-btn').forEach(b=>b.onclick=()=>printDocument(b.dataset.documentId)); document.querySelectorAll('.post-document-btn').forEach(b=>b.onclick=()=>postDocument(b.dataset.documentId));
+    document.querySelectorAll('.view-document-btn').forEach(b=>b.onclick=()=>showDocumentDetail(b.dataset.documentId)); document.querySelectorAll('.edit-document-btn').forEach(b=>b.onclick=()=>editDocument(b.dataset.documentId)); document.querySelectorAll('.duplicate-document-btn').forEach(b=>b.onclick=()=>duplicateDocument(b.dataset.documentId)); document.querySelectorAll('.print-document-btn').forEach(b=>b.onclick=()=>printDocument(b.dataset.documentId)); document.querySelectorAll('.send-document-btn').forEach(b=>b.onclick=()=>sendDocument(b.dataset.documentId)); document.querySelectorAll('.post-document-btn').forEach(b=>b.onclick=()=>postDocument(b.dataset.documentId));
     document.querySelectorAll('.cancel-document-btn').forEach(b=>b.onclick=()=>cancelDocument(b.dataset.documentId));
     document.querySelectorAll('.history-document-btn').forEach(b=>b.onclick=()=>showDocumentHistory(b.dataset.documentId));
   }
@@ -161,6 +161,15 @@
     if(le){await client().from('accounting_documents').delete().eq('id',copy.id);return alert(le.message);}
     await load(); alert('Draft '+no+' created from '+d.document_no+'.');
   }
+  function sendDocument(id){
+    const d=getDocument(id); if(!d)return;
+    const email=d.accounting_partners?.email||'';
+    if(!email) return alert('This partner does not have an email address. Add the partner email first.');
+    const subject=encodeURIComponent(documentLabel(d)+' '+d.document_no);
+    const body=encodeURIComponent('Dear '+(d.accounting_partners?.name||'Customer/Vendor')+',\n\nPlease find the '+documentLabel(d).toLowerCase()+' '+d.document_no+' for your reference.\n\nTotal: '+money(d.total_amount)+'\nOutstanding: '+money(docOutstanding(d))+'\nDue date: '+dateText(d.due_date)+'\n\nRegards,\nPILARK');
+    window.location.href='mailto:'+encodeURIComponent(email)+'?subject='+subject+'&body='+body;
+  }
+
   async function printDocument(id){
     const d=getDocument(id); if(!d)return; const lines=await getDocumentLines(id);
     const w=window.open('','_blank','width=900,height=900'); if(!w)return alert('Please allow pop-ups for Print / PDF.');
