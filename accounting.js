@@ -87,17 +87,88 @@
       const outstanding=docOutstanding(d);
       const overdue=outstanding>0.005&&d.due_date&&d.due_date<today()&&['posted','partially_paid'].includes(d.status);
       const actions=[];
-      if(d.status==='draft'){ actions.push('<button class="accounting-small-btn post-document-btn" data-document-id="'+d.id+'">Post</button>'); actions.push('<button class="accounting-small-btn cancel-document-btn" data-document-id="'+d.id+'">Cancel</button>'); }
+      actions.push('<button class="accounting-small-btn view-document-btn" data-document-id="'+d.id+'">View</button>'); if(d.status==='draft') actions.push('<button class="accounting-small-btn edit-document-btn" data-document-id="'+d.id+'">Edit</button>'); if(d.status==='draft'){ actions.push('<button class="accounting-small-btn post-document-btn" data-document-id="'+d.id+'">Post</button>'); actions.push('<button class="accounting-small-btn cancel-document-btn" data-document-id="'+d.id+'">Cancel</button>'); } actions.push('<button class="accounting-small-btn duplicate-document-btn" data-document-id="'+d.id+'">Duplicate</button>'); actions.push('<button class="accounting-small-btn print-document-btn" data-document-id="'+d.id+'">Print / PDF</button>');
       if(d.status==='posted'&&Number(d.amount_paid||0)<=0.005) actions.push('<button class="accounting-small-btn cancel-document-btn" data-document-id="'+d.id+'">Cancel</button>');
       actions.push('<button class="accounting-small-btn history-document-btn" data-document-id="'+d.id+'">History</button>');
       return `<tr><td><b>${esc(d.document_no)}</b></td><td>${dateText(d.document_date)}</td><td>${esc(d.accounting_partners?.name||'—')}</td><td>${dateText(d.due_date)}</td><td class="num">${money(d.total_amount)}</td><td class="num">${money(d.amount_paid)}</td><td class="num">${money(outstanding)}</td><td><span class="${statusClass(d.status)}">${esc(d.status.replace('_',' '))}</span>${overdue?'<span class="accounting-overdue">Overdue</span>':''}</td><td class="accounting-actions">${actions.join('')}</td></tr>`;
     };
     el('accountingInvoicesBody').innerHTML=state.invoices.map(row).join('')||'<tr><td colspan="9" class="accounting-empty">No customer invoices yet.</td></tr>';
     el('accountingBillsBody').innerHTML=state.bills.map(row).join('')||'<tr><td colspan="9" class="accounting-empty">No vendor bills yet.</td></tr>';
-    document.querySelectorAll('.post-document-btn').forEach(b=>b.onclick=()=>postDocument(b.dataset.documentId));
+    document.querySelectorAll('.view-document-btn').forEach(b=>b.onclick=()=>showDocumentDetail(b.dataset.documentId)); document.querySelectorAll('.edit-document-btn').forEach(b=>b.onclick=()=>editDocument(b.dataset.documentId)); document.querySelectorAll('.duplicate-document-btn').forEach(b=>b.onclick=()=>duplicateDocument(b.dataset.documentId)); document.querySelectorAll('.print-document-btn').forEach(b=>b.onclick=()=>printDocument(b.dataset.documentId)); document.querySelectorAll('.post-document-btn').forEach(b=>b.onclick=()=>postDocument(b.dataset.documentId));
     document.querySelectorAll('.cancel-document-btn').forEach(b=>b.onclick=()=>cancelDocument(b.dataset.documentId));
     document.querySelectorAll('.history-document-btn').forEach(b=>b.onclick=()=>showDocumentHistory(b.dataset.documentId));
   }
+  function getDocument(id){return [...state.invoices,...state.bills].find(x=>x.id===id)||null;}
+  async function getDocumentLines(id){
+    const {data,error}=await client().from('accounting_document_lines').select('*').eq('document_id',id).order('line_no');
+    if(error){alert(error.message);return [];} return data||[];
+  }
+  function documentLabel(d){return d?.document_type?.startsWith('customer_')?'Customer Invoice':'Vendor Bill';}
+  function lineRowsHtml(lines){
+    return lines.map(l=>'<tr><td>'+esc(l.description||'')+'</td><td class="num">'+Number(l.quantity||0).toLocaleString('en-US')+'</td><td class="num">'+money(l.unit_price)+'</td><td class="num">'+money(l.line_subtotal)+'</td><td class="num">'+money(l.tax_amount)+'</td></tr>').join('');
+  }
+  async function showDocumentDetail(id){
+    const d=getDocument(id); if(!d) return;
+    const lines=await getDocumentLines(id);
+    const box=el('accountingDocumentDetail'); if(!box)return;
+    box.hidden=false;
+    box.innerHTML='<div class="document-detail-head"><div><span class="document-detail-kicker">'+esc(documentLabel(d))+'</span><h3>'+esc(d.document_no)+'</h3><p>'+esc(d.accounting_partners?.name||'—')+' · '+dateText(d.document_date)+' · Due '+dateText(d.due_date)+'</p></div><button type="button" class="text-btn" id="closeDocumentDetail">Close</button></div>'+
+      '<div class="document-detail-meta"><span>Status <b>'+esc(d.status)+'</b></span><span>Total <b>'+money(d.total_amount)+'</b></span><span>Paid <b>'+money(d.amount_paid)+'</b></span><span>Outstanding <b>'+money(docOutstanding(d))+'</b></span></div>'+
+      '<div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Description</th><th class="num">Qty</th><th class="num">Unit Price</th><th class="num">Subtotal</th><th class="num">Tax</th></tr></thead><tbody>'+lineRowsHtml(lines)+'</tbody></table></div>'+
+      '<div class="document-detail-footer"><span>Reference: '+esc(d.reference||'—')+'</span><span>'+esc(d.memo||'')+'</span></div>';
+    el('closeDocumentDetail')?.addEventListener('click',()=>{box.hidden=true;});
+  }
+  async function editDocument(id){
+    const d=getDocument(id); if(!d||d.status!=='draft') return alert('Only draft documents can be edited.');
+    const lines=await getDocumentLines(id);
+    const customer=d.document_type==='customer_invoice';
+    showTab(customer?'invoices':'bills');
+    const prefix=customer?'document':'bill', container=customer?'documentLines':'billLines';
+    el(prefix+'Partner').value=d.partner_id; el(prefix+'Date').value=d.document_date||today(); el(prefix+'DueDate').value=d.due_date||'';
+    if(el(prefix+'PaymentTerms')) el(prefix+'PaymentTerms').value=String(d.payment_terms_days||0);
+    el(prefix+'Reference').value=d.reference||''; el(prefix+'Memo').value=d.memo||'';
+    const box=el(container); box.innerHTML=(lines.length?lines:[{description:'',quantity:1,unit_price:0,tax_rate:0}]).map((l,i)=>lineHtml(customer?'customer_invoice':'vendor_bill',i)).join('');
+    [...box.querySelectorAll('.document-line')].forEach((row,i)=>{const l=lines[i]||{};row.querySelector('.line-desc').value=l.description||'';row.querySelector('.line-account').value=l.account_id||'';row.querySelector('.line-qty').value=l.quantity||1;row.querySelector('.line-price').value=l.unit_price||0;row.querySelector('.line-tax').value=l.tax_rate||0;});
+    updateDocumentPreview(customer?'customer_invoice':'vendor_bill');
+    box.dataset.editingId=id;
+    const form=el(customer?'documentForm':'billForm'); form.dataset.editingId=id;
+    const btn=form.querySelector('button[type="submit"]'); if(btn) btn.textContent='Save Draft Changes';
+    form.scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  async function saveEditedDocument(kind,e,id){
+    const customer=kind==='customer_invoice', partner=el(customer?'documentPartner':'billPartner').value;
+    const date=el(customer?'documentDate':'billDate').value||today(), due=el(customer?'documentDueDate':'billDueDate').value||null;
+    const termsEl=el(customer?'documentPaymentTerms':'billPaymentTerms'), lines=readLines(customer?'documentLines':'billLines');
+    if(!partner||!lines.length||lines.some(l=>!l.description||!l.account_id||l.quantity<=0||l.unit_price<0)) return alert('Complete every document line.');
+    const {error}=await client().from('accounting_documents').update({partner_id:partner,document_date:date,due_date:due,payment_terms_days:Number(termsEl?.value||0),payment_terms:termsEl?.selectedOptions?.[0]?.textContent||null,reference:el(customer?'documentReference':'billReference').value.trim()||null,memo:el(customer?'documentMemo':'billMemo').value.trim()||null}).eq('id',id).eq('status','draft');
+    if(error)return alert(error.message);
+    const {error:delErr}=await client().from('accounting_document_lines').delete().eq('document_id',id); if(delErr)return alert(delErr.message);
+    const taxAccount=state.accounts.find(a=>a.code===(customer?'2200':'1210'))?.id||null;
+    const {error:insErr}=await client().from('accounting_document_lines').insert(lines.map(l=>({...l,document_id:id,tax_account_id:taxAccount})));
+    if(insErr)return alert(insErr.message);
+    delete e.target.dataset.editingId; const btn=e.target.querySelector('button[type="submit"]'); if(btn) btn.textContent=customer?'Create & Post Invoice →':'Create & Post Bill →';
+    await load(); alert('Draft saved. It remains unposted.'); 
+  }
+  async function duplicateDocument(id){
+    const d=getDocument(id); if(!d)return; const lines=await getDocumentLines(id);
+    const customer=d.document_type==='customer_invoice', kind=customer?'customer_invoice':'vendor_bill';
+    const {data:no,error:noErr}=await client().rpc('next_accounting_document_no',{p_document_type:kind}); if(noErr)return alert(noErr.message);
+    const {data:userData}=await client().auth.getUser();
+    const journal=state.journals.find(j=>j.journal_type===(customer?'sales':'purchase')); if(!journal)return alert('Journal is missing.');
+    const {data:copy,error}=await client().from('accounting_documents').insert({document_no:no,document_type:kind,partner_id:d.partner_id,journal_id:journal.id,document_date:today(),due_date:null,payment_terms_days:d.payment_terms_days||0,payment_terms:d.payment_terms||null,reference:d.reference||null,memo:d.memo||null,status:'draft',created_by:userData?.user?.id||null}).select().single();
+    if(error)return alert(error.message);
+    const {error:le}=await client().from('accounting_document_lines').insert(lines.map(l=>({document_id:copy.id,line_no:l.line_no,description:l.description,account_id:l.account_id,quantity:l.quantity,unit_price:l.unit_price,discount_percent:l.discount_percent||0,tax_rate:l.tax_rate||0,tax_account_id:l.tax_account_id||null})));
+    if(le){await client().from('accounting_documents').delete().eq('id',copy.id);return alert(le.message);}
+    await load(); alert('Draft '+no+' created from '+d.document_no+'.');
+  }
+  async function printDocument(id){
+    const d=getDocument(id); if(!d)return; const lines=await getDocumentLines(id);
+    const w=window.open('','_blank','width=900,height=900'); if(!w)return alert('Please allow pop-ups for Print / PDF.');
+    const rows=lineRowsHtml(lines);
+    w.document.write('<!doctype html><html><head><title>'+esc(d.document_no)+'</title><style>body{font-family:Arial,sans-serif;margin:40px;color:#17212b}h1{margin:0 0 6px}small{color:#64748b}.meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:25px 0}table{width:100%;border-collapse:collapse;margin-top:25px}th,td{padding:10px;border-bottom:1px solid #ddd;text-align:left}th{text-transform:uppercase;font-size:11px;color:#64748b}.num{text-align:right}.total{margin:24px 0 0 auto;width:280px}.total div{display:flex;justify-content:space-between;padding:5px 0}.total strong{font-size:18px;border-top:2px solid #222;padding-top:10px}@media print{body{margin:15mm}}</style></head><body><h1>'+esc(documentLabel(d))+'</h1><small>'+esc(d.document_no)+'</small><div class="meta"><div><b>Partner</b><br>'+esc(d.accounting_partners?.name||'—')+'</div><div><b>Date / Due</b><br>'+dateText(d.document_date)+' / '+dateText(d.due_date)+'</div><div><b>Status</b><br>'+esc(d.status)+'</div><div><b>Reference</b><br>'+esc(d.reference||'—')+'</div></div><table><thead><tr><th>Description</th><th class="num">Qty</th><th class="num">Unit Price</th><th class="num">Subtotal</th><th class="num">Tax</th></tr></thead><tbody>'+rows+'</tbody></table><div class="total"><div><span>Subtotal</span><span>'+money(d.subtotal)+'</span></div><div><span>Tax</span><span>'+money(d.tax_amount)+'</span></div><div><span>Paid</span><span>'+money(d.amount_paid)+'</span></div><div><span>Outstanding</span><span>'+money(docOutstanding(d))+'</span></div><div><strong>Total</strong><strong>'+money(d.total_amount)+'</strong></div></div><script>window.onload=()=>window.print();</script></body></html>');
+    w.document.close();
+  }
+
   function showDocumentHistory(id){
     const d=[...state.invoices,...state.bills].find(x=>x.id===id);
     const rows=state.allocations.filter(a=>a.document_id===id);
@@ -254,7 +325,7 @@
   function bind(){
     document.querySelectorAll('[data-accounting-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.accountingTab));
     el('accountForm')?.addEventListener('submit',createAccount);el('partnerForm')?.addEventListener('submit',createPartner);el('entryForm')?.addEventListener('submit',createEntry);
-    el('documentForm')?.addEventListener('submit',e=>createDocument('customer_invoice',e));el('billForm')?.addEventListener('submit',e=>createDocument('vendor_bill',e));
+    el('documentForm')?.addEventListener('submit',e=>{const id=e.currentTarget.dataset.editingId; if(id) saveEditedDocument('customer_invoice',e,id); else createDocument('customer_invoice',e);});el('billForm')?.addEventListener('submit',e=>{const id=e.currentTarget.dataset.editingId; if(id) saveEditedDocument('vendor_bill',e,id); else createDocument('vendor_bill',e);});
     el('addDocumentLine')?.addEventListener('click',()=>{el('documentLines').insertAdjacentHTML('beforeend',lineHtml('customer_invoice',el('documentLines').children.length));updateDocumentPreview('customer_invoice');});
     el('addBillLine')?.addEventListener('click',()=>{el('billLines').insertAdjacentHTML('beforeend',lineHtml('vendor_bill',el('billLines').children.length));updateDocumentPreview('vendor_bill');});
     el('paymentForm')?.addEventListener('submit',createPayment);el('paymentType')?.addEventListener('change',()=>{el('paymentPartner').innerHTML=partnerOptions('',el('paymentType').value==='receive'?'customer':'vendor');refreshPaymentDocuments();});el('paymentPartner')?.addEventListener('change',refreshPaymentDocuments);
