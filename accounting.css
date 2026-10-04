@@ -85,3 +85,61 @@
   .document-line .line-remove{grid-column:2;justify-self:end}
 }
 
+/* PILARK Accounting — unified admin proportions */
+.admin-main{
+  max-width:none;
+  width:100%;
+  margin:0;
+}
+.accounting-tab-panel{
+  width:100%;
+}
+.accounting-document-layout{
+  grid-template-columns:minmax(560px,.95fr) minmax(0,1.05fr);
+  align-items:stretch;
+}
+.accounting-document-layout>.panel{
+  height:100%;
+}
+.accounting-document-layout>.panel:last-child{
+  min-height:100%;
+}
+.document-lines{
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:10px;
+  background:#fbfdfe;
+}
+.document-line{
+  grid-template-columns:minmax(180px,2.7fr) minmax(120px,1.7fr) 65px minmax(105px,1.15fr) 70px 32px;
+  gap:8px;
+}
+.document-line input,.document-line select{
+  height:38px;
+  padding:8px 9px;
+}
+.document-line input[type=number]{
+  text-align:right;
+}
+.accounting-document-layout .accounting-table-wrap{
+  min-height:180px;
+}
+.accounting-document-layout .accounting-table{
+  min-width:0;
+}
+@media(min-width:1400px){
+  .accounting-document-layout{
+    grid-template-columns:minmax(620px,1fr) minmax(620px,1fr);
+  }
+}
+@media(max-width:1200px){
+  .accounting-document-layout{
+    grid-template-columns:minmax(500px,.9fr) minmax(0,1.1fr);
+  }
+}
+@media(max-width:1050px){
+  .accounting-document-layout{
+    grid-template-columns:1fr;
+  }
+}
+
