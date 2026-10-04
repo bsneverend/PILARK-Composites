@@ -96,12 +96,32 @@
     document.querySelectorAll('.crm-activity-edit').forEach(b=>b.onclick=()=>openCRMActivityModal(b.dataset.id));
     document.querySelectorAll('.crm-detail-email').forEach(b=>b.onclick=()=>openCRMActivityModal(null,b.dataset.id,'EMAIL'));
   }
+  function crmEmailTemplate(o){
+    const a=o?.sales_accounts||{},p=o?.sales_projects||{};
+    const company=a.company_name||'Engineering Team',project=p.project_name||o?.opportunity_name||'your project',location=p.location||'',product=o?.product||'GFRP / FRP / GRP solutions',stage=o?.stage||'PROSPECT';
+    let subject='PILARK Composite — Technical Introduction for '+company;
+    let body='Dear '+(a.contact_department||'Engineering / Project / BD Team')+',\n\nWe are PT. Panca Integra Laguna Reksa, through our PILARK Composite brand, part of ORI Group.\nPILARK Composite develops and supplies engineered GFRP / FRP / GRP solutions for infrastructure applications.\n\nWe would like to introduce our '+product+' solution in relation to '+project+(location?' in '+location:'')+'.\n\n';
+    if(/Jacking/i.test(product))body+='For trenchless applications, we would be pleased to present the relevant pipe configuration, stiffness, allowable jacking force, joint system, structural design considerations and installation approach for your engineering review.\n\n';
+    else if(/Sheet Pile/i.test(product))body+='For river, marine and flood-control applications, we would be pleased to discuss FRP sheet pile as an engineered alternative and review the relevant structural and installation requirements.\n\n';
+    else if(/Rebar/i.test(product))body+='For reinforced concrete applications, we would be pleased to discuss GFRP rebar for environments where corrosion resistance and reduced maintenance are important.\n\n';
+    else body+='We would be pleased to present the relevant technical characteristics, application suitability, design considerations and project references for your engineering review.\n\n';
+    body+='Would you be available for a short technical introduction with the appropriate Engineering / Project / BD team?\n\nBest regards,\nPILARK Composite\nPT. Panca Integra Laguna Reksa\nORI Group';
+    if(stage==='CONTACTED')subject='PILARK Composite — Follow-up on '+project;
+    if(stage==='MEETING')subject='PILARK Composite — Technical Meeting Follow-up — '+project;
+    if(stage==='TECHNICAL PRESENTATION')subject='PILARK Composite — Technical Presentation — '+project;
+    if(stage==='SPECIFICATION')subject='PILARK Composite — Specification Support — '+project;
+    if(stage==='RFQ')subject='PILARK Composite — RFQ / Technical Clarification — '+project;
+    if(stage==='QUOTATION')subject='PILARK Composite — Quotation Follow-up — '+project;
+    if(stage==='NEGOTIATION')subject='PILARK Composite — Commercial Follow-up — '+project;
+    if(stage==='PO')subject='PILARK Composite — PO / Order Follow-up — '+project;
+    return {subject,body};
+  }
   function crmActivityDefaults(type='FOLLOW-UP'){return {type,due:crmTodayPlus(0),subject:type==='EMAIL'?'PILARK Composite — Technical Introduction':'Follow-up activity',notes:''};}
   function populateCRMActivityOpportunities(selected){const s=el('crmActivityOpportunity');if(!s)return;s.innerHTML='<option value="">Select opportunity…</option>'+(state.crm.opportunities||[]).map(o=>'<option value="'+o.id+'">'+esc(o.sales_accounts?.company_name||'—')+' — '+esc(o.opportunity_name||'')+'</option>').join('');if(selected)s.value=selected;}
   function openCRMActivityModal(activityId=null,oppId=null,forceType=null){
     const modal=el('salesActivityModal');if(!modal)return;populateCRMActivityOpportunities(oppId);
     const a=activityId?(state.crm.activities||[]).find(x=>x.id===activityId):null,o=oppId?(state.crm.opportunities||[]).find(x=>x.id===oppId):null,d=crmActivityDefaults(forceType||a?.activity_type||'FOLLOW-UP');
-    el('crmActivityId').value=a?.id||'';el('crmActivityOpportunity').value=a?.opportunity_id||oppId||'';el('crmActivityType').value=a?.activity_type||d.type;el('crmActivityDue').value=a?.due_date||d.due;el('crmActivitySubject').value=a?.subject||d.subject;el('crmActivityTo').value=a?.sales_opportunities?.sales_accounts?.public_email||o?.sales_accounts?.public_email||'';el('crmActivityNotes').value=a?.notes||'';
+    el('crmActivityId').value=a?.id||'';el('crmActivityOpportunity').value=a?.opportunity_id||oppId||'';el('crmActivityType').value=a?.activity_type||d.type;el('crmActivityDue').value=a?.due_date||d.due;el('crmActivityTo').value=a?.sales_opportunities?.sales_accounts?.public_email||o?.sales_accounts?.public_email||'';const template=(forceType==='EMAIL'&&!a&&o)?crmEmailTemplate(o):null;el('crmActivitySubject').value=a?.subject||template?.subject||d.subject;el('crmActivityNotes').value=a?.notes||template?.body||'';
     el('crmActivityModalTitle').textContent=a?'Edit Activity':(forceType==='EMAIL'?'Send Email':'Add Activity');el('crmActivitySend').textContent=forceType==='EMAIL'?'Send Email →':(a?'Save Changes →':'Save Activity →');modal.hidden=false;
   }
   async function saveCRMActivity(e){
@@ -111,7 +131,7 @@
       if(!to)return alert('Enter the contact email.');
       const html='<div style="font-family:Arial,sans-serif;color:#17212b;line-height:1.65"><p>'+esc(notes).replace(/\n/g,'<br>')+'</p><p>Best regards,<br><b>PILARK Composite</b><br>PT. Panca Integra Laguna Reksa</p></div>';
       el('crmActivitySend').disabled=true;el('crmActivitySend').textContent='Sending…';
-      try{const {data:{session}}=await client().auth.getSession();const res=await fetch(((window.PILARK_SUPABASE_CONFIG||{}).url||'')+'/functions/v1/send-sales-email',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session?.access_token,'apikey':(window.PILARK_SUPABASE_CONFIG||{}).anonKey||''},body:JSON.stringify({opportunity_id:oppId,to,subject,html,notes})});const out=await res.json().catch(()=>({}));if(!res.ok)throw new Error(out.error||'Email delivery failed.');el('salesActivityModal').hidden=true;await loadCRM();alert('Email sent to '+to+'.');}catch(err){alert(err.message);}finally{el('crmActivitySend').disabled=false;}return;
+      try{const {data:{session}}=await client().auth.getSession();const res=await fetch(((window.PILARK_SUPABASE_CONFIG||{}).url||'')+'/functions/v1/send-sales-email',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session?.access_token,'apikey':(window.PILARK_SUPABASE_CONFIG||{}).anonKey||''},body:JSON.stringify({opportunity_id:oppId,to,subject,html,notes})});const out=await res.json().catch(()=>({}));if(!res.ok)throw new Error(out.error||'Email delivery failed.');const currentOpp=(state.crm.opportunities||[]).find(x=>x.id===oppId);if(currentOpp?.stage==='PROSPECT'){const followDate=crmTodayPlus(3);await client().from('sales_opportunities').update({stage:'CONTACTED',last_contact:today(),next_action:'Follow up after first contact',next_follow_up:followDate}).eq('id',oppId);const exists=(state.crm.activities||[]).some(x=>x.opportunity_id===oppId&&x.status==='PLANNED'&&x.subject==='Follow-up after first contact');if(!exists)await client().from('sales_activities').insert({opportunity_id:oppId,activity_type:'FOLLOW-UP',subject:'Follow-up after first contact',activity_date:today(),due_date:followDate,status:'PLANNED',notes:'Automatic follow-up created after first email contact.'});}el('salesActivityModal').hidden=true;await loadCRM();alert('Email sent to '+to+'. Opportunity updated automatically.');}catch(err){alert(err.message);}finally{el('crmActivitySend').disabled=false;}return;
     }
     const payload={opportunity_id:oppId,activity_type:type,subject,activity_date:today(),due_date:due,status:id?aStatus(id):'PLANNED',notes};
     const q=id?client().from('sales_activities').update(payload).eq('id',id):client().from('sales_activities').insert(payload);const {error}=await q;if(error)return alert(error.message);
