@@ -238,7 +238,7 @@ function showView(name){
   const main=document.querySelector('.admin-main');
   main?.classList.toggle('chat-mode',name==='chat');
   if(name!=='chat')setMobileChatOpen(false);
-  document.getElementById('pageTitle').textContent={dashboard:'Website overview',media:'Media Library',products:'Product thumbnails',sections:'Website Content',chat:'Live Chat',sales:'Sales',purchase:'Purchase',inventory:'Inventory',accounting:'Accounting',settings:'Settings'}[name]||'PILARK Admin';
+  document.getElementById('pageTitle').textContent={dashboard:'Website overview',media:'Media Library',products:'Product thumbnails',sections:'Website Content',chat:'Live Chat',sales:'Sales',purchase:'Purchase',inventory:'Inventory',accounting:'Accounting', 'erp-overview':'ERP Overview', settings:'Settings'}[name]||'PILARK Admin';
   // Sidebar navigation should always open Sales/Purchase at their Overview tab.
   // The module tab state is local to the current DOM, so without resetting it here,
   // returning from Quotations/RFQs could leave the panel hidden while Overview
