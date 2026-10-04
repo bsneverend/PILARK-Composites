@@ -1,5 +1,5 @@
 (() => {
-  const state = { accounts: [], partners: [], journals: [], entries: [], invoices: [], bills: [], payments: [], tab: 'overview', reportFrom: '', reportTo: '' };
+  const state = { accounts: [], partners: [], journals: [], entries: [], invoices: [], bills: [], payments: [], allocations: [], tab: 'overview', reportFrom: '', reportTo: '' };
   const el = id => document.getElementById(id);
   const client = () => window.PILARK_CMS?.client;
   const ready = () => !!window.PILARK_CMS?.ready && !!client();
@@ -15,17 +15,18 @@
   async function load() {
     if(!ready()) return;
     const c=client();
-    const [a,p,j,e,i,b,py] = await Promise.all([
+    const [a,p,j,e,i,b,py,al] = await Promise.all([
       c.from('accounting_accounts').select('*').order('code'),
       c.from('accounting_partners').select('*').order('name'),
       c.from('accounting_journals').select('*').order('code'),
       c.from('accounting_entries').select('id,entry_no,entry_date,reference,memo,status,created_at,posted_at,journal_id,partner_id,accounting_journals(code,name),accounting_partners(name)').order('entry_date',{ascending:false}).order('created_at',{ascending:false}).limit(300),
       c.from('accounting_documents').select('*,accounting_partners(name),accounting_journals(code,name)').eq('document_type','customer_invoice').order('document_date',{ascending:false}).limit(300),
       c.from('accounting_documents').select('*,accounting_partners(name),accounting_journals(code,name)').eq('document_type','vendor_bill').order('document_date',{ascending:false}).limit(300),
-      c.from('accounting_payments').select('*,accounting_partners(name),accounting_journals(code,name)').order('payment_date',{ascending:false}).limit(300)
+      c.from('accounting_payments').select('*,accounting_partners(name),accounting_journals(code,name)').order('payment_date',{ascending:false}).limit(300),
+      c.from('accounting_payment_allocations').select('*,accounting_payments(payment_no,payment_date,payment_type,status,amount),accounting_documents(document_no,document_type)').order('created_at',{ascending:false}).limit(500)
     ]);
-    for(const x of [a,p,j,e,i,b,py]) if(x.error) throw x.error;
-    state.accounts=a.data||[]; state.partners=p.data||[]; state.journals=j.data||[]; state.entries=e.data||[]; state.invoices=i.data||[]; state.bills=b.data||[]; state.payments=py.data||[];
+    for(const x of [a,p,j,e,i,b,py,al]) if(x.error) throw x.error;
+    state.accounts=a.data||[]; state.partners=p.data||[]; state.journals=j.data||[]; state.entries=e.data||[]; state.invoices=i.data||[]; state.bills=b.data||[]; state.payments=py.data||[]; state.allocations=al.data||[];
     render();
   }
 
@@ -82,10 +83,31 @@
     document.querySelectorAll('.post-entry-btn').forEach(b=>b.onclick=()=>postEntry(b.dataset.entryId));
   }
   function renderDocuments() {
-    const row=d=>`<tr><td><b>${esc(d.document_no)}</b></td><td>${dateText(d.document_date)}</td><td>${esc(d.accounting_partners?.name||'—')}</td><td>${dateText(d.due_date)}</td><td class="num">${money(d.total_amount)}</td><td class="num">${money(d.amount_paid)}</td><td><span class="${statusClass(d.status)}">${esc(d.status.replace('_',' '))}</span></td><td>${d.status==='draft'?'<button class="accounting-small-btn post-document-btn" data-document-id="'+d.id+'">Post</button>':''}</td></tr>`;
-    el('accountingInvoicesBody').innerHTML=state.invoices.map(row).join('')||'<tr><td colspan="8" class="accounting-empty">No customer invoices yet.</td></tr>';
-    el('accountingBillsBody').innerHTML=state.bills.map(row).join('')||'<tr><td colspan="8" class="accounting-empty">No vendor bills yet.</td></tr>';
+    const row=d=>{
+      const outstanding=docOutstanding(d);
+      const overdue=outstanding>0.005&&d.due_date&&d.due_date<today()&&['posted','partially_paid'].includes(d.status);
+      const actions=[];
+      if(d.status==='draft') actions.push('<button class="accounting-small-btn post-document-btn" data-document-id="'+d.id+'">Post</button>');
+      if(d.status==='posted'&&Number(d.amount_paid||0)<=0.005) actions.push('<button class="accounting-small-btn cancel-document-btn" data-document-id="'+d.id+'">Cancel</button>');
+      actions.push('<button class="accounting-small-btn history-document-btn" data-document-id="'+d.id+'">History</button>');
+      return `<tr><td><b>${esc(d.document_no)}</b></td><td>${dateText(d.document_date)}</td><td>${esc(d.accounting_partners?.name||'—')}</td><td>${dateText(d.due_date)}</td><td class="num">${money(d.total_amount)}</td><td class="num">${money(d.amount_paid)}</td><td class="num">${money(outstanding)}</td><td><span class="${statusClass(d.status)}">${esc(d.status.replace('_',' '))}</span>${overdue?'<span class="accounting-overdue">Overdue</span>':''}</td><td class="accounting-actions">${actions.join('')}</td></tr>`;
+    };
+    el('accountingInvoicesBody').innerHTML=state.invoices.map(row).join('')||'<tr><td colspan="9" class="accounting-empty">No customer invoices yet.</td></tr>';
+    el('accountingBillsBody').innerHTML=state.bills.map(row).join('')||'<tr><td colspan="9" class="accounting-empty">No vendor bills yet.</td></tr>';
     document.querySelectorAll('.post-document-btn').forEach(b=>b.onclick=()=>postDocument(b.dataset.documentId));
+    document.querySelectorAll('.cancel-document-btn').forEach(b=>b.onclick=()=>cancelDocument(b.dataset.documentId));
+    document.querySelectorAll('.history-document-btn').forEach(b=>b.onclick=()=>showDocumentHistory(b.dataset.documentId));
+  }
+  function showDocumentHistory(id){
+    const d=[...state.invoices,...state.bills].find(x=>x.id===id);
+    const rows=state.allocations.filter(a=>a.document_id===id);
+    const box=el('accountingDocumentHistory'); if(!box) return;
+    box.hidden=false;
+    box.innerHTML=`<div class="document-history-head"><div><b>${esc(d?.document_no||'Document')}</b><span>${esc(d?.accounting_partners?.name||'')}</span></div><button type="button" class="text-btn" id="closeDocumentHistory">Close</button></div>`+
+      (rows.length?'<div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Payment</th><th>Date</th><th>Type</th><th>Status</th><th class="num">Allocated</th></tr></thead><tbody>'+
+      rows.map(a=>`<tr><td><b>${esc(a.accounting_payments?.payment_no||'—')}</b></td><td>${dateText(a.accounting_payments?.payment_date)}</td><td>${a.accounting_payments?.payment_type==='receive'?'Receive':'Pay'}</td><td>${esc(a.accounting_payments?.status||'—')}</td><td class="num">${money(a.amount)}</td></tr>`).join('')+
+      '</tbody></table></div>':'<div class="accounting-empty">No payment allocations yet.</div>');
+    el('closeDocumentHistory')?.addEventListener('click',()=>{box.hidden=true;});
   }
   function renderPayments() {
     el('accountingPaymentsBody').innerHTML=state.payments.map(p=>`<tr><td><b>${esc(p.payment_no)}</b></td><td>${dateText(p.payment_date)}</td><td>${p.payment_type==='receive'?'Receive':'Pay'}</td><td>${esc(p.accounting_partners?.name||'—')}</td><td class="num">${money(p.amount)}</td><td><span class="${statusClass(p.status)}">${esc(p.status)}</span></td></tr>`).join('')||'<tr><td colspan="6" class="accounting-empty">No payments yet.</td></tr>';
@@ -130,7 +152,7 @@
   async function createDocument(kind,e) {
     e.preventDefault();
     const customer=kind==='customer_invoice', partner=el(customer?'documentPartner':'billPartner').value;
-    const date=el(customer?'documentDate':'billDate').value||today(), due=el(customer?'documentDueDate':'billDueDate').value||null;
+    const date=el(customer?'documentDate':'billDate').value||today(), termsEl=el(customer?'documentPaymentTerms':'billPaymentTerms'), termsDays=Number(termsEl?.value||0), due=el(customer?'documentDueDate':'billDueDate').value||null;
     const reference=el(customer?'documentReference':'billReference').value.trim()||null, memo=el(customer?'documentMemo':'billMemo').value.trim()||null;
     const lines=readLines(customer?'documentLines':'billLines');
     if(!partner) return alert('Select a partner.');
@@ -140,7 +162,7 @@
     if(noErr) return alert('Could not create document number: '+noErr.message);
     const journal=state.journals.find(j=>j.journal_type===(customer?'sales':'purchase'));
     if(!journal) return alert('The '+(customer?'Sales':'Purchase')+' journal is missing.');
-    const {data:doc,error}=await client().from('accounting_documents').insert({document_no:docNo,document_type:kind,partner_id:partner,journal_id:journal.id,document_date:date,due_date:due,reference,memo,status:'draft',created_by:userData?.user?.id||null}).select().single();
+    const {data:doc,error}=await client().from('accounting_documents').insert({document_no:docNo,document_type:kind,partner_id:partner,journal_id:journal.id,document_date:date,due_date:due,payment_terms_days:termsDays,payment_terms:termsEl?.selectedOptions?.[0]?.textContent||null,reference,memo,status:'draft',created_by:userData?.user?.id||null}).select().single();
     if(error) return alert('Could not create document: '+error.message);
     const taxAccount=state.accounts.find(a=>a.code===(customer?'2200':'1210'))?.id||null;
     const payload=lines.map(l=>({...l,document_id:doc.id,tax_account_id:taxAccount}));
@@ -161,6 +183,7 @@
     const {data:p,error}=await client().from('accounting_payments').insert({payment_no:no,payment_type:type,partner_id:partner,journal_id:journal,payment_date:el('paymentDate').value||today(),amount,reference:el('paymentReference').value.trim()||null,memo:el('paymentMemo').value.trim()||null,status:'draft',created_by:userData?.user?.id||null}).select().single();
     if(error)return alert(error.message);
     const docId=el('paymentDocument').value;
+    if(docId){const d=[...state.invoices,...state.bills].find(x=>x.id===docId);if(d&&amount>docOutstanding(d)+0.005){await client().from('accounting_payments').delete().eq('id',p.id);return alert('Payment amount exceeds outstanding of '+money(docOutstanding(d)));}}
     const rpcParams={p_payment_id:p.id,p_document_id:docId||null,p_allocation_amount:docId?amount:null};
     const {error:postErr}=await client().rpc('post_accounting_payment_with_allocation',rpcParams);
     if(postErr)return alert('Payment could not be posted: '+postErr.message);
@@ -219,7 +242,7 @@
     el('addBillLine')?.addEventListener('click',()=>{el('billLines').insertAdjacentHTML('beforeend',lineHtml('vendor_bill',el('billLines').children.length));updateDocumentPreview('vendor_bill');});
     el('paymentForm')?.addEventListener('submit',createPayment);el('paymentType')?.addEventListener('change',()=>{el('paymentPartner').innerHTML=partnerOptions('',el('paymentType').value==='receive'?'customer':'vendor');refreshPaymentDocuments();});el('paymentPartner')?.addEventListener('change',refreshPaymentDocuments);
     el('accountingRefresh')?.addEventListener('click',()=>load().catch(err=>alert(err.message)));
-    el('entryDate').value=today();el('documentDate').value=today();el('billDate').value=today();el('paymentDate').value=today();
+    el('entryDate').value=today();el('documentDate').value=today();el('billDate').value=today();el('paymentDate').value=today();el('documentPaymentTerms').value='30';el('billPaymentTerms').value='30';applyPaymentTerms('document');applyPaymentTerms('bill');el('documentPaymentTerms')?.addEventListener('change',()=>applyPaymentTerms('document'));el('billPaymentTerms')?.addEventListener('change',()=>applyPaymentTerms('bill'));el('documentDate')?.addEventListener('change',()=>applyPaymentTerms('document'));el('billDate')?.addEventListener('change',()=>applyPaymentTerms('bill'));
     bindLineContainer('documentLines','customer_invoice');bindLineContainer('billLines','vendor_bill');
     const nav=document.querySelector('.side-link[data-view="accounting"]');nav?.addEventListener('click',()=>setTimeout(()=>load().catch(console.warn),50));
     el('reportApply')?.addEventListener('click',applyReportFilters);
