@@ -1,1 +1,50 @@
 .bank-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px}.bank-metric{background:#fff;border:1px solid #dce8ee;border-radius:18px;padding:18px}.bank-metric span{display:block;color:#6a7d8b;font-size:13px;font-weight:700}.bank-metric b{display:block;margin-top:8px;font-size:24px}.bank-import{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end;margin-bottom:18px}.bank-positive{font-weight:800}.bank-negative{font-weight:800}.bank-help{color:#718491;font-size:13px;margin-top:6px}@media(max-width:800px){.bank-metrics{grid-template-columns:1fr}.bank-import{grid-template-columns:1fr}}
+/* 2026-10-04 bank import proportional form fix */
+@media (min-width:801px){
+  #bankReconciliationPanel .accounting-two-col{
+    grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);
+    gap:20px;
+  }
+  #bankReconciliationPanel .accounting-two-col>.panel{
+    min-width:0;
+    max-width:100%;
+    overflow:hidden;
+  }
+  #bankReconciliationPanel .bank-import{
+    width:100%;
+    min-width:0;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(125px,.8fr);
+    gap:10px;
+    align-items:end;
+  }
+  #bankReconciliationPanel .bank-import label{
+    min-width:0;
+    max-width:100%;
+  }
+  #bankReconciliationPanel .bank-import select,
+  #bankReconciliationPanel .bank-import input[type="file"],
+  #bankReconciliationPanel .bank-import button{
+    width:100%;
+    min-width:0;
+    max-width:100%;
+    box-sizing:border-box;
+  }
+  #bankReconciliationPanel .bank-import input[type="file"]{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  #bankReconciliationPanel .bank-import button{
+    min-height:44px;
+    margin:0;
+    white-space:nowrap;
+  }
+}
+@media (max-width:800px){
+  #bankReconciliationPanel .bank-import{
+    grid-template-columns:1fr;
+  }
+  #bankReconciliationPanel .bank-import button{
+    width:100%;
+  }
+}
