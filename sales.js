@@ -199,12 +199,31 @@
   function bind(){document.querySelectorAll('[data-sales-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.salesTab));el('salesForm')?.addEventListener('submit',createQuotation);el('addSalesLine')?.addEventListener('click',()=>{el('salesLines').insertAdjacentHTML('beforeend',lineHtml(el('salesLines').children.length));updatePreview();});el('salesLines')?.addEventListener('click',e=>{if(e.target.classList.contains('sales-line-remove')){const rows=el('salesLines').querySelectorAll('.sales-line');if(rows.length>1)e.target.closest('.sales-line').remove();updatePreview();}});el('salesLines')?.addEventListener('input',updatePreview);el('salesRefresh')?.addEventListener('click',()=>Promise.all([load(),loadCRM()]).catch(e=>alert(e.message)));
     el('salesCrmRefresh')?.addEventListener('click',()=>loadCRM().catch(e=>alert(e.message)));
     el('crmAddActivity')?.addEventListener('click',()=>openCRMActivityModal());
-    el('crmResearchContacts')?.addEventListener('click',()=>alert('Contact research workflow is ready. Next, we can enrich each account from public company/engineering/procurement sources and store only verified business contact data.'));
+    el('crmResearchContacts')?.addEventListener('click',()=>openContactResearchModal());
     el('crmActivityForm')?.addEventListener('submit',saveCRMActivity);
     el('crmActivityClose')?.addEventListener('click',closeCRMActivityModal);
     el('crmActivityCancel')?.addEventListener('click',closeCRMActivityModal);
     document.querySelectorAll('[data-crm-activity-close]').forEach(b=>b.addEventListener('click',closeCRMActivityModal));
     el('crmActivityOpportunity')?.addEventListener('change',()=>{const o=(state.crm.opportunities||[]).find(x=>x.id===el('crmActivityOpportunity').value);if(o)el('crmActivityTo').value=o.sales_accounts?.public_email||'';});el('salesDate').value=today();el('salesLines').innerHTML=lineHtml(0);updatePreview();document.querySelector('.side-link[data-view="sales"]')?.addEventListener('click',()=>setTimeout(()=>Promise.all([load(),loadCRM()]).catch(console.warn),50));}
-  function init(){if(!el('view-sales'))return;bind();if(client())Promise.all([load(),loadCRM()]).catch(e=>console.warn('Sales init:',e));}
+  function openContactResearchModal(accountId){
+  const accounts=state.crm.accounts||[];
+  const a=accounts.find(x=>x.id===accountId)||accounts[0];
+  if(!a)return;
+  const contacts=(state.crm.contacts||[]).filter(x=>x.account_id===a.id);
+  const routes=[
+    ['Official website / contact page','OFFICIAL_WEBSITE','Search the company website for Engineering, Project, Procurement, SCM, Sales or Business Development contacts.'],
+    ['Project / tender source','PROJECT','Search the relevant project owner, tender, procurement or project page for named PICs and business contacts.'],
+    ['LinkedIn / professional source','LINKEDIN','Search the company and relevant public engineering/project roles.'],
+    ['Public directory / secondary source','DIRECTORY','Use only as a secondary lead and keep confidence LOW until independently verified.']
+  ];
+  const html='<div class="crm-research-card"><div class="eyebrow">Contact Intelligence Research</div><h3>'+a.company_name+'</h3><p>Research public business contacts and route the salesperson to the most effective channel. Personal/private data is not collected.</p><div class="crm-research-grid">'+routes.map(r=>'<div class="crm-research-item"><strong>'+r[0]+'</strong><span>'+r[2]+'</span><button type="button" class="text-btn crm-research-open" data-query="'+a.company_name.replace(/"/g,'&quot;')+' '+r[0].replace(/"/g,'&quot;')+'">Search ↗</button></div>').join('')+'</div><hr><div class="eyebrow">Known verified contacts</div><div>'+(contacts.length?contacts.map(x=>'<div class="crm-research-contact"><strong>'+x.contact_person+'</strong> · '+(x.position||x.department||'Business contact')+' · <b>'+x.confidence+'</b><br><small>'+(x.email||'')+' '+(x.mobile_phone||x.phone||'')+'</small></div>').join(''):'No individual project contacts stored yet.')+'</div></div>';
+  const m=el('salesOpportunityModal');if(!m)return;
+  el('crmDetailTitle').textContent='Contact Research';
+  el('crmDetailSubtitle').textContent=a.company_name;
+  el('crmDetailBody').innerHTML=html;
+  m.hidden=false;
+  el('crmDetailBody').querySelectorAll('.crm-research-open').forEach(b=>b.onclick=()=>window.open('https://www.google.com/search?q='+encodeURIComponent(b.dataset.query),'_blank','noopener'));
+}
+function init(){if(!el('view-sales'))return;bind();if(client())Promise.all([load(),loadCRM()]).catch(e=>console.warn('Sales init:',e));}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
