@@ -4,7 +4,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(29);
+select plan(30);
 
 select has_table('public','accounting_accounts','accounting_accounts exists');
 select has_table('public','accounting_documents','accounting_documents exists');
@@ -85,6 +85,8 @@ set local request.jwt.claim.sub='00000000-0000-0000-0000-000000000002';
 select is((select count(*) from public.accounting_accounts),17::bigint,'Administrator can read accounting');
 select is((select count(*) from public.inventory_products),18::bigint,'Administrator can read inventory');
 select is((with updated as (update public.accounting_accounts set name=name where id=(select id from public.accounting_accounts order by code limit 1) returning id) select count(*) from updated),1::bigint,'Administrator can update accounting');
+
+select is((select count(*) from pg_policies where schemaname='public' and policyname='rbac_write' and cmd='ALL'),0::bigint,'no RBAC write policy applies to SELECT/ALL commands');
 
 select * from finish();
 rollback;
