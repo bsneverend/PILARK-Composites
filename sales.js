@@ -56,7 +56,7 @@
         '<div class="crm-detail-section"><h3>Recommended approach</h3><p>'+esc(o.first_contact_message||'—')+'</p><div class="crm-detail-attachment"><span>Attachment</span><b>'+esc(o.recommended_attachment||'—')+'</b></div></div>'+
         '<div class="crm-detail-section"><h3>Activity history</h3><div class="crm-timeline">'+(acts.map(x=>'<div class="crm-timeline-item"><div class="crm-timeline-dot"></div><div><b>'+esc(x.subject)+'</b><span>'+esc(x.activity_type)+' · '+esc(x.due_date||x.activity_date||'—')+' · '+esc(x.status)+'</span><p>'+esc(x.notes||'')+'</p></div></div>').join('')||'<p class="crm-empty">No activity yet.</p>')+'</div></div>'+
       '</div>'+
-      '<aside class="crm-detail-side"><div><h3>Contact routing</h3><b>'+esc(a.company_name||'—')+'</b><span>'+esc(a.contact_department||'—')+'</span><a href="'+(a.public_email?'mailto:'+encodeURIComponent(a.public_email):'#')+'">'+esc(a.public_email||'No public email')+'</a><a href="'+(a.public_phone?'tel:'+String(a.public_phone).replace(/[^+0-9]/g,''):'#')+'">'+esc(a.public_phone||'No public phone')+'</a></div><div><h3>Next action</h3><p>'+esc(o.next_action||'—')+'</p><b>Follow-up: '+esc(o.next_follow_up||'—')+'</b></div><div class="crm-detail-buttons"><button type="button" class="primary-btn crm-detail-advance" data-id="'+o.id+'">Advance Stage →</button><button type="button" class="accounting-small-btn crm-detail-done" data-id="'+o.id+'">Complete next activity</button><button type="button" class="accounting-small-btn crm-detail-won" data-id="'+o.id+'">✓ Mark Won</button><button type="button" class="accounting-small-btn crm-detail-lost" data-id="'+o.id+'">Mark Lost</button></div></aside>'+
+      '<aside class="crm-detail-side"><div><h3>Contact routing</h3><b>'+esc(a.company_name||'—')+'</b><span>'+esc(a.contact_department||'—')+'</span><a href="'+(a.public_email?'mailto:'+encodeURIComponent(a.public_email):'#')+'">'+esc(a.public_email||'No public email')+'</a><a href="'+(a.public_phone?'tel:'+String(a.public_phone).replace(/[^+0-9]/g,''):'#')+'">'+esc(a.public_phone||'No public phone')+'</a></div><div><h3>Next action</h3><p>'+esc(o.next_action||'—')+'</p><b>Follow-up: '+esc(o.next_follow_up||'—')+'</b></div><div class="crm-detail-buttons"><button type="button" class="primary-btn crm-detail-email" data-id="'+o.id+'">✉ Email Contact</button><button type="button" class="primary-btn crm-detail-advance" data-id="'+o.id+'">Advance Stage →</button><button type="button" class="accounting-small-btn crm-detail-done" data-id="'+o.id+'">Complete next activity</button><button type="button" class="accounting-small-btn crm-detail-won" data-id="'+o.id+'">✓ Mark Won</button><button type="button" class="accounting-small-btn crm-detail-lost" data-id="'+o.id+'">Mark Lost</button></div></aside>'+
       '</div>';
     modal.hidden=false;
     el('crmDetailClose').onclick=()=>modal.hidden=true;
@@ -85,7 +85,7 @@
       }).join('');
     }
     if(el('salesAccountsBody'))el('salesAccountsBody').innerHTML=as.map(a=>'<tr><td><b>'+esc(a.company_name)+'</b></td><td>'+esc(a.contact_department||'—')+'</td><td>'+esc(a.public_email||'—')+'</td><td>'+esc(a.public_phone||'—')+'</td><td><span class="crm-priority '+crmPriorityClass(a.priority)+'">'+esc(a.priority)+'</span></td></tr>').join('')||'<tr><td colspan="5" class="accounting-empty">No accounts.</td></tr>';
-    if(el('salesActivitiesBody'))el('salesActivitiesBody').innerHTML=acts.slice().sort((a,b)=>String(a.due_date||'').localeCompare(String(b.due_date||''))).map(a=>'<tr><td>'+esc(a.due_date||'—')+'</td><td><b>'+esc(a.sales_opportunities?.sales_accounts?.company_name||'—')+'</b><br><small>'+esc(a.sales_opportunities?.opportunity_name||'')+'</small></td><td>'+esc(a.subject)+'</td><td><span class="crm-activity-status crm-activity-'+String(a.status).toLowerCase()+'">'+esc(a.status)+'</span></td><td>'+(a.status==='PLANNED'?'<button type="button" class="accounting-small-btn crm-activity-done" data-id="'+a.id+'" data-opp="'+a.opportunity_id+'">Mark done</button>':'✓')+'</td></tr>').join('')||'<tr><td colspan="5" class="accounting-empty">No activities.</td></tr>';
+    if(el('salesActivitiesBody'))el('salesActivitiesBody').innerHTML=acts.slice().sort((a,b)=>String(a.due_date||'').localeCompare(String(b.due_date||''))).map(a=>'<tr><td>'+esc(a.due_date||'—')+'</td><td><b>'+esc(a.sales_opportunities?.sales_accounts?.company_name||'—')+'</b><br><small>'+esc(a.sales_opportunities?.opportunity_name||'')+'</small></td><td>'+esc(a.subject)+'</td><td><span class="crm-activity-status crm-activity-'+String(a.status).toLowerCase()+'">'+esc(a.status)+'</span></td><td>'+'<button type="button" class="accounting-small-btn crm-activity-edit" data-id="'+a.id+'">Edit</button>'+(a.status==='PLANNED'?'<button type="button" class="accounting-small-btn crm-activity-done" data-id="'+a.id+'" data-opp="'+a.opportunity_id+'">Done</button>':'')+'</td></tr>').join('')||'<tr><td colspan="5" class="accounting-empty">No activities.</td></tr>';
     document.querySelectorAll('.crm-card-open').forEach(b=>b.onclick=()=>renderOpportunityDetail(b.dataset.id));
     document.querySelectorAll('.crm-done').forEach(b=>b.onclick=()=>completeNextCRMActivity(b.dataset.id));
     document.querySelectorAll('.crm-undo').forEach(b=>b.onclick=()=>undoCRMStage(b.dataset.id));
@@ -93,7 +93,32 @@
     document.querySelectorAll('.crm-activity-done').forEach(b=>b.onclick=()=>completeCRMActivity(b.dataset.id,b.dataset.opp));
     document.querySelectorAll('.crm-detail-won').forEach(b=>b.onclick=()=>markCRMClosed(b.dataset.id,'WON'));
     document.querySelectorAll('.crm-detail-lost').forEach(b=>b.onclick=()=>markCRMClosed(b.dataset.id,'LOST'));
+    document.querySelectorAll('.crm-activity-edit').forEach(b=>b.onclick=()=>openCRMActivityModal(b.dataset.id));
+    document.querySelectorAll('.crm-detail-email').forEach(b=>b.onclick=()=>openCRMActivityModal(null,b.dataset.id,'EMAIL'));
   }
+  function crmActivityDefaults(type='FOLLOW-UP'){return {type,due:crmTodayPlus(0),subject:type==='EMAIL'?'PILARK Composite — Technical Introduction':'Follow-up activity',notes:''};}
+  function populateCRMActivityOpportunities(selected){const s=el('crmActivityOpportunity');if(!s)return;s.innerHTML='<option value="">Select opportunity…</option>'+(state.crm.opportunities||[]).map(o=>'<option value="'+o.id+'">'+esc(o.sales_accounts?.company_name||'—')+' — '+esc(o.opportunity_name||'')+'</option>').join('');if(selected)s.value=selected;}
+  function openCRMActivityModal(activityId=null,oppId=null,forceType=null){
+    const modal=el('salesActivityModal');if(!modal)return;populateCRMActivityOpportunities(oppId);
+    const a=activityId?(state.crm.activities||[]).find(x=>x.id===activityId):null,o=oppId?(state.crm.opportunities||[]).find(x=>x.id===oppId):null,d=crmActivityDefaults(forceType||a?.activity_type||'FOLLOW-UP');
+    el('crmActivityId').value=a?.id||'';el('crmActivityOpportunity').value=a?.opportunity_id||oppId||'';el('crmActivityType').value=a?.activity_type||d.type;el('crmActivityDue').value=a?.due_date||d.due;el('crmActivitySubject').value=a?.subject||d.subject;el('crmActivityTo').value=a?.sales_opportunities?.sales_accounts?.public_email||o?.sales_accounts?.public_email||'';el('crmActivityNotes').value=a?.notes||'';
+    el('crmActivityModalTitle').textContent=a?'Edit Activity':(forceType==='EMAIL'?'Send Email':'Add Activity');el('crmActivitySend').textContent=forceType==='EMAIL'?'Send Email →':(a?'Save Changes →':'Save Activity →');modal.hidden=false;
+  }
+  async function saveCRMActivity(e){
+    e.preventDefault();const id=el('crmActivityId').value,oppId=el('crmActivityOpportunity').value,type=el('crmActivityType').value,due=el('crmActivityDue').value,subject=el('crmActivitySubject').value.trim(),notes=el('crmActivityNotes').value.trim(),to=el('crmActivityTo').value.trim();
+    if(!oppId||!due||!subject)return alert('Complete opportunity, due date and subject.');
+    if(type==='EMAIL'){
+      if(!to)return alert('Enter the contact email.');
+      const html='<div style="font-family:Arial,sans-serif;color:#17212b;line-height:1.65"><p>'+esc(notes).replace(/\n/g,'<br>')+'</p><p>Best regards,<br><b>PILARK Composite</b><br>PT. Panca Integra Laguna Reksa</p></div>';
+      el('crmActivitySend').disabled=true;el('crmActivitySend').textContent='Sending…';
+      try{const {data:{session}}=await client().auth.getSession();const res=await fetch((cms()?.supabaseUrl||'')+'/functions/v1/send-sales-email',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+session?.access_token,'apikey':cms()?.supabaseAnonKey||''},body:JSON.stringify({opportunity_id:oppId,to,subject,html,notes})});const out=await res.json().catch(()=>({}));if(!res.ok)throw new Error(out.error||'Email delivery failed.');el('salesActivityModal').hidden=true;await loadCRM();alert('Email sent to '+to+'.');}catch(err){alert(err.message);}finally{el('crmActivitySend').disabled=false;}return;
+    }
+    const payload={opportunity_id:oppId,activity_type:type,subject,activity_date:today(),due_date:due,status:id?aStatus(id):'PLANNED',notes};
+    const q=id?client().from('sales_activities').update(payload).eq('id',id):client().from('sales_activities').insert(payload);const {error}=await q;if(error)return alert(error.message);
+    await client().from('sales_opportunities').update({next_follow_up:due,next_action:subject}).eq('id',oppId);el('salesActivityModal').hidden=true;await loadCRM();
+  }
+  function aStatus(id){return (state.crm.activities||[]).find(x=>x.id===id)?.status||'PLANNED';}
+  function closeCRMActivityModal(){const m=el('salesActivityModal');if(m)m.hidden=true;}
   async function loadCRM(){
     if(!client())return;
     const [a,p,o,acts]=await Promise.all([
@@ -151,7 +176,13 @@
     await loadCRM();
   }
   function bind(){document.querySelectorAll('[data-sales-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.salesTab));el('salesForm')?.addEventListener('submit',createQuotation);el('addSalesLine')?.addEventListener('click',()=>{el('salesLines').insertAdjacentHTML('beforeend',lineHtml(el('salesLines').children.length));updatePreview();});el('salesLines')?.addEventListener('click',e=>{if(e.target.classList.contains('sales-line-remove')){const rows=el('salesLines').querySelectorAll('.sales-line');if(rows.length>1)e.target.closest('.sales-line').remove();updatePreview();}});el('salesLines')?.addEventListener('input',updatePreview);el('salesRefresh')?.addEventListener('click',()=>Promise.all([load(),loadCRM()]).catch(e=>alert(e.message)));
-    el('salesCrmRefresh')?.addEventListener('click',()=>loadCRM().catch(e=>alert(e.message)));el('salesDate').value=today();el('salesLines').innerHTML=lineHtml(0);updatePreview();document.querySelector('.side-link[data-view="sales"]')?.addEventListener('click',()=>setTimeout(()=>Promise.all([load(),loadCRM()]).catch(console.warn),50));}
+    el('salesCrmRefresh')?.addEventListener('click',()=>loadCRM().catch(e=>alert(e.message)));
+    el('crmAddActivity')?.addEventListener('click',()=>openCRMActivityModal());
+    el('crmActivityForm')?.addEventListener('submit',saveCRMActivity);
+    el('crmActivityClose')?.addEventListener('click',closeCRMActivityModal);
+    el('crmActivityCancel')?.addEventListener('click',closeCRMActivityModal);
+    document.querySelectorAll('[data-crm-activity-close]').forEach(b=>b.addEventListener('click',closeCRMActivityModal));
+    el('crmActivityOpportunity')?.addEventListener('change',()=>{const o=(state.crm.opportunities||[]).find(x=>x.id===el('crmActivityOpportunity').value);if(o)el('crmActivityTo').value=o.sales_accounts?.public_email||'';});el('salesDate').value=today();el('salesLines').innerHTML=lineHtml(0);updatePreview();document.querySelector('.side-link[data-view="sales"]')?.addEventListener('click',()=>setTimeout(()=>Promise.all([load(),loadCRM()]).catch(console.warn),50));}
   function init(){if(!el('view-sales'))return;bind();if(client())Promise.all([load(),loadCRM()]).catch(e=>console.warn('Sales init:',e));}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
