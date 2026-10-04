@@ -222,11 +222,9 @@
     el('entryDate').value=today();el('documentDate').value=today();el('billDate').value=today();el('paymentDate').value=today();
     bindLineContainer('documentLines','customer_invoice');bindLineContainer('billLines','vendor_bill');
     const nav=document.querySelector('.side-link[data-view="accounting"]');nav?.addEventListener('click',()=>setTimeout(()=>load().catch(console.warn),50));
+    el('reportApply')?.addEventListener('click',applyReportFilters);
   }
 
-    el('reportApply')?.addEventListener('click',applyReportFilters);
-    el('reportFrom')?.addEventListener('change',()=>{});
-    el('reportTo')?.addEventListener('change',()=>{});
   function populateDynamic(){el('entryJournal').innerHTML=journalOptions();el('entryPartner').innerHTML='<option value="">No partner</option>'+partnerOptions().replace('<option value="">Select partner…</option>','');el('entryDebitAccount').innerHTML=accountOptions();el('entryCreditAccount').innerHTML=accountOptions();el('documentPartner').innerHTML=partnerOptions('', 'customer');el('billPartner').innerHTML=partnerOptions('', 'vendor');el('paymentPartner').innerHTML=partnerOptions('', 'customer');el('paymentJournal').innerHTML=journalOptions('', ['bank','cash']);refreshPaymentDocuments();}
   const originalRender=render; // populate after data loads
   const oldLoad=load;
