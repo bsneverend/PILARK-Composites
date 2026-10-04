@@ -191,7 +191,26 @@
 <button type="button" data-accounting-tab="reports">Reports</button>
 <button type="button" data-accounting-tab="accounts">Chart of Accounts</button>
 <button type="button" data-accounting-tab="partners">Contacts</button>
-<button type="button" data-accounting-tab="bank">Bank Reconciliation</button><button type="button" data-accounting-tab="entries">Journal Entries</button>
+<button type="button" data-accounting-tab="bank">Bank Reconciliation</button><button type="button" data-accounting-tab="entries">Journal Entries</button><button type="button" data-accounting-tab="periods">Accounting Periods</button>
+</div>
+
+<div class="accounting-tab-panel" data-accounting-panel="periods" hidden>
+  <div class="accounting-two-col accounting-period-layout">
+    <div class="panel">
+      <div class="panel-head"><div><h2>Accounting Period Control</h2><p>Open or close posting periods. Closed periods reject new accounting postings at the database level.</p></div></div>
+      <div id="accountingPeriodStatus" class="period-status"></div>
+      <form id="periodForm" class="accounting-form">
+        <label>Period name<input id="periodName" required placeholder="2026-11"></label>
+        <label>Start date<input id="periodStart" type="date" required></label>
+        <label>End date<input id="periodEnd" type="date" required></label>
+        <button class="primary-btn" type="submit">Create Open Period →</button>
+      </form>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><div><h2>Posting periods</h2><p>Only periods marked Open can accept posted journal entries, invoices, bills, payments and inventory accounting movements.</p></div></div>
+      <div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Period</th><th>Start</th><th>End</th><th>Status</th><th>Closed</th><th>Action</th></tr></thead><tbody id="accountingPeriodsBody"></tbody></table></div>
+    </div>
+  </div>
 </div>
 
 <div class="accounting-tab-panel" data-accounting-panel="overview">
@@ -308,4 +327,4 @@
 </div>
 </section>
 <section class="view" id="view-settings"><div class="section-intro"><h2>Settings</h2><p>Manage your cloud-powered dashboard.</p></div><div class="panel"><h2>Cloud CMS is active</h2><p>All media, product thumbnails and website content changes are saved directly to your Supabase database and storage. This dashboard no longer relies on local browser overrides.</p></div></section>
-</main></div><script src="admin.js?v=20261004-sales-purchase-overview"></script><script src="accounting.js?v=20261004-management-v1"></script><script src="sales.js?v=20261004-v1"></script><script src="purchase.js?v=20261004-v1"></script><script src="inventory.js?v=20261004-adjustment-card-v1"></script><script src="bank-reconciliation.js?v=20261004-v1"></script></body></html>
+</main></div><script src="admin.js?v=20261004-sales-purchase-overview"></script><script src="accounting.js?v=20261004-period-control-v1"></script><script src="sales.js?v=20261004-v1"></script><script src="purchase.js?v=20261004-v1"></script><script src="inventory.js?v=20261004-adjustment-card-v1"></script><script src="bank-reconciliation.js?v=20261004-v1"></script></body></html>
