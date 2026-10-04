@@ -149,6 +149,23 @@
     el(prefix+'Subtotal').textContent=money(sub);el(prefix+'Tax').textContent=money(tax);el(prefix+'Total').textContent=money(sub+tax);
   }
 
+  function applyPaymentTerms(prefix){
+    const dateEl=el(prefix+'Date'), termsEl=el(prefix+'PaymentTerms'), dueEl=el(prefix+'DueDate');
+    if(!dateEl||!termsEl||!dueEl) return;
+    const d=new Date((dateEl.value||today())+'T00:00:00');
+    d.setDate(d.getDate()+Number(termsEl.value||0));
+    dueEl.value=d.toISOString().slice(0,10);
+  }
+
+  async function cancelDocument(id){
+    const d=[...state.invoices,...state.bills].find(x=>x.id===id);
+    if(!d) return;
+    if(!confirm('Cancel '+d.document_no+'? This will create a reversal journal entry.')) return;
+    const {error}=await client().rpc('cancel_accounting_document',{p_document_id:id});
+    if(error) return alert(error.message);
+    await load();
+  }
+
   async function createDocument(kind,e) {
     e.preventDefault();
     const customer=kind==='customer_invoice', partner=el(customer?'documentPartner':'billPartner').value;
