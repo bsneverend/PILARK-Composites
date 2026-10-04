@@ -10,6 +10,11 @@
 .document-total-box{display:grid;gap:7px;border:1px solid #dce8ee;background:#f7fafb;border-radius:13px;padding:12px 14px;margin-top:4px}
 .document-total-box span,.document-total-box strong{display:flex;justify-content:space-between;gap:20px}
 .document-total-box strong{padding-top:8px;border-top:1px solid #dce8ee;font-size:16px}
+.accounting-report-toolbar{margin-bottom:16px}
+.report-filter-row{grid-template-columns:minmax(180px,1fr) minmax(180px,1fr) 130px;align-items:end}
+.report-filter-row button{width:100%;min-height:44px}
+@media(max-width:600px){.report-filter-row{grid-template-columns:1fr}.report-filter-row button{width:100%}}
+
 .accounting-report-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
 .report-stack{display:grid;gap:0}
 .report-row{display:flex;justify-content:space-between;gap:20px;padding:11px 0;border-bottom:1px solid #e8eff2;font-size:13px}
