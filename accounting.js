@@ -679,7 +679,23 @@ async function autoMatchReconcile(){const lines=state.entryLines.filter(l=>{cons
       : '<div class="accounting-empty">No posted accounting activity yet.</div>';
   }
 
-  function showTab(tab,updateTitle=true){state.tab=tab;document.querySelectorAll('[data-accounting-tab]').forEach(b=>b.classList.toggle('active',b.dataset.accountingTab===tab));document.querySelectorAll('.accounting-tab-panel').forEach(p=>p.hidden=p.dataset.accountingPanel!==tab);if(updateTitle&&el('view-accounting')?.classList.contains('active'))el('pageTitle').textContent='Accounting';if(tab==='overview')renderOverview().catch(console.warn);if(tab==='reports')renderReports().catch(console.warn);if(tab==='aging'){renderAgingPartners();renderAging();renderStatement();}if(tab==='periods')renderPeriods();}
+  function showTab(tab,updateTitle=true){
+    const valid=[...document.querySelectorAll('.accounting-tab-panel')].map(p=>p.dataset.accountingPanel);
+    if(!valid.includes(tab)) tab='overview';
+    state.tab=tab;
+    document.querySelectorAll('[data-accounting-tab]').forEach(b=>b.classList.toggle('active',b.dataset.accountingTab===tab));
+    document.querySelectorAll('.accounting-tab-panel').forEach(p=>{
+      const active=p.dataset.accountingPanel===tab;
+      p.hidden=!active;
+      p.style.display=active?'block':'none';
+    });
+    if(updateTitle&&el('view-accounting')?.classList.contains('active'))el('pageTitle').textContent='Accounting';
+    if(tab==='overview')renderOverview().catch(console.warn);
+    if(tab==='reports')renderReports().catch(console.warn);
+    if(tab==='aging'){renderAgingPartners();renderAging();renderStatement();}
+    if(tab==='periods')renderPeriods();
+    if(tab==='accounts'&&state.selectedLedgerAccount)renderGeneralLedger().catch(console.warn);
+  }
   function render(){renderAccounts();renderPartners();renderEntries();renderDocuments();renderPayments();renderPeriods();renderOverview().catch(console.warn);renderErpOverview().catch(console.warn);renderReports().catch(console.warn);showTab(state.tab,false);}
 
   async function createAccount(e){e.preventDefault();const isGroup=!!el('accountIsGroup')?.checked;const payload={code:el('accountCode').value.trim(),name:el('accountName').value.trim(),account_type:el('accountType').value,parent_id:el('accountParent').value||null,is_group:isGroup,reconcile:isGroup?false:el('accountReconcile').checked};if(!payload.code||!payload.name||!payload.account_type)return alert('Complete Code, Name and Type.');const {error}=await client().from('accounting_accounts').insert(payload);if(error)return alert(error.message);e.target.reset();await load();showTab('accounts');}
