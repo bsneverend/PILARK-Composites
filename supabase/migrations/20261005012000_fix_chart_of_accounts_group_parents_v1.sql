@@ -1,0 +1,2 @@
+update public.accounting_accounts a set parent_id=(select id from public.accounting_accounts where code='1000') where a.code in ('1010','1020','1030','1040','1050','1060');
+update public.accounting_accounts a set parent_id=(select id from public.accounting_accounts where code='2000') where a.code in ('2010','2020','2030');
