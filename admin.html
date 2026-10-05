@@ -378,8 +378,7 @@
 <div class="accounting-tab-panel" data-accounting-panel="accounts" hidden>
   <div class="accounting-two-col"><div class="panel"><div class="panel-head"><div><h2>New account</h2><p>Add an account to the chart of accounts.</p></div></div><form id="accountForm" class="accounting-form"><label>Code<input id="accountCode" required placeholder="1100"></label><label>Name<input id="accountName" required placeholder="Accounts Receivable"></label><label>Account type<select id="accountType" required></select></label><label>Parent account<select id="accountParent"><option value="">No parent — top level</option></select></label><label class="check-field"><input id="accountIsGroup" type="checkbox"> This is a group account</label><label class="check-field"><input id="accountReconcile" type="checkbox"> Enable reconciliation</label><button class="primary-btn" type="submit">Create account →</button></form></div>
   <div class="panel"><div class="panel-head"><div><h2>Chart of Accounts</h2><p>Odoo-style account types used by the reporting engine.</p></div></div><div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Code</th><th>Name</th><th>Type</th><th>Reconcile</th><th>Status</th></tr></thead><tbody id="accountingAccountsBody"></tbody></table></div></div></div>
-</div>
-  <div class="panel account-ledger-panel" data-accounting-panel="accounts" hidden>
+  <div class="panel account-ledger-panel">
     <div class="panel-head"><div><h2 id="accountLedgerTitle">General Ledger</h2><p id="accountLedgerSubtitle">Select a posting account to inspect its complete ledger.</p></div><button id="accountLedgerClose" class="accounting-small-btn" type="button" hidden>Clear</button></div>
     <div class="account-ledger-filters">
       <label>From<input id="ledgerFrom" type="date"></label>
