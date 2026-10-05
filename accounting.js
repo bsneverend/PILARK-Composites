@@ -679,9 +679,55 @@ async function autoMatchReconcile(){const lines=state.entryLines.filter(l=>{cons
       : '<div class="accounting-empty">No posted accounting activity yet.</div>';
   }
 
+  function renderAccountingMarkdown(value){
+    const src=String(value??'').replace(/\r\n?/g,'\n').trim();
+    if(!src)return '';
+    const lines=src.split('\n');
+    const out=[];
+    let listType=null;
+    let listItems=[];
+    let inCode=false;
+    let codeLines=[];
+    function flushList(){
+      if(!listItems.length)return;
+      out.push('<'+listType+'>'+listItems.join('')+'</'+listType+'>');
+      listType=null; listItems=[];
+    }
+    function inline(text){
+      let s=esc(text);
+      s=s.replace(/`([^`]+)`/g,'<code>$1</code>');
+      s=s.replace(/\*\*([^*]+?)\*\*/g,'<strong>$1</strong>');
+      s=s.replace(/__([^_]+?)__/g,'<strong>$1</strong>');
+      s=s.replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g,'<em>$1</em>');
+      s=s.replace(/(?<!_)_([^_\n]+?)_(?!_)/g,'<em>$1</em>');
+      return s;
+    }
+    for(const rawLine of lines){
+      const line=rawLine.trim();
+      if(line.startsWith('```')){
+        flushList();
+        if(!inCode){inCode=true;codeLines=[];}else{out.push('<pre><code>'+esc(codeLines.join('\n'))+'</code></pre>');inCode=false;}
+        continue;
+      }
+      if(inCode){codeLines.push(rawLine);continue;}
+      if(!line){flushList();continue;}
+      let m=line.match(/^(#{1,3})\s+(.+)$/);
+      if(m){flushList();out.push('<h'+m[1].length+'>'+inline(m[2])+'</h'+m[1].length+'>');continue;}
+      m=line.match(/^[-*]\s+(.+)$/);
+      if(m){if(listType!=='ul'){flushList();listType='ul';}listItems.push('<li>'+inline(m[1])+'</li>');continue;}
+      m=line.match(/^\d+[.)]\s+(.+)$/);
+      if(m){if(listType!=='ol'){flushList();listType='ol';}listItems.push('<li>'+inline(m[1])+'</li>');continue;}
+      flushList();
+      out.push('<p>'+inline(line)+'</p>');
+    }
+    if(inCode)out.push('<pre><code>'+esc(codeLines.join('\n'))+'</code></pre>');
+    flushList();
+    return out.join('');
+  }
+
   function renderAccountingAi(){
     const box=el('accountingAiMessages'); if(!box)return;
-    box.innerHTML=state.aiMessages.map(m=>`<div class="accounting-ai-message ${m.role==='user'?'user':'assistant'}"><div class="accounting-ai-avatar">${m.role==='user'?'P':'✦'}</div><div class="accounting-ai-bubble">${esc(m.text).replace(/\\n/g,'<br>')}</div></div>`).join('');
+    box.innerHTML=state.aiMessages.map(m=>'<div class="accounting-ai-message '+(m.role==='user'?'user':'assistant')+'"><div class="accounting-ai-avatar">'+(m.role==='user'?'P':'✦')+'</div><div class="accounting-ai-bubble">'+(m.role==='user'?esc(m.text).replace(/\n/g,'<br>'):renderAccountingMarkdown(m.text))+'</div></div>').join('');
     box.scrollTop=box.scrollHeight;
   }
   function openAccountingAi(){
