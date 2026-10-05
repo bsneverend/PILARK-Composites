@@ -179,3 +179,15 @@
 .accounting-ai-form button:disabled{opacity:.5;cursor:wait}
 .accounting-ai-note{padding:7px 12px 11px;text-align:center;color:#8998a1;font-size:10px;background:#fff}
 @media(max-width:700px){.accounting-ai-panel{right:12px;bottom:12px;width:calc(100vw - 24px);height:calc(100vh - 24px)}}
+
+.accounting-ai-bubble p{margin:0 0 8px}
+.accounting-ai-bubble p:last-child{margin-bottom:0}
+.accounting-ai-bubble h1,.accounting-ai-bubble h2,.accounting-ai-bubble h3{margin:4px 0 8px;color:#07121a;line-height:1.3}
+.accounting-ai-bubble h1{font-size:16px}.accounting-ai-bubble h2{font-size:15px}.accounting-ai-bubble h3{font-size:14px}
+.accounting-ai-bubble strong{font-weight:800;color:#0b1d27}
+.accounting-ai-bubble em{font-style:italic}
+.accounting-ai-bubble ul,.accounting-ai-bubble ol{margin:5px 0 9px;padding-left:22px}
+.accounting-ai-bubble li{margin:4px 0;padding-left:2px}
+.accounting-ai-bubble code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em;background:#e7eef2;border-radius:5px;padding:1px 4px}
+.accounting-ai-bubble pre{margin:8px 0;padding:10px 12px;background:#0b1720;color:#eef7fa;border-radius:9px;overflow:auto;font-size:11px;line-height:1.5}
+.accounting-ai-bubble pre code{background:transparent;padding:0;color:inherit}
