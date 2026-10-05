@@ -191,3 +191,16 @@
 .accounting-ai-bubble code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em;background:#e7eef2;border-radius:5px;padding:1px 4px}
 .accounting-ai-bubble pre{margin:8px 0;padding:10px 12px;background:#0b1720;color:#eef7fa;border-radius:9px;overflow:auto;font-size:11px;line-height:1.5}
 .accounting-ai-bubble pre code{background:transparent;padding:0;color:inherit}
+
+
+.accounting-ai-action{margin-top:14px;border:1px solid rgba(255,255,255,.12);border-radius:14px;padding:14px;background:rgba(255,255,255,.035)}
+.accounting-ai-action-head{display:flex;justify-content:space-between;gap:12px;margin-bottom:12px}
+.accounting-ai-action-head b{display:block;font-size:13px}
+.accounting-ai-action-head span{display:block;margin-top:3px;font-size:11px;opacity:.65}
+.accounting-ai-action-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.accounting-ai-action-grid>div{padding:8px 9px;border-radius:9px;background:rgba(255,255,255,.04);min-width:0}
+.accounting-ai-action-grid small{display:block;font-size:10px;opacity:.55;margin-bottom:3px}
+.accounting-ai-action-grid b{display:block;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.accounting-ai-action-memo{margin-top:9px;font-size:11px;line-height:1.45;opacity:.78}
+.accounting-ai-review-btn{margin-top:12px;border:0;border-radius:9px;padding:9px 12px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+@media(max-width:640px){.accounting-ai-action-grid{grid-template-columns:1fr}}
