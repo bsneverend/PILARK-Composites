@@ -8,7 +8,7 @@
   const dateText = value => value ? new Date(value+'T00:00:00').toLocaleDateString('id-ID') : '-';
   const today = () => new Date().toISOString().slice(0,10);
   const monthStart = () => { const d=new Date(); d.setDate(1); return d.toISOString().slice(0,10); };
-  const typeLabel = type => ({asset_receivable:'Receivable',asset_cash:'Bank & Cash',asset_current:'Current Asset',asset_non_current:'Non-current Asset',asset_prepayments:'Prepayments',asset_fixed:'Fixed Asset',liability_payable:'Payable',liability_credit_card:'Credit Card',liability_current:'Current Liability',liability_non_current:'Non-current Liability',equity:'Equity',equity_unaffected:'Current Year Earnings',income:'Income',income_other:'Other Income',expense:'Expense',expense_other:'Other Expense',expense_depreciation:'Depreciation',expense_direct_cost:'Cost of Revenue',off_balance:'Off-balance'}[type]||type);
+  const typeLabel = type => ({asset_receivable:'Piutang',asset_cash:'Bank & Kas',asset_current:'Aktiva Lancar',asset_non_current:'Aktiva Tidak Lancar',asset_prepayments:'Biaya Dibayar Dimuka',asset_fixed:'Aset Tetap',liability_payable:'Hutang',liability_credit_card:'Kartu Kredit',liability_current:'Pasiva Terkini',liability_non_current:'Pasiva Tidak Lancar',equity:'Ekuitas',equity_unaffected:'Laba Tahun Berjalan',income:'Pendapatan',income_other:'Pendapatan Lainnya',expense:'Pengeluaran',expense_other:'Pengeluaran Lainnya',expense_depreciation:'Penyusutan',expense_direct_cost:'Harga Pokok Penjualan',off_balance:'Off-balance'}[type]||type);
   const statusClass = s => 'accounting-status '+esc(s);
   const docOutstanding = d => Math.max(0, Number(d.total_amount||0)-Number(d.amount_paid||0));
 
