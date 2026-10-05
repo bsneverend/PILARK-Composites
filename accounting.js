@@ -1,5 +1,5 @@
 (() => {
-  const state = { accounts: [], partners: [], journals: [], entries: [], invoices: [], bills: [], payments: [], allocations: [], sends: [], periods: [], inventoryBalances: [], tab: 'overview', reportFrom: '', reportTo: '' };
+  const state = { accounts: [], partners: [], journals: [], entries: [], entryLines: [], invoices: [], bills: [], payments: [], allocations: [], sends: [], periods: [], inventoryBalances: [], tab: 'overview', reportFrom: '', reportTo: '' };
   const el = id => document.getElementById(id);
   const client = () => window.PILARK_CMS?.client;
   const ready = () => !!window.PILARK_CMS?.ready && !!client();
@@ -15,7 +15,7 @@
   async function load() {
     if(!ready()) return;
     const c=client();
-    const [a,p,j,e,i,b,py,al,se,ib,pe] = await Promise.all([
+    const [a,p,j,e,i,b,py,al,se,ib,pe,lines] = await Promise.all([
       c.from('accounting_accounts').select('*').order('code'),
       c.from('accounting_partners').select('*').order('name'),
       c.from('accounting_journals').select('*').order('code'),
@@ -26,10 +26,11 @@
       c.from('accounting_payment_allocations').select('*,accounting_payments(payment_no,payment_date,payment_type,status,amount),accounting_documents(document_no,document_type)').order('created_at',{ascending:false}).limit(500),
       c.from('accounting_document_sends').select('*').order('sent_at',{ascending:false}).limit(500),
       c.from('inventory_balances').select('product_id,location_id,quantity,average_cost,stock_value'),
-      c.from('accounting_periods').select('*').order('date_start',{ascending:false})
+      c.from('accounting_periods').select('*').order('date_start',{ascending:false}),
+      c.from('accounting_lines').select('id,entry_id,account_id,partner_id,description,debit,credit,due_date,reconciled,accounting_accounts(code,name,account_type),accounting_partners(name)').order('created_at')
     ]);
-    for(const x of [a,p,j,e,i,b,py,al,se,ib,pe]) if(x.error) throw x.error;
-    state.accounts=a.data||[]; state.partners=p.data||[]; state.journals=j.data||[]; state.entries=e.data||[]; state.invoices=i.data||[]; state.bills=b.data||[]; state.payments=py.data||[]; state.allocations=al.data||[]; state.sends=se.data||[]; state.inventoryBalances=ib.data||[]; state.periods=pe.data||[];
+    for(const x of [a,p,j,e,i,b,py,al,se,ib,pe,lines]) if(x.error) throw x.error;
+    state.accounts=a.data||[]; state.partners=p.data||[]; state.journals=j.data||[]; state.entries=e.data||[]; state.entryLines=lines.data||[]; state.invoices=i.data||[]; state.bills=b.data||[]; state.payments=py.data||[]; state.allocations=al.data||[]; state.sends=se.data||[]; state.inventoryBalances=ib.data||[]; state.periods=pe.data||[];
     render();
   }
 
@@ -125,8 +126,22 @@
     el('accountingPartnersBody').innerHTML=state.partners.map(p=>`<tr><td><b>${esc(p.name)}</b></td><td>${esc(p.partner_type)}</td><td>${esc(p.email||'—')}</td><td>${esc(p.phone||'—')}</td><td>${esc(p.tax_id||'—')}</td></tr>`).join('')||'<tr><td colspan="5" class="accounting-empty">No contacts yet.</td></tr>';
   }
   function renderEntries() {
-    el('accountingEntriesBody').innerHTML=state.entries.map(e=>`<tr><td><b>${esc(e.entry_no)}</b></td><td>${dateText(e.entry_date)}</td><td>${esc(e.accounting_journals?.code||'')}</td><td>${esc(e.accounting_partners?.name||'—')}</td><td>${esc(e.memo||e.reference||'—')}</td><td><span class="${statusClass(e.status)}">${esc(e.status)}</span></td><td>${e.status==='draft'?'<button class="accounting-small-btn post-entry-btn" data-entry-id="'+e.id+'">Post</button>':''}</td></tr>`).join('')||'<tr><td colspan="7" class="accounting-empty">No journal entries yet.</td></tr>';
-    document.querySelectorAll('.post-entry-btn').forEach(b=>b.onclick=()=>postEntry(b.dataset.entryId));
+    const q=(el('entrySearch')?.value||'').trim().toLowerCase(), journal=el('entryJournalFilter')?.value||'', status=el('entryStatusFilter')?.value||'', from=el('entryFrom')?.value||'', to=el('entryTo')?.value||'';
+    const rows=state.entries.filter(e=>(!q||[e.entry_no,e.reference,e.memo,e.accounting_journals?.code,e.accounting_journals?.name,e.accounting_partners?.name].some(v=>String(v||'').toLowerCase().includes(q)))&&(!journal||e.journal_id===journal)&&(!status||e.status===status)&&(!from||e.entry_date>=from)&&(!to||e.entry_date<=to));
+    const totals=rows.reduce((x,e)=>{state.entryLines.filter(l=>l.entry_id===e.id).forEach(l=>{x.debit+=Number(l.debit||0);x.credit+=Number(l.credit||0)});return x},{debit:0,credit:0});
+    if(el('entryFilteredCount'))el('entryFilteredCount').textContent=rows.length;
+    if(el('entryDebitTotal'))el('entryDebitTotal').textContent=money(totals.debit);
+    if(el('entryCreditTotal'))el('entryCreditTotal').textContent=money(totals.credit);
+    el('accountingEntriesBody').innerHTML=rows.map(e=>{const lines=state.entryLines.filter(l=>l.entry_id===e.id),debit=lines.reduce((x,l)=>x+Number(l.debit||0),0),credit=lines.reduce((x,l)=>x+Number(l.credit||0),0);return `<tr><td><button class="entry-link" data-entry-id="${e.id}" type="button"><b>${esc(e.entry_no)}</b></button></td><td>${dateText(e.entry_date)}</td><td>${esc(e.accounting_journals?.code||'')}</td><td>${esc(e.accounting_partners?.name||'—')}</td><td>${esc(e.reference||'—')}</td><td class="num">${money(debit)}</td><td class="num">${money(credit)}</td><td><span class="${statusClass(e.status)}">${esc(e.status)}</span></td><td>${e.status==='draft'?'<button class="accounting-small-btn post-entry-btn" data-entry-id="'+e.id+'">Post</button>':''}</td></tr>`}).join('')||'<tr><td colspan="9" class="accounting-empty">No journal entries match the current filters.</td></tr>';
+    document.querySelectorAll('.post-entry-btn').forEach(b=>b.onclick=()=>postEntry(b.dataset.entryId));document.querySelectorAll('.entry-link').forEach(b=>b.onclick=()=>showEntryDetail(b.dataset.entryId));
+  }
+  async function showEntryDetail(id){
+    const e=state.entries.find(x=>x.id===id);if(!e)return;const lines=state.entryLines.filter(l=>l.entry_id===id),debit=lines.reduce((x,l)=>x+Number(l.debit||0),0),credit=lines.reduce((x,l)=>x+Number(l.credit||0),0);
+    const source=[...state.invoices,...state.bills].find(d=>d.posted_entry_id===id),payment=state.payments.find(p=>p.posted_entry_id===id);
+    const sourceLabel=source?(source.document_type==='customer_invoice'?'Customer Invoice':'Vendor Bill')+' · '+source.document_no:payment?'Payment · '+payment.payment_no:'Manual / System Journal';
+    const box=el('accountingEntryDetail');if(!box)return;box.hidden=false;
+    box.innerHTML=`<div class="entry-detail-head"><div><span class="document-detail-kicker">JOURNAL ENTRY</span><h3>${esc(e.entry_no)}</h3><p>${dateText(e.entry_date)} · ${esc(e.accounting_journals?.code||'')} — ${esc(e.accounting_journals?.name||'')} · ${esc(e.accounting_partners?.name||'No partner')}</p></div><div class="entry-detail-actions"><span class="${statusClass(e.status)}">${esc(e.status)}</span><button type="button" class="text-btn" id="closeEntryDetail">Close</button></div></div><div class="entry-detail-meta"><span>Reference <b>${esc(e.reference||'—')}</b></span><span>Source <b>${esc(sourceLabel)}</b></span><span>Created <b>${e.created_at?new Date(e.created_at).toLocaleString('id-ID'):'—'}</b></span><span>Posted <b>${e.posted_at?new Date(e.posted_at).toLocaleString('id-ID'):'—'}</b></span></div><div class="entry-detail-memo">${esc(e.memo||'No journal memo.')}</div><div class="accounting-table-wrap"><table class="accounting-table entry-detail-table"><thead><tr><th>Account</th><th>Description</th><th>Partner</th><th>Due Date</th><th class="num">Debit</th><th class="num">Credit</th></tr></thead><tbody>${lines.map(l=>`<tr><td><b>${esc(l.accounting_accounts?.code||'')}</b> — ${esc(l.accounting_accounts?.name||'')}</td><td>${esc(l.description||'—')}</td><td>${esc(l.accounting_partners?.name||e.accounting_partners?.name||'—')}</td><td>${dateText(l.due_date)}</td><td class="num">${Number(l.debit||0)?money(l.debit):'—'}</td><td class="num">${Number(l.credit||0)?money(l.credit):'—'}</td></tr>`).join('')||'<tr><td colspan="6" class="accounting-empty">No journal lines found.</td></tr>'}</tbody><tfoot><tr><th colspan="4">TOTAL</th><th class="num">${money(debit)}</th><th class="num">${money(credit)}</th></tr></tfoot></table></div>`;
+    el('closeEntryDetail')?.addEventListener('click',()=>{box.hidden=true});
   }
   function renderDocuments() {
     const row=d=>{
@@ -551,7 +566,7 @@
   }
 
   function bind(){
-    document.querySelectorAll('[data-accounting-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.accountingTab));
+    document.querySelectorAll('[data-accounting-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.accountingTab));el('entrySearch')?.addEventListener('input',renderEntries);el('entryJournalFilter')?.addEventListener('change',renderEntries);el('entryStatusFilter')?.addEventListener('change',renderEntries);el('entryFrom')?.addEventListener('change',renderEntries);el('entryTo')?.addEventListener('change',renderEntries);el('entryClearFilters')?.addEventListener('click',()=>{['entrySearch','entryFrom','entryTo'].forEach(id=>{if(el(id))el(id).value=''});if(el('entryJournalFilter'))el('entryJournalFilter').value='';if(el('entryStatusFilter'))el('entryStatusFilter').value='';renderEntries();});
     el('accountForm')?.addEventListener('submit',createAccount);el('partnerForm')?.addEventListener('submit',createPartner);el('entryForm')?.addEventListener('submit',createEntry);
     el('documentForm')?.addEventListener('submit',e=>{const id=e.currentTarget.dataset.editingId; if(id) saveEditedDocument('customer_invoice',e,id); else createDocument('customer_invoice',e);});el('billForm')?.addEventListener('submit',e=>{const id=e.currentTarget.dataset.editingId; if(id) saveEditedDocument('vendor_bill',e,id); else createDocument('vendor_bill',e);});
     el('addDocumentLine')?.addEventListener('click',()=>{el('documentLines').insertAdjacentHTML('beforeend',lineHtml('customer_invoice',el('documentLines').children.length));updateDocumentPreview('customer_invoice');});
