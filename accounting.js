@@ -493,17 +493,82 @@ async function autoMatchReconcile(){const lines=state.entryLines.filter(l=>{cons
     const box=el('partnerStatement'); if(!box)return;
     if(!pid){box.innerHTML='<div class="accounting-empty">Select a partner to view the statement.</div>';return;}
     if(from>to){box.innerHTML='<div class="accounting-empty">Statement start date cannot be after the end date.</div>';return;}
-    const p=state.partners.find(x=>x.id===pid); const docs=[...state.invoices,...state.bills].filter(d=>d.partner_id===pid&&d.status!=='cancelled'&&d.document_date<=to&&d.document_date>=from);
-    const pays=state.allocations.filter(a=>a.accounting_payments?.partner_id===pid&&a.accounting_payments?.status==='posted'&&String(a.accounting_payments.payment_date||'')>=from&&String(a.accounting_payments.payment_date||'')<=to);
+
+    const p=state.partners.find(x=>x.id===pid);
+    const isCustomer=p?.partner_type==='customer';
+    const docs=[...state.invoices,...state.bills]
+      .filter(d=>d.partner_id===pid&&d.status!=='cancelled'&&d.document_date<=to);
+    const payments=state.payments
+      .filter(x=>x.partner_id===pid&&x.status==='posted'&&String(x.payment_date||'')<=to);
+
+    const allocatedByPayment=new Map();
+    state.allocations
+      .filter(a=>a.accounting_payments?.partner_id===pid&&a.accounting_payments?.status==='posted'&&String(a.accounting_payments?.payment_date||'')<=to)
+      .forEach(a=>{
+        const key=a.payment_id;
+        allocatedByPayment.set(key,(allocatedByPayment.get(key)||0)+Number(a.amount||0));
+      });
+
+    const docPaid=d=>state.allocations
+      .filter(a=>a.document_id===d.id&&a.accounting_payments?.status==='posted'&&String(a.accounting_payments?.payment_date||'')<=to)
+      .reduce((s,a)=>s+Number(a.amount||0),0);
+
+    const signedDocument=d=>d.document_type==='customer_invoice'?Number(d.total_amount||0):-Number(d.total_amount||0);
+    const signedPayment=pay=>pay.payment_type==='receive'?-Number(pay.amount||0):Number(pay.amount||0);
+
+    const openingDocs=docs.filter(d=>d.document_date<from);
+    const openingPayments=payments.filter(x=>String(x.payment_date||'')<from);
+    const openingBalance=openingDocs.reduce((s,d)=>s+signedDocument(d),0)+openingPayments.reduce((s,x)=>s+signedPayment(x),0);
+
     const rows=[];
-    docs.forEach(d=>rows.push({date:d.document_date,no:d.document_no,type:documentLabel(d),debit:d.document_type==='customer_invoice'?Number(d.total_amount||0):0,credit:d.document_type==='vendor_bill'?Number(d.total_amount||0):0}));
-    pays.forEach(a=>rows.push({date:a.accounting_payments.payment_date,no:a.accounting_payments.payment_no,type:a.accounting_payments.payment_type==='receive'?'Payment Received':'Payment Made',debit:a.accounting_payments.payment_type==='pay'?Number(a.amount||0):0,credit:a.accounting_payments.payment_type==='receive'?Number(a.amount||0):0}));
+    docs.filter(d=>d.document_date>=from&&d.document_date<=to).forEach(d=>{
+      const paid=docPaid(d), original=Number(d.total_amount||0), outstanding=Math.max(0,original-paid);
+      const status=paid<=0.005?'Unreconciled':outstanding<=0.005?'Reconciled':'Partially reconciled';
+      rows.push({
+        date:d.document_date,no:d.document_no,type:documentLabel(d),debit:d.document_type==='customer_invoice'?original:0,
+        credit:d.document_type==='vendor_bill'?original:0,source:'document',documentId:d.id,
+        detail:status+' · Outstanding '+money(outstanding)
+      });
+    });
+
+    payments.filter(x=>String(x.payment_date||'')>=from&&String(x.payment_date||'')<=to).forEach(pay=>{
+      const allocated=allocatedByPayment.get(pay.id)||0, unallocated=Math.max(0,Number(pay.amount||0)-allocated);
+      rows.push({
+        date:pay.payment_date,no:pay.payment_no,
+        type:pay.payment_type==='receive'?'Payment Received':'Payment Made',
+        debit:pay.payment_type==='pay'?Number(pay.amount||0):0,
+        credit:pay.payment_type==='receive'?Number(pay.amount||0):0,
+        source:'payment',paymentId:pay.id,
+        detail:allocated>0?(unallocated>0?'Allocated '+money(allocated)+' · Unallocated '+money(unallocated):'Allocated '+money(allocated)):'Unallocated payment'
+      });
+    });
+
     rows.sort((a,b)=>String(a.date).localeCompare(String(b.date))||String(a.no).localeCompare(String(b.no)));
-    let balance=0;
-    const body=rows.map(r=>{balance+=r.debit-r.credit;return '<tr><td>'+dateText(r.date)+'</td><td><b>'+esc(r.no)+'</b></td><td>'+esc(r.type)+'</td><td class="num">'+(r.debit?money(r.debit):'—')+'</td><td class="num">'+(r.credit?money(r.credit):'—')+'</td><td class="num"><b>'+money(balance)+'</b></td></tr>';}).join('');
-    const periodDocs=[...state.invoices,...state.bills].filter(d=>d.partner_id===pid&&d.status!=='cancelled'&&d.document_date<=to);
-    const totalDue=periodDocs.reduce((s,d)=>s+Number(d.total_amount||0),0)-state.allocations.filter(a=>a.accounting_payments?.partner_id===pid&&a.accounting_payments?.status==='posted'&&String(a.accounting_payments.payment_date||'')<=to).reduce((s,a)=>s+Number(a.amount||0),0);
-    box.innerHTML='<div class="statement-head"><div><b>'+esc(p?.name||'')+'</b><span>'+esc(p?.email||'')+'</span></div><div><b>Statement period</b><span>'+dateText(from)+' – '+dateText(to)+'</span></div></div><div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Date</th><th>Document</th><th>Type</th><th class="num">Debit</th><th class="num">Credit</th><th class="num">Balance</th></tr></thead><tbody>'+body+'</tbody></table></div><div class="statement-total"><span>Outstanding through '+dateText(to)+'</span><b>'+money(Math.max(0,totalDue))+'</b></div>';
+
+    let balance=openingBalance;
+    const body=rows.map(r=>{
+      balance+=r.debit-r.credit;
+      const ref=r.source==='document'
+        ?'<button type="button" class="statement-doc-link" data-document-id="'+esc(r.documentId)+'">'+esc(r.no)+'</button>'
+        :'<span><b>'+esc(r.no)+'</b></span>';
+      return '<tr><td>'+dateText(r.date)+'</td><td>'+ref+'</td><td>'+esc(r.type)+'</td><td class="num">'+(r.debit?money(r.debit):'—')+'</td><td class="num">'+(r.credit?money(r.credit):'—')+'</td><td>'+esc(r.detail)+'</td><td class="num"><b>'+money(balance)+'</b></td></tr>';
+    }).join('');
+
+    const totalOutstanding=docs.reduce((s,d)=>s+Number(d.total_amount||0),0)
+      -state.allocations.filter(a=>a.accounting_payments?.partner_id===pid&&a.accounting_payments?.status==='posted'&&String(a.accounting_payments?.payment_date||'')<=to)
+        .reduce((s,a)=>s+Number(a.amount||0),0);
+    const closingBalance=balance;
+    const direction=isCustomer?'Receivable':'Payable';
+
+    box.innerHTML=
+      '<div class="statement-head"><div><b>'+esc(p?.name||'')+'</b><span>'+esc(p?.email||'')+'</span></div><div><b>Statement period</b><span>'+dateText(from)+' – '+dateText(to)+'</span></div></div>'+
+      '<div class="statement-summary"><div><span>Opening Balance</span><b>'+money(openingBalance)+'</b></div><div><span>Closing Balance</span><b>'+money(closingBalance)+'</b></div><div><span>'+direction+' Outstanding</span><b>'+money(Math.max(0,totalOutstanding))+'</b></div></div>'+
+      '<div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Date</th><th>Document</th><th>Type</th><th class="num">Debit</th><th class="num">Credit</th><th>Reconciliation</th><th class="num">Balance</th></tr></thead><tbody>'+
+      (body||'<tr><td colspan="7"><div class="accounting-empty">No transactions in this period.</div></td></tr>')+
+      '</tbody></table></div>'+
+      '<div class="statement-total"><span>Closing '+direction+' through '+dateText(to)+'</span><b>'+money(closingBalance)+'</b></div>';
+
+    box.querySelectorAll('.statement-doc-link').forEach(b=>b.addEventListener('click',()=>showDocumentDetail(b.dataset.documentId)));
   }
   function printStatement(){
     const html=el('partnerStatement')?.innerHTML; const p=state.partners.find(x=>x.id===el('statementPartner')?.value); if(!html||!p)return alert('View a statement first.');
