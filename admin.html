@@ -399,8 +399,27 @@
 <div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Date</th><th>Journal</th><th>Partner</th><th>Reference</th><th>Description</th><th class="num">Amount</th><th>Action</th></tr></thead><tbody id="bankTransactionsBody"></tbody></table></div></div>
 </div></div>
 <div class="accounting-tab-panel" data-accounting-panel="entries" hidden>
-  <div class="accounting-two-col accounting-entry-layout"><div class="panel"><div class="panel-head"><div><h2>Manual journal entry</h2><p>For adjustments that are not invoices, bills or payments.</p></div></div><form id="entryForm" class="accounting-form"><label>Date<input id="entryDate" type="date" required></label><label>Journal<select id="entryJournal" required></select></label><label>Partner<select id="entryPartner"></select></label><label>Debit account<select id="entryDebitAccount" required></select></label><label>Credit account<select id="entryCreditAccount" required></select></label><label>Amount (IDR)<input id="entryAmount" type="number" min="0.01" step="0.01" required placeholder="0"></label><label>Reference<input id="entryReference" placeholder="JE reference"></label><label>Memo<textarea id="entryMemo" rows="3" placeholder="Describe the transaction"></textarea></label><button class="primary-btn" type="submit">Post journal entry →</button></form></div>
-  <div class="panel"><div class="panel-head"><div><h2>Journal entries</h2><p>All recent accounting entries.</p></div></div><div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Entry</th><th>Date</th><th>Journal</th><th>Partner</th><th>Memo</th><th>Status</th><th></th></tr></thead><tbody id="accountingEntriesBody"></tbody></table></div></div></div>
+  <div class="accounting-entry-toolbar panel">
+    <div class="entry-filter-row">
+      <label>Search<input id="entrySearch" type="search" placeholder="Entry no., reference, partner…"></label>
+      <label>Journal<select id="entryJournalFilter"><option value="">All journals</option></select></label>
+      <label>Status<select id="entryStatusFilter"><option value="">All statuses</option><option value="posted">Posted</option><option value="draft">Draft</option></select></label>
+      <label>From<input id="entryFrom" type="date"></label>
+      <label>To<input id="entryTo" type="date"></label>
+      <button id="entryClearFilters" class="accounting-small-btn" type="button">Clear</button>
+    </div>
+  </div>
+  <div class="entry-summary-grid">
+    <div class="accounting-metric"><span>Entries</span><b id="entryFilteredCount">0</b><small>Matching current filters</small></div>
+    <div class="accounting-metric"><span>Total Debit</span><b id="entryDebitTotal">Rp0</b><small>Journal lines</small></div>
+    <div class="accounting-metric"><span>Total Credit</span><b id="entryCreditTotal">Rp0</b><small>Journal lines</small></div>
+  </div>
+  <div class="accounting-two-col accounting-entry-layout">
+    <div class="panel"><div class="panel-head"><div><h2>Manual journal entry</h2><p>For adjustments that are not invoices, bills or payments.</p></div></div><form id="entryForm" class="accounting-form"><label>Date<input id="entryDate" type="date" required></label><label>Journal<select id="entryJournal" required></select></label><label>Partner<select id="entryPartner"></select></label><label>Debit account<select id="entryDebitAccount" required></select></label><label>Credit account<select id="entryCreditAccount" required></select></label><label>Amount (IDR)<input id="entryAmount" type="number" min="0.01" step="0.01" required placeholder="0"></label><label>Reference<input id="entryReference" placeholder="JE reference"></label><label>Memo<textarea id="entryMemo" rows="3" placeholder="Describe the transaction"></textarea></label><button class="primary-btn" type="submit">Post journal entry →</button></form></div>
+    <div class="panel"><div class="panel-head"><div><h2>Journal entries</h2><p>Click an entry number to inspect the complete debit / credit lines and source.</p></div></div><div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Entry</th><th>Date</th><th>Journal</th><th>Partner</th><th>Reference</th><th class="num">Debit</th><th class="num">Credit</th><th>Status</th><th>Action</th></tr></thead><tbody id="accountingEntriesBody"></tbody></table></div></div>
+  </div>
+  <div id="accountingEntryDetail" class="panel accounting-entry-detail" hidden></div>
+</div>
 </div>
 </section>
 <section class="view" id="view-erp-overview">
