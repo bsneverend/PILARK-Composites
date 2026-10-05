@@ -1,5 +1,5 @@
 (() => {
-  const state = { accounts: [], partners: [], journals: [], entries: [], entryLines: [], reconLines: [], selectedLedgerAccount: '', selectedReconcileLines: new Set(), accountPickerTarget: '', accountPickerPage: 0, accountPickerQuery: '', invoices: [], bills: [], payments: [], allocations: [], sends: [], periods: [], inventoryBalances: [], tab: 'overview', reportFrom: '', reportTo: '' };
+  const state = { aiMessages: [], accounts: [], partners: [], journals: [], entries: [], entryLines: [], reconLines: [], selectedLedgerAccount: '', selectedReconcileLines: new Set(), accountPickerTarget: '', accountPickerPage: 0, accountPickerQuery: '', invoices: [], bills: [], payments: [], allocations: [], sends: [], periods: [], inventoryBalances: [], tab: 'overview', reportFrom: '', reportTo: '' };
   const el = id => document.getElementById(id);
   const client = () => window.PILARK_CMS?.client;
   const ready = () => !!window.PILARK_CMS?.ready && !!client();
@@ -679,6 +679,39 @@ async function autoMatchReconcile(){const lines=state.entryLines.filter(l=>{cons
       : '<div class="accounting-empty">No posted accounting activity yet.</div>';
   }
 
+  function renderAccountingAi(){
+    const box=el('accountingAiMessages'); if(!box)return;
+    box.innerHTML=state.aiMessages.map(m=>`<div class="accounting-ai-message ${m.role==='user'?'user':'assistant'}"><div class="accounting-ai-avatar">${m.role==='user'?'P':'✦'}</div><div class="accounting-ai-bubble">${esc(m.text).replace(/\\n/g,'<br>')}</div></div>`).join('');
+    box.scrollTop=box.scrollHeight;
+  }
+  function openAccountingAi(){
+    const panel=el('accountingAiPanel'); if(!panel)return;
+    panel.hidden=false;
+    if(!state.aiMessages.length){
+      state.aiMessages.push({role:'assistant',text:'Halo. Saya PILARK Accounting AI. Saya bisa membantu menjelaskan jurnal, Chart of Accounts, AR/AP, reconciliation, laporan, dan cara kerja accounting di sistem ini.'});
+      renderAccountingAi();
+    }
+    setTimeout(()=>el('accountingAiInput')?.focus(),50);
+  }
+  function closeAccountingAi(){if(el('accountingAiPanel'))el('accountingAiPanel').hidden=true;}
+  async function sendAccountingAi(question){
+    const q=String(question||'').trim(); if(!q)return;
+    state.aiMessages.push({role:'user',text:q}); renderAccountingAi();
+    const input=el('accountingAiInput'),send=el('accountingAiSend');
+    if(input)input.value=''; if(send){send.disabled=true;send.textContent='…';}
+    try{
+      const {data,error}=await client().functions.invoke('accounting-ai',{body:{question:q,tab:state.tab}});
+      if(error)throw error;
+      if(data?.error)throw new Error(data.error);
+      state.aiMessages.push({role:'assistant',text:data?.answer||'Maaf, AI tidak memberikan jawaban.'});
+    }catch(err){
+      state.aiMessages.push({role:'assistant',text:'Maaf, Accounting AI belum dapat menjawab: '+(err?.message||'Unknown error')});
+    }finally{
+      if(send){send.disabled=false;send.textContent='➤';}
+      renderAccountingAi();
+      setTimeout(()=>el('accountingAiInput')?.focus(),30);
+    }
+  }
   function showTab(tab,updateTitle=true){
     const valid=[...document.querySelectorAll('.accounting-tab-panel')].map(p=>p.dataset.accountingPanel);
     if(!valid.includes(tab)) tab='overview';
@@ -710,6 +743,12 @@ async function autoMatchReconcile(){const lines=state.entryLines.filter(l=>{cons
   }
 
   function bind(){
+    el('accountingAiButton')?.addEventListener('click',openAccountingAi);
+    el('accountingAiClose')?.addEventListener('click',closeAccountingAi);
+    el('accountingAiForm')?.addEventListener('submit',e=>{e.preventDefault();sendAccountingAi(el('accountingAiInput')?.value);});
+    document.querySelectorAll('[data-ai-prompt]').forEach(b=>b.addEventListener('click',()=>sendAccountingAi(b.dataset.aiPrompt)));
+    el('accountingAiInput')?.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendAccountingAi(e.currentTarget.value);}});
+
     document.querySelectorAll('[data-accounting-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.accountingTab));document.querySelectorAll('.account-picker-trigger').forEach(b=>b.onclick=()=>openAccountPicker(b.dataset.accountTarget));document.querySelectorAll('[data-close-account-picker]').forEach(b=>b.onclick=closeAccountPicker);el('accountPickerSearch')?.addEventListener('input',e=>{state.accountPickerQuery=e.target.value;state.accountPickerPage=0;renderAccountPicker();});el('accountPickerPrev')?.addEventListener('click',()=>{state.accountPickerPage--;renderAccountPicker();});el('accountPickerNext')?.addEventListener('click',()=>{state.accountPickerPage++;renderAccountPicker();});el('accountPickerNew')?.addEventListener('click',()=>{closeAccountPicker();showTab('accounts');el('accountCode')?.focus();});el('entrySearch')?.addEventListener('input',renderEntries);el('entryJournalFilter')?.addEventListener('change',renderEntries);el('entryStatusFilter')?.addEventListener('change',renderEntries);el('entryFrom')?.addEventListener('change',renderEntries);el('entryTo')?.addEventListener('change',renderEntries);el('entryClearFilters')?.addEventListener('click',()=>{['entrySearch','entryFrom','entryTo'].forEach(id=>{if(el(id))el(id).value=''});if(el('entryJournalFilter'))el('entryJournalFilter').value='';if(el('entryStatusFilter'))el('entryStatusFilter').value='';renderEntries();});
     el('accountForm')?.addEventListener('submit',createAccount);el('ledgerApply')?.addEventListener('click',renderGeneralLedger);el('ledgerReconcileFilter')?.addEventListener('change',()=>{state.selectedReconcileLines.clear();renderGeneralLedger();});el('ledgerReconcileBtn')?.addEventListener('click',reconcileSelectedLines);el('ledgerReconcileAmount')?.addEventListener('input',updateReconcileControls);el('ledgerReconcileAutoBtn')?.addEventListener('click',autoMatchReconcile);el('ledgerSearch')?.addEventListener('input',renderGeneralLedger);el('ledgerFrom')?.addEventListener('change',renderGeneralLedger);el('ledgerTo')?.addEventListener('change',renderGeneralLedger);el('accountLedgerClose')?.addEventListener('click',()=>{state.selectedLedgerAccount='';el('accountLedgerClose').hidden=true;el('accountLedgerTitle').textContent='General Ledger';el('accountLedgerSubtitle').textContent='Select a posting account to inspect its complete ledger.';el('accountLedgerBody').innerHTML='<tr><td colspan="8" class="accounting-empty">Select a posting account above.</td></tr>';});el('partnerForm')?.addEventListener('submit',createPartner);el('entryForm')?.addEventListener('submit',createEntry);
     el('documentForm')?.addEventListener('submit',e=>{const id=e.currentTarget.dataset.editingId; if(id) saveEditedDocument('customer_invoice',e,id); else createDocument('customer_invoice',e);});el('billForm')?.addEventListener('submit',e=>{const id=e.currentTarget.dataset.editingId; if(id) saveEditedDocument('vendor_bill',e,id); else createDocument('vendor_bill',e);});
