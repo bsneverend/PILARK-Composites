@@ -751,19 +751,95 @@ async function autoMatchReconcile(){const lines=state.entryLines.filter(l=>{cons
     state.entryLines.forEach(l=>{const a=lineByEntry.get(l.entry_id)||{debit:0,credit:0};a.debit+=Number(l.debit||0);a.credit+=Number(l.credit||0);lineByEntry.set(l.entry_id,a);});
     return {
       currentTab:state.tab,
-      accounts:state.accounts.filter(a=>a.is_active).map(a=>({code:a.code,name:a.name,type:typeLabel(a.account_type),group:!!a.is_group,reconcile:!!a.reconcile})),
+      accounts:state.accounts.filter(a=>a.is_active&&!a.is_group).map(a=>({code:a.code,name:a.name,type:typeLabel(a.account_type),reconcile:!!a.reconcile})),
       journals:state.journals.map(j=>({code:j.code,name:j.name,type:j.journal_type})),
-      customers:state.partners.filter(p=>p.partner_type==='customer'||p.partner_type==='both').map(p=>p.name).slice(0,100),
-      vendors:state.partners.filter(p=>p.partner_type==='vendor'||p.partner_type==='both').map(p=>p.name).slice(0,100),
+      customers:state.partners.filter(p=>p.partner_type==='customer'||p.partner_type==='both').map(p=>({name:p.name})).slice(0,100),
+      vendors:state.partners.filter(p=>p.partner_type==='vendor'||p.partner_type==='both').map(p=>({name:p.name})).slice(0,100),
       customerInvoices:docSummary(state.invoices,'customer_invoice'),
       vendorBills:docSummary(state.bills,'vendor_bill'),
       payments:state.payments.slice(0,100).map(p=>({no:p.payment_no,date:p.payment_date,type:p.payment_type,partner:p.accounting_partners?.name||'—',status:p.status,amount:Number(p.amount||0)})),
       postedJournalEntries:posted.slice(0,80).map(e=>({no:e.entry_no,date:e.entry_date,journal:e.accounting_journals?.code||'—',partner:e.accounting_partners?.name||'—',reference:e.reference||'—',memo:e.memo||'—',totals:lineByEntry.get(e.id)||{debit:0,credit:0}})),
       reconciliationLines:state.reconLines.length,
       accountingPeriods:state.periods.map(p=>({name:p.name,start:p.date_start,end:p.date_end,status:p.status})),
-      note:'Data snapshot is read-only and may be limited to the most recent records loaded by the CMS.'
+      note:'Use this data to analyze the live PILARK accounting system. When preparing a journal, use only account codes and journal codes that exist in this context.'
     };
   }
+
+  function renderAccountingAiAction(action){
+    if(!action||action.type!=='journal_draft')return '';
+    const amount=Number(action.amount||0);
+    if(!action.debit_account_code||!action.credit_account_code||!action.journal_code||amount<=0)return '';
+    const accountMap=new Map(state.accounts.map(a=>[String(a.code).toLowerCase(),a]));
+    const journalMap=new Map(state.journals.map(j=>[String(j.code).toLowerCase(),j]));
+    const debit=accountMap.get(String(action.debit_account_code).toLowerCase());
+    const credit=accountMap.get(String(action.credit_account_code).toLowerCase());
+    const journal=journalMap.get(String(action.journal_code).toLowerCase());
+    if(!debit||!credit||!journal)return '';
+    const partner=action.partner_name?String(action.partner_name):'';
+    return '<div class="accounting-ai-action">'+
+      '<div class="accounting-ai-action-head"><div><b>Draft Journal</b><span>Prepared by PILARK AI — review before posting</span></div></div>'+
+      '<div class="accounting-ai-action-grid">'+
+        '<div><small>Date</small><b>'+esc(action.date||today())+'</b></div>'+
+        '<div><small>Journal</small><b>'+esc(journal.code+' — '+journal.name)+'</b></div>'+
+        '<div><small>Debit</small><b>'+esc(debit.code+' — '+debit.name)+'</b></div>'+
+        '<div><small>Credit</small><b>'+esc(credit.code+' — '+credit.name)+'</b></div>'+
+        '<div><small>Amount</small><b>'+esc(money(amount))+'</b></div>'+
+        '<div><small>Partner</small><b>'+esc(partner||'No partner')+'</b></div>'+
+      '</div>'+
+      (action.memo?'<div class="accounting-ai-action-memo">'+esc(action.memo)+'</div>':'')+
+      '<button type="button" class="accounting-ai-review-btn" data-ai-review-journal="1">Review Journal Entry →</button>'+
+    '</div>';
+  }
+
+  function reviewAccountingAiJournal(action){
+    if(!action||action.type!=='journal_draft')return;
+    const debit=state.accounts.find(a=>String(a.code).toLowerCase()===String(action.debit_account_code||'').toLowerCase()&&!a.is_group);
+    const credit=state.accounts.find(a=>String(a.code).toLowerCase()===String(action.credit_account_code||'').toLowerCase()&&!a.is_group);
+    const journal=state.journals.find(j=>String(j.code).toLowerCase()===String(action.journal_code||'').toLowerCase());
+    if(!debit||!credit||!journal)return alert('AI draft references an account or journal that is not currently loaded. Refresh Accounting and try again.');
+    showTab('entries');
+    if(el('entryDate'))el('entryDate').value=action.date||today();
+    if(el('entryJournal'))el('entryJournal').value=journal.id;
+    if(el('entryPartner')){
+      const wanted=String(action.partner_name||'').trim().toLowerCase();
+      const partner=state.partners.find(p=>wanted&&String(p.name||'').trim().toLowerCase()===wanted);
+      el('entryPartner').value=partner?.id||'';
+    }
+    if(el('entryDebitAccount'))el('entryDebitAccount').value=debit.id;
+    if(el('entryCreditAccount'))el('entryCreditAccount').value=credit.id;
+    const debitBtn=document.querySelector('.account-picker-trigger[data-account-target="entryDebitAccount"]');
+    const creditBtn=document.querySelector('.account-picker-trigger[data-account-target="entryCreditAccount"]');
+    if(debitBtn)debitBtn.querySelector('span').textContent=debit.code+' — '+debit.name;
+    if(creditBtn)creditBtn.querySelector('span').textContent=credit.code+' — '+credit.name;
+    if(el('entryAmount'))el('entryAmount').value=Number(action.amount||0);
+    if(el('entryReference'))el('entryReference').value=action.reference||'';
+    if(el('entryMemo'))el('entryMemo').value=action.memo||'';
+    el('entryAmount')?.focus();
+    el('accountingAiPanel')?.setAttribute('hidden','');
+  }
+
+  function renderAccountingAi(){
+    const box=el('accountingAiMessages'); if(!box)return;
+    box.innerHTML=state.aiMessages.map(m=>'<div class="accounting-ai-message '+(m.role==='user'?'user':'assistant')+'"><div class="accounting-ai-avatar">'+(m.role==='user'?'P':'✦')+'</div><div class="accounting-ai-bubble">'+(m.role==='user'?esc(m.text).replace(/\n/g,'<br>'):renderAccountingMarkdown(m.text)+(m.action?renderAccountingAiAction(m.action):''))+'</div></div>').join('');
+    box.querySelectorAll('[data-ai-review-journal]').forEach(btn=>btn.addEventListener('click',()=>{
+      const index=[...box.querySelectorAll('[data-ai-review-journal]')].indexOf(btn);
+      const actions=state.aiMessages.filter(m=>m.role==='assistant'&&m.action?.type==='journal_draft');
+      reviewAccountingAiJournal(actions[index]);
+    }));
+    box.scrollTop=box.scrollHeight;
+  }
+
+  function openAccountingAi(){
+    const panel=el('accountingAiPanel'); if(!panel)return;
+    panel.hidden=false;
+    if(!state.aiMessages.length){
+      state.aiMessages.push({role:'assistant',text:'Halo. Saya PILARK Accounting Assistant. Saya bisa menjelaskan accounting, menganalisis data ERP, dan menyiapkan draft jurnal untuk Anda review sebelum diposting.'});
+      renderAccountingAi();
+    }
+    setTimeout(()=>el('accountingAiInput')?.focus(),50);
+  }
+  function closeAccountingAi(){if(el('accountingAiPanel'))el('accountingAiPanel').hidden=true;}
+
   async function sendAccountingAi(question){
     const q=String(question||'').trim(); if(!q)return;
     state.aiMessages.push({role:'user',text:q}); renderAccountingAi();
@@ -773,7 +849,7 @@ async function autoMatchReconcile(){const lines=state.entryLines.filter(l=>{cons
       const {data,error}=await client().functions.invoke('accounting-ai',{body:{question:q,tab:state.tab,context:accountingAiContext()}});
       if(error)throw error;
       if(data?.error)throw new Error(data.error);
-      state.aiMessages.push({role:'assistant',text:data?.answer||'Maaf, AI tidak memberikan jawaban.'});
+      state.aiMessages.push({role:'assistant',text:data?.answer||'Maaf, AI tidak memberikan jawaban.',action:data?.action||null});
     }catch(err){
       state.aiMessages.push({role:'assistant',text:'Maaf, Accounting AI belum dapat menjawab: '+(err?.message||'Unknown error')});
     }finally{
