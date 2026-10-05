@@ -229,6 +229,14 @@
   </div>
 </section><section class="view" id="view-accounting">
 <div class="section-intro accounting-intro"><div><h2>Accounting</h2><p>Odoo-style accounting foundation for PILARK: invoices, vendor bills, payments, journals and reports.</p></div><button id="accountingRefresh" class="text-btn">Refresh data ↻</button></div>
+<div class="accounting-ai-launch"><button id="accountingAiButton" type="button" class="accounting-ai-fab" aria-label="Open PILARK Accounting AI"><span class="accounting-ai-spark">✦</span><span>AI Assistant</span></button></div>
+<div id="accountingAiPanel" class="accounting-ai-panel" hidden>
+  <div class="accounting-ai-head"><div><span class="accounting-ai-kicker">PILARK AI</span><h3>Accounting Assistant</h3><p>Ask about accounting, journals, AR/AP, reports or this ERP.</p></div><button id="accountingAiClose" type="button" class="accounting-ai-close" aria-label="Close">×</button></div>
+  <div id="accountingAiMessages" class="accounting-ai-messages"></div>
+  <div class="accounting-ai-suggestions"><button type="button" data-ai-prompt="Bagaimana cara membuat jurnal umum di PILARK?">Cara buat jurnal</button><button type="button" data-ai-prompt="Apa perbedaan jurnal Penjualan, Pembelian, Bank, Kas dan Operasi Lain-lain?">Jenis jurnal</button><button type="button" data-ai-prompt="Berapa total piutang dan hutang PILARK saat ini?">AR / AP</button></div>
+  <form id="accountingAiForm" class="accounting-ai-form"><textarea id="accountingAiInput" rows="2" maxlength="4000" placeholder="Tanyakan apa saja tentang accounting…"></textarea><button id="accountingAiSend" type="submit" aria-label="Send">➤</button></form>
+  <div class="accounting-ai-note">AI is read-only. It can explain and analyze, but cannot post accounting changes.</div>
+</div>
 <div class="accounting-tabs" role="tablist" aria-label="Accounting sections">
 <button type="button" data-accounting-tab="overview" class="active">Overview</button>
 <button type="button" data-accounting-tab="invoices">Customer Invoices</button>
