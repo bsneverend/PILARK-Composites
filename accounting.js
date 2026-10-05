@@ -1,5 +1,5 @@
 (() => {
-  const state = { accounts: [], partners: [], journals: [], entries: [], entryLines: [], invoices: [], bills: [], payments: [], allocations: [], sends: [], periods: [], inventoryBalances: [], tab: 'overview', reportFrom: '', reportTo: '' };
+  const state = { accounts: [], partners: [], journals: [], entries: [], entryLines: [], accountPickerTarget: '', accountPickerPage: 0, accountPickerQuery: '', invoices: [], bills: [], payments: [], allocations: [], sends: [], periods: [], inventoryBalances: [], tab: 'overview', reportFrom: '', reportTo: '' };
   const el = id => document.getElementById(id);
   const client = () => window.PILARK_CMS?.client;
   const ready = () => !!window.PILARK_CMS?.ready && !!client();
@@ -119,9 +119,38 @@
   }
 
   function renderAccounts() {
-    el('accountingAccountsBody').innerHTML=state.accounts.map(a=>`<tr><td>${esc(a.code)}</td><td><b>${esc(a.name)}</b></td><td>${esc(typeLabel(a.account_type))}</td><td>${a.reconcile?'Yes':'—'}</td><td>${a.is_active?'Active':'Inactive'}</td></tr>`).join('');
-    el('accountType').innerHTML='<option value="">Select type…</option>'+['asset_receivable','asset_cash','asset_current','asset_non_current','asset_prepayments','asset_fixed','liability_payable','liability_credit_card','liability_current','liability_non_current','equity','equity_unaffected','income','income_other','expense','expense_other','expense_depreciation','expense_direct_cost','off_balance'].map(t=>`<option value="${t}">${esc(typeLabel(t))}</option>`).join('');
+    const byParent={};state.accounts.forEach(a=>(byParent[a.parent_id||'root']??=[]).push(a));
+    Object.values(byParent).forEach(list=>list.sort((a,b)=>String(a.code).localeCompare(String(b.code),undefined,{numeric:true})));
+    const walk=(parent,depth=0)=> (byParent[parent]||[]).flatMap(a=>[a,...walk(a.id,depth+1).map(x=>({...x,_depth:x._depth+1}))].map(x=>x));
+    const rows=walk('root');
+    el('accountingAccountsBody').innerHTML=rows.map(a=>`<tr><td><b>${esc(a.code)}</b></td><td><span class="account-tree-name" style="--depth:${a._depth||0}">${a._depth?'↳ ':''}<b>${esc(a.name)}</b></span></td><td>${esc(typeLabel(a.account_type))}</td><td>${a.reconcile?'Yes':'—'}</td><td>${a.is_active?'Active':'Inactive'}</td></tr>`).join('');
+    const types=['asset_receivable','asset_cash','asset_current','asset_non_current','asset_prepayments','asset_fixed','liability_payable','liability_credit_card','liability_current','liability_non_current','equity','equity_unaffected','income','income_other','expense','expense_other','expense_depreciation','expense_direct_cost','off_balance'];
+    const opts='<option value="">Select type…</option>'+types.map(t=>`<option value="${t}">${esc(typeLabel(t))}</option>`).join('');
+    if(el('accountType'))el('accountType').innerHTML=opts;
+    if(el('accountParent'))el('accountParent').innerHTML='<option value="">No parent — top level</option>'+state.accounts.filter(a=>a.is_active).map(a=>`<option value="${a.id}">${esc(a.code)} — ${esc(a.name)}</option>`).join('');
   }
+  function accountPickerRows(){
+    const q=state.accountPickerQuery.toLowerCase();
+    return state.accounts.filter(a=>a.is_active&&(!q||String(a.code+' '+a.name+' '+typeLabel(a.account_type)).toLowerCase().includes(q))).sort((a,b)=>String(a.code).localeCompare(String(b.code),undefined,{numeric:true}));
+  }
+  function renderAccountPicker(){
+    const rows=accountPickerRows(), size=80, pages=Math.max(1,Math.ceil(rows.length/size));state.accountPickerPage=Math.min(state.accountPickerPage,pages-1);
+    const from=state.accountPickerPage*size, pageRows=rows.slice(from,from+size);
+    el('accountPickerRange').textContent=rows.length?`${from+1}–${Math.min(from+size,rows.length)} / ${rows.length}`:'0 / 0';
+    el('accountPickerPrev').disabled=state.accountPickerPage===0;el('accountPickerNext').disabled=state.accountPickerPage>=pages-1;
+    el('accountPickerBody').innerHTML=pageRows.map(a=>`<tr class="account-picker-row" data-account-id="${a.id}"><td>${esc(a.code)}</td><td><b>${esc(a.name)}</b></td><td>${esc(typeLabel(a.account_type))}</td><td><span class="reconcile-toggle ${a.reconcile?'on':''}"><i></i></span></td></tr>`).join('')||'<tr><td colspan="4" class="accounting-empty">Tidak ada akun yang cocok.</td></tr>';
+    document.querySelectorAll('.account-picker-row').forEach(row=>row.onclick=()=>selectAccountForPicker(row.dataset.accountId));
+  }
+  function openAccountPicker(target){
+    state.accountPickerTarget=target;state.accountPickerPage=0;state.accountPickerQuery='';if(el('accountPickerSearch'))el('accountPickerSearch').value='';renderAccountPicker();el('accountPickerModal').hidden=false;setTimeout(()=>el('accountPickerSearch')?.focus(),30);
+  }
+  function selectAccountForPicker(id){
+    const a=state.accounts.find(x=>x.id===id);if(!a)return;const target=el(state.accountPickerTarget);if(target)target.value=a.id;
+    const btn=document.querySelector(`.account-picker-trigger[data-account-target="${state.accountPickerTarget}"]`);if(btn)btn.querySelector('span').textContent=a.code+' — '+a.name;
+    el('accountPickerModal').hidden=true;
+  }
+  function closeAccountPicker(){el('accountPickerModal').hidden=true;state.accountPickerTarget='';}
+
   function renderPartners() {
     el('accountingPartnersBody').innerHTML=state.partners.map(p=>`<tr><td><b>${esc(p.name)}</b></td><td>${esc(p.partner_type)}</td><td>${esc(p.email||'—')}</td><td>${esc(p.phone||'—')}</td><td>${esc(p.tax_id||'—')}</td></tr>`).join('')||'<tr><td colspan="5" class="accounting-empty">No contacts yet.</td></tr>';
   }
@@ -554,7 +583,7 @@
   function showTab(tab,updateTitle=true){state.tab=tab;document.querySelectorAll('[data-accounting-tab]').forEach(b=>b.classList.toggle('active',b.dataset.accountingTab===tab));document.querySelectorAll('.accounting-tab-panel').forEach(p=>p.hidden=p.dataset.accountingPanel!==tab);if(updateTitle&&el('view-accounting')?.classList.contains('active'))el('pageTitle').textContent='Accounting';if(tab==='overview')renderOverview().catch(console.warn);if(tab==='reports')renderReports().catch(console.warn);if(tab==='aging'){renderAgingPartners();renderAging();renderStatement();}if(tab==='periods')renderPeriods();}
   function render(){renderAccounts();renderPartners();renderEntries();renderDocuments();renderPayments();renderPeriods();renderOverview().catch(console.warn);renderErpOverview().catch(console.warn);renderReports().catch(console.warn);showTab(state.tab,false);}
 
-  async function createAccount(e){e.preventDefault();const payload={code:el('accountCode').value.trim(),name:el('accountName').value.trim(),account_type:el('accountType').value,reconcile:el('accountReconcile').checked};if(!payload.code||!payload.name||!payload.account_type)return alert('Complete Code, Name and Type.');const {error}=await client().from('accounting_accounts').insert(payload);if(error)return alert(error.message);e.target.reset();await load();showTab('accounts');}
+  async function createAccount(e){e.preventDefault();const payload={code:el('accountCode').value.trim(),name:el('accountName').value.trim(),account_type:el('accountType').value,parent_id:el('accountParent').value||null,reconcile:el('accountReconcile').checked};if(!payload.code||!payload.name||!payload.account_type)return alert('Complete Code, Name and Type.');const {error}=await client().from('accounting_accounts').insert(payload);if(error)return alert(error.message);e.target.reset();await load();showTab('accounts');}
   async function createPartner(e){e.preventDefault();const payload={name:el('partnerName').value.trim(),partner_type:el('partnerType').value,email:el('partnerEmail').value.trim()||null,phone:el('partnerPhone').value.trim()||null,tax_id:el('partnerTax').value.trim()||null,address:el('partnerAddress').value.trim()||null};if(!payload.name)return alert('Partner name is required.');const {error}=await client().from('accounting_partners').insert(payload);if(error)return alert(error.message);e.target.reset();await load();showTab('partners');}
   async function createEntry(e){e.preventDefault();const debit=el('entryDebitAccount').value,credit=el('entryCreditAccount').value,amount=Number(el('entryAmount').value);if(!debit||!credit||debit===credit||amount<=0)return alert('Select two different accounts and a positive amount.');const {data:userData}=await client().auth.getUser();const {data:entry,error}=await client().from('accounting_entries').insert({entry_no:'JE-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'-'+Math.random().toString(36).slice(2,7).toUpperCase(),entry_date:el('entryDate').value||today(),journal_id:el('entryJournal').value,partner_id:el('entryPartner').value||null,reference:el('entryReference').value.trim()||null,memo:el('entryMemo').value.trim()||null,status:'draft',created_by:userData?.user?.id||null}).select().single();if(error)return alert(error.message);const {error:le}=await client().from('accounting_lines').insert([{entry_id:entry.id,account_id:debit,partner_id:entry.partner_id,description:entry.memo||entry.reference||'Journal entry',debit:amount,credit:0},{entry_id:entry.id,account_id:credit,partner_id:entry.partner_id,description:entry.memo||entry.reference||'Journal entry',debit:0,credit:amount}]);if(le)return alert(le.message);const {error:pe}=await client().rpc('post_accounting_entry',{p_entry_id:entry.id});if(pe)return alert(pe.message);e.target.reset();el('entryDate').value=today();await load();showTab('entries');}
   async function postEntry(id){if(!confirm('Post this journal entry?'))return;const {error}=await client().rpc('post_accounting_entry',{p_entry_id:id});if(error)return alert(error.message);await load();}
@@ -566,7 +595,7 @@
   }
 
   function bind(){
-    document.querySelectorAll('[data-accounting-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.accountingTab));el('entrySearch')?.addEventListener('input',renderEntries);el('entryJournalFilter')?.addEventListener('change',renderEntries);el('entryStatusFilter')?.addEventListener('change',renderEntries);el('entryFrom')?.addEventListener('change',renderEntries);el('entryTo')?.addEventListener('change',renderEntries);el('entryClearFilters')?.addEventListener('click',()=>{['entrySearch','entryFrom','entryTo'].forEach(id=>{if(el(id))el(id).value=''});if(el('entryJournalFilter'))el('entryJournalFilter').value='';if(el('entryStatusFilter'))el('entryStatusFilter').value='';renderEntries();});
+    document.querySelectorAll('[data-accounting-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.accountingTab));document.querySelectorAll('.account-picker-trigger').forEach(b=>b.onclick=()=>openAccountPicker(b.dataset.accountTarget));document.querySelectorAll('[data-close-account-picker]').forEach(b=>b.onclick=closeAccountPicker);el('accountPickerSearch')?.addEventListener('input',e=>{state.accountPickerQuery=e.target.value;state.accountPickerPage=0;renderAccountPicker();});el('accountPickerPrev')?.addEventListener('click',()=>{state.accountPickerPage--;renderAccountPicker();});el('accountPickerNext')?.addEventListener('click',()=>{state.accountPickerPage++;renderAccountPicker();});el('accountPickerNew')?.addEventListener('click',()=>{closeAccountPicker();showTab('accounts');el('accountCode')?.focus();});el('entrySearch')?.addEventListener('input',renderEntries);el('entryJournalFilter')?.addEventListener('change',renderEntries);el('entryStatusFilter')?.addEventListener('change',renderEntries);el('entryFrom')?.addEventListener('change',renderEntries);el('entryTo')?.addEventListener('change',renderEntries);el('entryClearFilters')?.addEventListener('click',()=>{['entrySearch','entryFrom','entryTo'].forEach(id=>{if(el(id))el(id).value=''});if(el('entryJournalFilter'))el('entryJournalFilter').value='';if(el('entryStatusFilter'))el('entryStatusFilter').value='';renderEntries();});
     el('accountForm')?.addEventListener('submit',createAccount);el('partnerForm')?.addEventListener('submit',createPartner);el('entryForm')?.addEventListener('submit',createEntry);
     el('documentForm')?.addEventListener('submit',e=>{const id=e.currentTarget.dataset.editingId; if(id) saveEditedDocument('customer_invoice',e,id); else createDocument('customer_invoice',e);});el('billForm')?.addEventListener('submit',e=>{const id=e.currentTarget.dataset.editingId; if(id) saveEditedDocument('vendor_bill',e,id); else createDocument('vendor_bill',e);});
     el('addDocumentLine')?.addEventListener('click',()=>{el('documentLines').insertAdjacentHTML('beforeend',lineHtml('customer_invoice',el('documentLines').children.length));updateDocumentPreview('customer_invoice');});
@@ -579,7 +608,7 @@
     el('reportApply')?.addEventListener('click',applyReportFilters);el('erpDashboardPeriod')?.addEventListener('change',()=>renderErpOverview().catch(e=>console.warn(e)));el('erpDashboardRefresh')?.addEventListener('click',()=>load().catch(err=>alert(err.message)));document.querySelector('.side-link[data-view="erp-overview"]')?.addEventListener('click',()=>setTimeout(()=>renderErpOverview().catch(console.warn),80));el('periodForm')?.addEventListener('submit',createPeriod);el('agingApply')?.addEventListener('click',renderAging);el('agingType')?.addEventListener('change',()=>{renderAgingPartners();renderAging();});el('statementApply')?.addEventListener('click',renderStatement);el('statementPrint')?.addEventListener('click',printStatement);
   }
 
-  function populateDynamic(){el('entryJournal').innerHTML=journalOptions();if(el('entryJournalFilter'))el('entryJournalFilter').innerHTML='<option value="">All journals</option>'+journalOptions();el('entryPartner').innerHTML='<option value="">No partner</option>'+partnerOptions().replace('<option value="">Select partner…</option>','');el('entryDebitAccount').innerHTML=accountOptions();el('entryCreditAccount').innerHTML=accountOptions();el('documentPartner').innerHTML=partnerOptions('', 'customer');el('billPartner').innerHTML=partnerOptions('', 'vendor');el('paymentPartner').innerHTML=partnerOptions('', 'customer');el('paymentJournal').innerHTML=journalOptions('', ['bank','cash']);refreshPaymentDocuments();}
+  function populateDynamic(){el('entryJournal').innerHTML=journalOptions();if(el('entryJournalFilter'))el('entryJournalFilter').innerHTML='<option value="">All journals</option>'+journalOptions();el('entryPartner').innerHTML='<option value="">No partner</option>'+partnerOptions().replace('<option value="">Select partner…</option>','');el('documentPartner').innerHTML=partnerOptions('', 'customer');el('billPartner').innerHTML=partnerOptions('', 'vendor');el('paymentPartner').innerHTML=partnerOptions('', 'customer');el('paymentJournal').innerHTML=journalOptions('', ['bank','cash']);refreshPaymentDocuments();}
   const originalRender=render; // populate after data loads
   const oldLoad=load;
   async function bootLoad(){await oldLoad();populateDynamic();renderDocuments();renderPayments();updateDocumentPreview('customer_invoice');updateDocumentPreview('vendor_bill');}
