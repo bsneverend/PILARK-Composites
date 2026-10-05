@@ -385,10 +385,11 @@
       <label>From<input id="ledgerFrom" type="date"></label>
       <label>To<input id="ledgerTo" type="date"></label>
       <label>Search<input id="ledgerSearch" type="search" placeholder="Reference, memo, partner…"></label>
+      <label>Reconciliation<select id="ledgerReconcileFilter"><option value="all">All lines</option><option value="unreconciled">Unreconciled</option><option value="reconciled">Reconciled</option></select></label>
       <button id="ledgerApply" class="primary-btn" type="button">View Ledger</button>
     </div>
     <div id="accountLedgerSummary" class="entry-summary-grid"></div>
-    <div class="accounting-table-wrap"><table class="accounting-table account-ledger-table"><thead><tr><th>Date</th><th>Journal Entry</th><th>Reference</th><th>Partner</th><th>Description</th><th class="num">Debit</th><th class="num">Credit</th><th class="num">Balance</th></tr></thead><tbody id="accountLedgerBody"></tbody></table></div>
+    <div class="accounting-table-wrap"><table class="accounting-table account-ledger-table"><thead><tr><th class="reconcile-col"></th><th>Date</th><th>Journal Entry</th><th>Reference</th><th>Partner</th><th>Description</th><th class="num">Debit</th><th class="num">Credit</th><th class="num">Balance</th></tr></thead><tbody id="accountLedgerBody"></tbody></table></div>
   </div>
 </div>
 
