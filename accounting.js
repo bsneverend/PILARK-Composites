@@ -474,11 +474,19 @@ async function autoMatchReconcile(){const lines=state.entryLines.filter(l=>{cons
   }
   function renderAging(){
     const asOf=el('agingAsOf')?.value||today(), type=el('agingType')?.value||'customer', partner=el('agingPartner')?.value||'';
-    const docs=(type==='customer'?state.invoices:state.bills).filter(d=>!partner||d.partner_id===partner).map(d=>({...d,outstanding:docOutstandingAsOf(d,asOf)})).filter(d=>d.outstanding>0.005);
+    const source=type==='customer'?state.invoices:state.bills;
+    const docs=source.filter(d=>!partner||d.partner_id===partner).map(d=>{
+      const paid=state.allocations.filter(x=>x.document_id===d.id&&x.accounting_payments?.status==='posted'&&String(x.accounting_payments.payment_date||'')<=asOf).reduce((sum,x)=>sum+Number(x.amount||0),0);
+      const original=Number(d.total_amount||0), outstanding=Math.max(0,original-paid), due=d.due_date||d.document_date;
+      const days=Math.max(0,Math.floor((new Date(asOf+'T00:00:00')-new Date(due+'T00:00:00'))/86400000));
+      return {...d,original,paid,outstanding,due,age:days,bucket:agingBucket(days),reconciliation:paid<=0.005?'Unreconciled':outstanding<=0.005?'Reconciled':'Partially reconciled'};
+    }).filter(d=>d.outstanding>0.005);
     const buckets={'Current':0,'1–30 days':0,'31–60 days':0,'61–90 days':0,'90+ days':0};
-    docs.forEach(d=>{const due=d.due_date||d.document_date;const days=Math.max(0,Math.floor((new Date(asOf+'T00:00:00')-new Date(due+'T00:00:00'))/86400000));d.age=days;d.bucket=agingBucket(days);buckets[d.bucket]+=d.outstanding;});
-    el('agingSummary').innerHTML=Object.entries(buckets).map(([k,v])=>'<div class="report-row"><span>'+k+'</span><strong>'+money(v)+'</strong></div>').join('')+'<div class="report-row aging-total"><span><b>Total Outstanding</b></span><strong>'+money(docs.reduce((s,d)=>s+d.outstanding,0))+'</strong></div>';
-    el('agingDocumentsBody').innerHTML=docs.sort((a,b)=>b.age-a.age).map(d=>'<tr><td><b>'+esc(d.document_no)+'</b></td><td>'+esc(d.accounting_partners?.name||'—')+'</td><td>'+dateText(d.due_date)+'</td><td>'+d.age+' days</td><td>'+d.bucket+'</td><td class="num">'+money(d.outstanding)+'</td></tr>').join('')||'<tr><td colspan="6"><div class="accounting-empty">No outstanding documents as of this date.</div></td></tr>';
+    docs.forEach(d=>buckets[d.bucket]+=d.outstanding);
+    const total=docs.reduce((sum,d)=>sum+d.outstanding,0),overdue=total-buckets.Current,paid=docs.reduce((sum,d)=>sum+d.paid,0),original=docs.reduce((sum,d)=>sum+d.original,0);
+    el('agingSummary').innerHTML=Object.entries(buckets).map(([k,v])=>'<div class="report-row"><span>'+k+'</span><strong>'+money(v)+'</strong></div>').join('')+'<div class="report-row aging-total"><span><b>Total Outstanding</b></span><strong>'+money(total)+'</strong></div><div class="report-row"><span>Total Overdue</span><strong>'+money(overdue)+'</strong></div>';
+    if(el('agingReconciliationNote'))el('agingReconciliationNote').innerHTML='<span>Documents: <b>'+docs.length+'</b></span><span>Original: <b>'+money(original)+'</b></span><span>Paid / Allocated: <b>'+money(paid)+'</b></span><span>Outstanding: <b>'+money(total)+'</b></span>';
+    el('agingDocumentsBody').innerHTML=docs.sort((a,b)=>b.age-a.age).map(d=>'<tr><td><b>'+esc(d.document_no)+'</b></td><td>'+esc(d.accounting_partners?.name||'—')+'</td><td>'+dateText(d.due)+'</td><td>'+d.age+' days</td><td>'+d.bucket+'<br><small>'+d.reconciliation+'</small></td><td class="num">'+money(d.original)+'</td><td class="num">'+money(d.paid)+'</td><td class="num">'+money(d.outstanding)+'</td></tr>').join('')||'<tr><td colspan="8"><div class="accounting-empty">No outstanding documents as of this date.</div></td></tr>';
   }
   function renderStatement(){
     const pid=el('statementPartner')?.value, from=el('statementFrom')?.value||monthStart(), to=el('statementTo')?.value||today();
