@@ -694,13 +694,37 @@ async function autoMatchReconcile(){const lines=state.entryLines.filter(l=>{cons
     setTimeout(()=>el('accountingAiInput')?.focus(),50);
   }
   function closeAccountingAi(){if(el('accountingAiPanel'))el('accountingAiPanel').hidden=true;}
+  function accountingAiContext(){
+    const docSummary=(docs,type)=>docs.slice(0,80).map(d=>({
+      no:d.document_no,type, date:d.document_date,due:d.due_date||d.document_date,
+      partner:d.accounting_partners?.name||'—',status:d.status,total:Number(d.total_amount||0),paid:Number(d.amount_paid||0),
+      outstanding:Math.max(0,Number(d.total_amount||0)-Number(d.amount_paid||0))
+    }));
+    const posted=state.entries.filter(e=>e.status==='posted');
+    const lineByEntry=new Map();
+    state.entryLines.forEach(l=>{const a=lineByEntry.get(l.entry_id)||{debit:0,credit:0};a.debit+=Number(l.debit||0);a.credit+=Number(l.credit||0);lineByEntry.set(l.entry_id,a);});
+    return {
+      currentTab:state.tab,
+      accounts:state.accounts.filter(a=>a.is_active).map(a=>({code:a.code,name:a.name,type:typeLabel(a.account_type),group:!!a.is_group,reconcile:!!a.reconcile})),
+      journals:state.journals.map(j=>({code:j.code,name:j.name,type:j.journal_type})),
+      customers:state.partners.filter(p=>p.partner_type==='customer'||p.partner_type==='both').map(p=>p.name).slice(0,100),
+      vendors:state.partners.filter(p=>p.partner_type==='vendor'||p.partner_type==='both').map(p=>p.name).slice(0,100),
+      customerInvoices:docSummary(state.invoices,'customer_invoice'),
+      vendorBills:docSummary(state.bills,'vendor_bill'),
+      payments:state.payments.slice(0,100).map(p=>({no:p.payment_no,date:p.payment_date,type:p.payment_type,partner:p.accounting_partners?.name||'—',status:p.status,amount:Number(p.amount||0)})),
+      postedJournalEntries:posted.slice(0,80).map(e=>({no:e.entry_no,date:e.entry_date,journal:e.accounting_journals?.code||'—',partner:e.accounting_partners?.name||'—',reference:e.reference||'—',memo:e.memo||'—',totals:lineByEntry.get(e.id)||{debit:0,credit:0}})),
+      reconciliationLines:state.reconLines.length,
+      accountingPeriods:state.periods.map(p=>({name:p.name,start:p.date_start,end:p.date_end,status:p.status})),
+      note:'Data snapshot is read-only and may be limited to the most recent records loaded by the CMS.'
+    };
+  }
   async function sendAccountingAi(question){
     const q=String(question||'').trim(); if(!q)return;
     state.aiMessages.push({role:'user',text:q}); renderAccountingAi();
     const input=el('accountingAiInput'),send=el('accountingAiSend');
     if(input)input.value=''; if(send){send.disabled=true;send.textContent='…';}
     try{
-      const {data,error}=await client().functions.invoke('accounting-ai',{body:{question:q,tab:state.tab}});
+      const {data,error}=await client().functions.invoke('accounting-ai',{body:{question:q,tab:state.tab,context:accountingAiContext()}});
       if(error)throw error;
       if(data?.error)throw new Error(data.error);
       state.aiMessages.push({role:'assistant',text:data?.answer||'Maaf, AI tidak memberikan jawaban.'});
