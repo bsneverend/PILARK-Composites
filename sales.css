@@ -693,3 +693,24 @@
   #crmProjectStakeholderResults .crm-ai-contact-actions .text-btn{font-size:11px!important;}
   #crmProjectStakeholderResults .crm-ai-contact-actions .accounting-small-btn{font-size:10px!important;}
 }
+
+
+/* 2026-10-06 AI Sales Intelligence */
+.crm-ai-sales-plan-section{border:1px solid #d7e5eb;background:#fbfdfe;border-radius:14px;padding:18px;margin:16px 0}
+.crm-ai-plan-title-row{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.crm-ai-plan-title-row h3{margin:0 0 4px}
+.crm-ai-plan-intro{margin:0;color:#6d828d;font-size:12px;line-height:1.5}
+.crm-ai-plan-title-row .primary-btn{flex:0 0 auto;white-space:nowrap}
+.crm-ai-plan-head{display:flex;align-items:center;justify-content:space-between;margin:16px 0 10px;padding:12px 14px;border-radius:12px;background:#f1f8fb}
+.crm-ai-plan-head span{display:block;color:#6d828d;font-size:11px;text-transform:uppercase;font-weight:700;letter-spacing:.06em}
+.crm-ai-score{font-size:28px;line-height:1.1}.crm-ai-score.high{color:#087fbd}.crm-ai-score.medium{color:#9a6a00}.crm-ai-score.low{color:#a33}
+.crm-ai-plan-summary{font-size:14px;line-height:1.55;margin:10px 0 14px;color:#354b56}
+.crm-ai-plan-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:14px}
+.crm-ai-plan-grid div{background:#fff;border:1px solid #dce8ed;border-radius:9px;padding:9px}.crm-ai-plan-grid span{display:block;font-size:10px;color:#78909c}.crm-ai-plan-grid b{font-size:13px}
+.crm-ai-plan-section{margin-top:16px}.crm-ai-plan-section h4{margin:0 0 7px;font-size:13px;color:#263c47}.crm-ai-plan-section p{margin:0;font-size:13px;line-height:1.5}
+.crm-ai-next-action{background:#fff;border-left:4px solid #087fbd;padding:11px 13px;border-radius:7px;font-size:13px;line-height:1.5}
+.crm-ai-plan-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.crm-ai-plan-list>div{background:#fff;border:1px solid #dce8ed;border-radius:9px;padding:10px}.crm-ai-plan-list b{display:block}.crm-ai-plan-list span{display:block;color:#718793;font-size:11px;margin-top:3px}.crm-ai-plan-list p{font-size:11px;margin-top:7px}
+.crm-ai-plan-steps{margin:0;padding-left:22px}.crm-ai-plan-steps li{padding:7px 0}.crm-ai-plan-steps b,.crm-ai-plan-steps span,.crm-ai-plan-steps small{display:block}.crm-ai-plan-steps span{font-size:12px;margin-top:2px}.crm-ai-plan-steps small{color:#718793;margin-top:3px}
+.crm-ai-plan-columns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px}.crm-ai-plan-columns>div{background:#fff;border:1px solid #dce8ed;border-radius:9px;padding:10px}.crm-ai-plan-columns h4{margin-bottom:6px}.crm-ai-plan-columns ul{margin:0;padding-left:17px}.crm-ai-plan-columns li{font-size:11px;margin:5px 0;line-height:1.4}
+.crm-ai-plan-empty,.crm-ai-plan-loading,.crm-ai-plan-error{padding:14px;color:#718793;font-size:12px}.crm-ai-plan-error{color:#a33}.crm-ai-plan-generated{display:block;color:#8a9ba3;margin-top:14px;font-size:10px}
+@media(max-width:700px){.crm-ai-plan-title-row{align-items:flex-start;flex-direction:column}.crm-ai-plan-title-row .primary-btn{width:100%}.crm-ai-plan-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.crm-ai-plan-list,.crm-ai-plan-columns{grid-template-columns:1fr}}
