@@ -213,3 +213,7 @@
 .accounting-entry-dialog .entry-detail-head{position:sticky;top:-24px;background:#fff;padding-top:0;padding-bottom:16px;z-index:2}
 .accounting-entry-dialog .entry-detail-table{min-width:780px}
 @media(max-width:700px){.accounting-entry-detail{padding:12px}.accounting-entry-dialog{width:calc(100vw - 24px);max-height:calc(100vh - 24px);padding:18px}.accounting-entry-dialog .entry-detail-head{top:-18px}}
+
+/* Posted journal delete action */
+.accounting-small-btn.delete-entry-btn{color:#c62828;border-color:#f1c6c6;background:#fff}
+.accounting-small-btn.delete-entry-btn:hover{color:#fff;background:#c62828;border-color:#c62828}
