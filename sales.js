@@ -561,7 +561,7 @@
     const box=el('salesAiResults'); if(!box)return;
     const rows=(state.crm.aiCandidates||[]).map(c=>'<div class="ai-prospect-card">'+
       '<div class="ai-prospect-card-head"><div><strong>'+esc(c.company_name)+'</strong><span>'+esc(c.project_name||'Project signal')+' · '+esc(c.city||c.industry||'Indonesia')+'</span></div><div class="'+aiScoreClass(c.ai_score)+'">'+Number(c.ai_score||0)+'/100</div></div>'+
-      '<div class="ai-prospect-meta"><b>'+esc(c.product)+'</b><span>'+esc(c.application||'')+'</span></div>'+
+      '<div class="ai-prospect-meta"><b>'+esc(c.product)+'</b><span>'+esc(c.application||'')+'</span></div><div class="ai-prospect-value"><b>Project Value:</b> '+(Number(c.project_value_amount||c.estimated_project_value||0)>0?esc((c.project_value_currency||'IDR')+' '+Number(c.project_value_amount||c.estimated_project_value||0).toLocaleString('en-US')):'Not disclosed')+' <span>· '+esc(c.project_value_type||'UNKNOWN')+'</span></div>'+
       '<p>'+esc(c.ai_reason||'')+'</p><small><b>Evidence:</b> '+esc(c.evidence||'')+'</small>'+
       '<div class="ai-prospect-actions"><a class="text-btn" href="'+esc(c.source_url||c.project_url||c.website||'#')+'" target="_blank" rel="noopener">Source ↗</a><button type="button" class="accounting-small-btn ai-approve-btn" data-id="'+esc(c.id)+'">Approve to CRM</button><button type="button" class="accounting-small-btn ai-reject-btn" data-id="'+esc(c.id)+'">Reject</button></div></div>').join('');
     box.innerHTML=rows||'<div class="crm-research-empty">No AI candidates yet. Click <b>Find Prospects ✦</b> to search.</div>';
