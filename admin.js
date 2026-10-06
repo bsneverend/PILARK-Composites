@@ -346,12 +346,16 @@ async function sendAdminChatMessage(message){
 
 function showView(name){
   if(!hasViewAccess(name))return;
-  document.querySelectorAll('.view').forEach(v=>{
+  const host=document.getElementById('adminViewHost')||document.querySelector('.admin-main');
+  const views=[...document.querySelectorAll('.view')];
+  views.forEach(v=>{
     const isActive=v.id==='view-'+name;
+    if(host && v.parentElement!==host)host.appendChild(v);
     v.classList.toggle('active',isActive);
     v.hidden=!isActive;
-    v.style.display=isActive?'block':'none';
+    v.style.setProperty('display',isActive?'block':'none','important');
   });
+  if(host && host.id==='adminViewHost')host.scrollIntoView({block:'start',behavior:'auto'});
   document.querySelectorAll('.side-link').forEach(b=>b.classList.toggle('active',b.dataset.view===name));
   const main=document.querySelector('.admin-main');
   main?.classList.toggle('chat-mode',name==='chat');
@@ -388,6 +392,15 @@ function showLogin(message=''){
 }
 
 document.addEventListener('DOMContentLoaded',async()=>{
+  const adminMain=document.querySelector('.admin-main');
+  const firstView=adminMain?.querySelector('.view');
+  if(adminMain && firstView && !document.getElementById('adminViewHost')){
+    const host=document.createElement('div');
+    host.id='adminViewHost';
+    host.className='admin-view-host';
+    adminMain.insertBefore(host,firstView);
+    adminMain.querySelectorAll('.view').forEach(v=>host.appendChild(v));
+  }
   // The dashboard is protected by Supabase Auth. Never open the CMS unless
   // Supabase is configured and the browser has a valid authenticated session.
   const loginForm=document.getElementById('loginForm');
