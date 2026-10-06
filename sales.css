@@ -243,3 +243,25 @@
 .crm-prospect-modal-card .crm-modal-body{max-height:calc(100vh - 170px);overflow:auto}
 .crm-form-section-title{margin:8px 0 2px;padding-top:10px;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#0b79bd}
 @media(max-width:700px){.crm-execution-actions{width:100%}.crm-execution-actions .primary-btn,.crm-execution-actions .text-btn{flex:1}.crm-prospect-modal-card{width:calc(100vw - 20px);max-height:calc(100vh - 20px)}}
+
+
+/* AI Sales Prospect Finder */
+.crm-ai-prospect-modal-card{width:min(980px,calc(100vw - 32px));max-height:calc(100vh - 32px);overflow:hidden}
+.crm-ai-prospect-modal-card .crm-modal-body{max-height:calc(100vh - 170px);overflow:auto}
+.ai-prospect-controls{display:grid;grid-template-columns:1.3fr 1.3fr .7fr auto;gap:12px;align-items:end;padding:14px;border:1px solid #e7edf2;border-radius:14px;background:#f8fafc}
+.ai-prospect-controls label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;color:#4b5563}
+.ai-prospect-controls input,.ai-prospect-controls select{width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid #d8e0e7;border-radius:9px;background:#fff;color:#17202a}
+.ai-prospect-controls .primary-btn{white-space:nowrap}
+.ai-prospect-status{margin:14px 0;color:#64748b;font-size:13px}
+.ai-prospect-results{display:grid;gap:12px}
+.ai-prospect-card{border:1px solid #e4eaf0;border-radius:14px;padding:16px;background:#fff;box-shadow:0 4px 16px rgba(20,40,60,.04)}
+.ai-prospect-card-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}
+.ai-prospect-card-head strong{display:block;font-size:16px;color:#17202a}
+.ai-prospect-card-head span{display:block;margin-top:4px;color:#64748b;font-size:12px}
+.ai-prospect-card p{margin:10px 0 6px;line-height:1.5;color:#344454}
+.ai-prospect-card small{display:block;color:#64748b;line-height:1.45}
+.ai-prospect-meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:#52606d}
+.ai-score-hot,.ai-score-good,.ai-score-review{padding:7px 10px;border-radius:999px;font-size:12px;font-weight:800;white-space:nowrap;background:#eef6fb;color:#0b79bd}
+.ai-score-good{background:#f1f7ed;color:#3f7b2a}.ai-score-review{background:#fff7e8;color:#9a6700}
+.ai-prospect-actions{display:flex;justify-content:flex-end;gap:8px;align-items:center;margin-top:14px;flex-wrap:wrap}
+@media(max-width:800px){.ai-prospect-controls{grid-template-columns:1fr 1fr}.ai-prospect-controls .primary-btn{grid-column:1/-1}.ai-prospect-card-head{flex-direction:column}.crm-ai-prospect-modal-card{width:calc(100vw - 20px)}}
