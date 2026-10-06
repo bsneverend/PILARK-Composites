@@ -348,7 +348,7 @@
     const [a,p,o,acts,contacts]=await Promise.all([
       client().from('sales_accounts').select('*').eq('is_active',true).order('priority').order('company_name'),
       client().from('sales_projects').select('*').order('project_name'),
-      client().from('sales_opportunities').select('*,sales_accounts(company_name,priority,public_email,public_phone,contact_department),sales_projects(project_name,location,project_status)').order('next_follow_up',{ascending:true}),
+      client().from('sales_opportunities').select('*,sales_accounts(company_name,priority,public_email,public_phone,contact_department),sales_projects(id,project_name,location,project_status)').order('next_follow_up',{ascending:true}),
       client().from('sales_activities').select('*,sales_opportunities(opportunity_name,sales_accounts(company_name))').order('due_date',{ascending:true}),
       client().from('sales_contacts').select('*').eq('is_active',true).order('confidence',{ascending:false})
     ]);
@@ -811,7 +811,7 @@ async function openContactResearchModal(accountId){
   el('crmDetailClose').onclick=()=>{modal.hidden=true;modal.classList.remove('crm-contact-research-modal');if(eyebrow)eyebrow.textContent='SALES OPPORTUNITY';};
   el('crmResearchAccount').onchange=e=>openContactResearchModal(e.target.value);
   el('crmAiContactFindBtn').onclick=()=>runAiContactFinder(a.id);
-  const researchOpp=opp,researchProject=opp?.sales_projects||(state.crm.projects||[]).find(x=>x.account_id===a.id)||{};const stakeholderBtn=el('crmProjectStakeholderFindBtn');if(stakeholderBtn&&researchProject.id)stakeholderBtn.onclick=()=>runProjectStakeholderFinder(researchProject.id,researchOpp?.id||null);if(researchProject.id){loadProjectStakeholders(researchProject.id).then(renderProjectStakeholders).catch(()=>renderProjectStakeholders([]));const {data:pending}=await client().from('sales_contact_candidates').select('*').eq('project_id',researchProject.id).eq('review_status','NEW').order('ai_score',{ascending:false});renderProjectStakeholderCandidates(pending||[]);}
+  const researchOpp=opp;const researchProject=(researchOpp?.project_id&&((state.crm.projects||[]).find(x=>x.id===researchOpp.project_id)||{}))||researchOpp?.sales_projects||((state.crm.projects||[]).find(x=>x.account_id===a.id)||{});const stakeholderBtn=el('crmProjectStakeholderFindBtn');if(stakeholderBtn&&researchProject.id){stakeholderBtn.onclick=()=>runProjectStakeholderFinder(researchProject.id,researchOpp?.id||null);}else if(stakeholderBtn){stakeholderBtn.onclick=()=>{const s=el('crmProjectStakeholderStatus');if(s)s.textContent='No project is linked to this opportunity yet. Link a project first.';};}if(researchProject.id){loadProjectStakeholders(researchProject.id).then(renderProjectStakeholders).catch(()=>renderProjectStakeholders([]));const {data:pending}=await client().from('sales_contact_candidates').select('*').eq('project_id',researchProject.id).eq('review_status','NEW').order('ai_score',{ascending:false});renderProjectStakeholderCandidates(pending||[]);}
   loadAiContactCandidates(a.id).then(rows=>renderAiContactCandidates(a.id,rows)).catch(()=>renderAiContactCandidates(a.id,[]));
   el('crmDetailBody').querySelectorAll('.crm-research-open').forEach(b=>b.onclick=()=>window.open('https://www.google.com/search?q='+b.dataset.query,'_blank','noopener'));
   el('crmSaveContact').onclick=()=>saveCRMContact(a.id);
