@@ -338,3 +338,73 @@
     flex-wrap:wrap;
   }
 }
+
+
+/* 2026-10-06 AI Contact Finder final action layout */
+.crm-research-section .crm-ai-contact-find-wrap{
+  display:flex;
+  align-items:center;
+  margin:12px 0 8px;
+}
+.crm-research-section .crm-ai-contact-find{
+  display:inline-flex!important;
+  flex:0 0 auto;
+  width:auto!important;
+  min-width:230px;
+  height:44px;
+  min-height:44px;
+  margin:0!important;
+  padding:0 18px!important;
+  align-items:center;
+  justify-content:center;
+  box-sizing:border-box;
+  border-radius:11px;
+  font-size:13px!important;
+  line-height:1!important;
+  white-space:nowrap;
+}
+.crm-research-section #crmAiContactStatus{
+  min-height:18px;
+  margin:0 0 10px;
+}
+.crmAiContactResults .crm-ai-contact-actions{
+  display:flex!important;
+  align-items:center;
+  justify-content:flex-start;
+  gap:8px;
+  flex-wrap:wrap;
+  width:100%;
+  margin-top:4px;
+}
+.crmAiContactResults .crm-ai-contact-actions .text-btn,
+.crmAiContactResults .crm-ai-contact-actions .accounting-small-btn{
+  display:inline-flex!important;
+  flex:0 0 auto;
+  width:auto!important;
+  min-width:0;
+  height:36px;
+  min-height:36px;
+  margin:0!important;
+  padding:0 14px!important;
+  align-items:center;
+  justify-content:center;
+  box-sizing:border-box;
+  border-radius:9px;
+  font-size:11px!important;
+  line-height:1!important;
+  white-space:nowrap;
+}
+.crmAiContactResults .crm-ai-contact-actions .text-btn{
+  border:1px solid #cfe0e7;
+  background:#fff;
+}
+@media(max-width:700px){
+  .crm-research-section .crm-ai-contact-find{
+    min-width:0;
+    width:auto!important;
+    max-width:100%;
+  }
+  .crmAiContactResults .crm-ai-contact-actions{
+    gap:7px;
+  }
+}
