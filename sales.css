@@ -445,3 +445,13 @@
     font-size:12px!important;
   }
 }
+
+
+/* 2026-10-06 Center AI Contact Finder */
+.crm-research-section .crm-ai-contact-find-wrap{
+  justify-content:center;
+  width:100%;
+}
+.crm-research-section .crm-ai-contact-find{
+  margin:0 auto!important;
+}
