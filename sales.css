@@ -476,3 +476,37 @@
   overflow-x:hidden;
   overscroll-behavior:contain;
 }
+
+
+/* 2026-10-06 Fix AI contact action buttons after independent scrolling */
+#crmAiContactResults .crm-ai-contact-actions{
+  display:flex!important;
+  align-items:center;
+  justify-content:flex-start;
+  gap:8px!important;
+  flex-wrap:wrap;
+  width:100%;
+  margin-top:8px;
+}
+#crmAiContactResults .crm-ai-contact-actions .text-btn,
+#crmAiContactResults .crm-ai-contact-actions .accounting-small-btn{
+  display:inline-flex!important;
+  flex:0 0 auto!important;
+  width:auto!important;
+  min-width:0!important;
+  max-width:none!important;
+  height:36px!important;
+  min-height:36px!important;
+  margin:0!important;
+  padding:0 14px!important;
+  align-items:center;
+  justify-content:center;
+  box-sizing:border-box;
+  border-radius:9px;
+  line-height:1!important;
+  white-space:nowrap;
+}
+#crmAiContactResults .crm-ai-contact-actions .text-btn{
+  border:1px solid #cfe0e7;
+  background:#fff;
+}
