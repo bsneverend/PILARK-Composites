@@ -61,6 +61,7 @@ const roleLabels={
   sales:'Sales',
   purchase:'Purchase',
   inventory:'Inventory',
+  research:'Research',
   content_manager:'Content Manager',
   support:'Support'
 };
