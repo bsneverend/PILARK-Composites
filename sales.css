@@ -235,3 +235,11 @@
 @media(max-width:480px){.crm-route-primary{grid-template-columns:1fr}.crm-route-primary-btn{width:100%}}
 
 .crm-route-request{width:100%;margin-top:7px;appearance:none;border:1px dashed #c8dbe2;background:#f8fbfc;color:#59717d;border-radius:8px;padding:8px 9px;font:800 9px Inter,sans-serif;cursor:pointer}.crm-route-request:hover{border-color:#08a6e8;background:#f2fbff;color:#087fbd}
+
+
+/* Manual prospect CRM form */
+.crm-execution-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.crm-prospect-modal-card{width:min(900px,calc(100vw - 32px));max-height:calc(100vh - 32px);overflow:hidden}
+.crm-prospect-modal-card .crm-modal-body{max-height:calc(100vh - 170px);overflow:auto}
+.crm-form-section-title{margin:8px 0 2px;padding-top:10px;font-size:12px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#0b79bd}
+@media(max-width:700px){.crm-execution-actions{width:100%}.crm-execution-actions .primary-btn,.crm-execution-actions .text-btn{flex:1}.crm-prospect-modal-card{width:calc(100vw - 20px);max-height:calc(100vh - 20px)}}
