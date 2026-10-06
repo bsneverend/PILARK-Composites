@@ -12,6 +12,13 @@
   function saveSession(v){localStorage.setItem(STORAGE_KEY,JSON.stringify(v));session=v}
   function esc(v){return String(v||'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]))}
   function fmt(t){try{return new Intl.DateTimeFormat(undefined,{hour:'numeric',minute:'2-digit'}).format(new Date(t))}catch{return ''}}
+  function scrollToLatest(){
+    const body=$('chatMessages'); if(!body) return;
+    requestAnimationFrame(()=>{
+      scrollToLatest();
+      requestAnimationFrame(()=>{body.scrollTop=body.scrollHeight});
+    });
+  }
 
   function render(){
     const body=$('chatMessages'); if(!body||!session||!client) return;
