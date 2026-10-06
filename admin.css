@@ -1043,3 +1043,50 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:1
   background:var(--blue);
   color:#fff;
 }
+
+/* 2026-10-07 Research Schedule */
+.research-schedule-head{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-bottom:18px}
+.research-schedule-head h2{margin:4px 0 6px;font-family:'Space Grotesk',sans-serif;font-size:1.65rem}
+.research-schedule-head p{margin:0;color:#71858e;max-width:760px}
+.research-schedule-actions{display:flex;gap:10px;flex-wrap:wrap}
+.research-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.research-schedule-panel{padding:0;overflow:hidden}
+.research-toolbar{display:flex;gap:10px;padding:14px;border-bottom:1px solid #e7eef1;background:#fbfdfe}
+.research-toolbar input,.research-toolbar select{border:1px solid #d8e3e7;border-radius:10px;padding:10px 12px;background:#fff;color:#20333b;min-height:40px}
+.research-toolbar input{flex:1;min-width:240px}
+.research-gantt-wrap{width:100%;overflow:auto;max-height:calc(100vh - 300px);background:#fff}
+.research-gantt-table{border-collapse:separate;border-spacing:0;min-width:2200px;width:max-content;font-size:.73rem}
+.research-gantt-table th,.research-gantt-table td{border-right:1px solid #edf2f4;border-bottom:1px solid #edf2f4;height:32px;box-sizing:border-box}
+.research-gantt-table thead th{background:#f6fafb;color:#60757e;font-weight:800;white-space:nowrap;position:sticky;top:0;z-index:4}
+.research-gantt-table thead tr:nth-child(2) th{top:31px;font-size:.62rem;font-weight:700;color:#91a1a8}
+.research-fixed-code{width:82px;min-width:82px;position:sticky!important;left:0;z-index:7!important}
+.research-fixed-name{width:390px;min-width:390px;position:sticky!important;left:82px;z-index:7!important}
+.research-fixed-meta{width:92px;min-width:92px;position:sticky!important;z-index:7!important}
+.research-fixed-meta:nth-child(3){left:472px}.research-fixed-meta:nth-child(4){left:564px}.research-fixed-meta:nth-child(5){left:656px}
+.research-month{min-width:88px;text-align:center;background:#eef6f8!important;color:#405860!important}
+.research-week{width:22px;min-width:22px;text-align:center}
+.research-code,.research-name,.research-status,.research-progress,.research-pic{background:#fff;position:sticky;z-index:3}
+.research-code{left:0;font-weight:800;padding:0 9px;white-space:nowrap}
+.research-name{left:82px;padding:0 9px}
+.research-status{left:472px;padding:0 7px}
+.research-progress{left:564px;text-align:center;padding:0 4px}
+.research-pic{left:656px;padding:0 7px;white-space:nowrap;max-width:92px;overflow:hidden;text-overflow:ellipsis}
+.research-row.research-group .research-code,.research-row.research-group .research-name,.research-row.research-group .research-status,.research-row.research-group .research-progress,.research-row.research-group .research-pic{background:#f1f7f9;font-weight:900}
+.research-row.research-work_package .research-name{font-weight:800}
+.research-edit-link{border:0;background:transparent;padding:0;text-align:left;width:100%;font:inherit;color:#20333b;cursor:pointer}
+.research-edit-link:hover{color:#08a6e8}
+.research-week-cell{width:22px;min-width:22px;padding:0;background:#fff}
+.research-week-cell.active{background:#bfe8f8}
+.research-week-cell.active.package-bar{background:#86d2ec}
+.research-week-cell.active.group-bar{background:#42b8df}
+.research-week-cell.active.task-bar{box-shadow:inset 0 7px 0 #9ddcf0,inset 0 -7px 0 #9ddcf0}
+.research-status-pill{display:inline-block;border-radius:999px;padding:4px 7px;font-size:.62rem;font-weight:800;white-space:nowrap}
+.research-status-pill.planned{background:#eef3f5;color:#60757e}.research-status-pill.in_progress{background:#e6f7fd;color:#0787b7}.research-status-pill.completed{background:#e9f7ee;color:#2b7b4b}.research-status-pill.on_hold{background:#fff4df;color:#9a6a13}
+.research-empty{text-align:center;padding:28px;color:#71858e}
+.research-modal-card{max-width:760px}
+@media(max-width:900px){
+  .research-schedule-head{align-items:flex-start;flex-direction:column}
+  .research-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .research-toolbar{flex-wrap:wrap}
+  .research-toolbar input{min-width:100%}
+}
