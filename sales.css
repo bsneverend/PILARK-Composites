@@ -603,3 +603,24 @@
 }
 .ai-prospect-value b{color:#087fbd}
 .ai-prospect-value span{color:#80919a;font-size:10px;text-transform:uppercase}
+
+
+/* 2026-10-06 Sales Opportunity fixed header / independent body scroll */
+.crm-modal-card{
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+.crm-modal-card .crm-modal-head{
+  flex:0 0 auto;
+  position:relative;
+  z-index:3;
+  background:#fff;
+}
+.crm-modal-card .crm-modal-body{
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  overscroll-behavior:contain;
+}
