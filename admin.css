@@ -1048,7 +1048,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:1
 .research-schedule-head{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;margin-bottom:18px}
 .research-schedule-head h2{margin:4px 0 6px;font-family:'Space Grotesk',sans-serif;font-size:1.65rem}
 .research-schedule-head p{margin:0;color:#71858e;max-width:760px}
-.research-schedule-actions{display:flex;gap:10px;flex-wrap:wrap}
+.research-schedule-actions{display:flex;gap:10px;flex-wrap:wrap}.research-schedule-actions-top{justify-content:flex-end;margin-bottom:14px}
 .research-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
 .research-schedule-panel{padding:0;overflow:hidden}
 .research-toolbar{display:flex;gap:10px;padding:14px;border-bottom:1px solid #e7eef1;background:#fbfdfe}
