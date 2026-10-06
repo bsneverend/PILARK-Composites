@@ -13,10 +13,16 @@
   function esc(v){return String(v||'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]))}
   function fmt(t){try{return new Intl.DateTimeFormat(undefined,{hour:'numeric',minute:'2-digit'}).format(new Date(t))}catch{return ''}}
   function scrollToLatest(){
-    const body=$('chatMessages'); if(!body) return;
+    const body=$('chatMessages');
+    const scroller=body?.closest('.live-chat-body');
+    if(!scroller) return;
+    const jump=()=>{
+      scroller.scrollTop=scroller.scrollHeight;
+      scroller.scrollTo({top:scroller.scrollHeight,left:0,behavior:'auto'});
+    };
     requestAnimationFrame(()=>{
-      scrollToLatest();
-      requestAnimationFrame(()=>{body.scrollTop=body.scrollHeight});
+      jump();
+      requestAnimationFrame(jump);
     });
   }
 
@@ -28,7 +34,7 @@
       if(sig===lastSignature) return;
       lastSignature=sig;
       body.innerHTML=(data||[]).map(m=>'<div class="chat-msg '+(m.sender_type==='visitor'?'mine':'theirs')+'"><div>'+esc(m.message)+'</div><small>'+fmt(m.created_at)+'</small></div>').join('');
-      body.scrollTop=body.scrollHeight;
+      scrollToLatest();
     });
   }
 
@@ -40,6 +46,7 @@
     saveSession({id:row.id,token:row.visitor_token,name,email});
     $('chatLead').hidden=true; $('chatComposer').hidden=false; $('chatWelcome').textContent='You are connected with PILARK. Leave your message and our team will reply.';
     render();
+    scrollToLatest();
     if(timer) clearInterval(timer); timer=setInterval(render,4000);
   }
 
@@ -67,7 +74,7 @@
       try{
         const {error}=await client.rpc('chat_send_visitor_message',{p_conversation_id:session.id,p_visitor_token:session.token,p_message:message});
         if(error)throw error;
-        input.value=''; lastSignature=''; render();
+        input.value=''; lastSignature=''; render(); scrollToLatest();
       }catch(err){console.error('PILARK Live Chat send error:',err);alert(err.message||'Message could not be sent.')}
       finally{input.disabled=false;input.focus()}
     });
