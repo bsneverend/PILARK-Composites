@@ -448,23 +448,18 @@ function showView(name){
     const refreshId=financeRefreshMap[name];
     topbarAction.textContent=refreshId?'Refresh Data ↻':'Preview website ↗';
     topbarAction.classList.toggle('finance-refresh-btn',!!refreshId);
-    topbarAction.removeAttribute('onclick');
+    topbarAction.onclick=null;
     if(refreshId){
-      topbarAction.href='#';
-      topbarAction.removeAttribute('target');
-      topbarAction.onclick=e=>{
-        e.preventDefault();
+      topbarAction.onclick=()=>{
         const refreshButton=document.getElementById(refreshId);
         if(refreshButton){
           refreshButton.click();
         }else{
-          // ERP Overview has no separate module loader, so refresh the page data directly.
           window.location.reload();
         }
       };
     }else{
-      topbarAction.href='index.html';
-      topbarAction.target='_blank';
+      topbarAction.onclick=()=>window.open('index.html','_blank','noopener');
     }
   }
   // Sidebar navigation should always open Sales/Purchase at their Overview tab.
