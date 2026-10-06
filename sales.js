@@ -642,7 +642,7 @@ function renderAiContactCandidates(accountId, rows){
       '<span>'+esc(c.position||c.department||'Business contact')+' · <b>'+esc(c.confidence||'—')+'</b> · AI '+Number(c.ai_score||0)+'/100</span>'+
       '<small>'+(c.email?esc(c.email)+' · ':'')+(c.phone||c.mobile_phone?esc(c.phone||c.mobile_phone)+' · ':'')+(c.linkedin_url?'LinkedIn available · ':'')+esc(c.source_name||'Public source')+'</small>'+
       '<p>'+esc(c.evidence||'')+'</p>'+
-      '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+      '<div class="crm-ai-contact-actions">'+
         '<a class="text-btn" href="'+esc(c.source_url||'#')+'" target="_blank" rel="noopener">Source ↗</a>'+
         '<button type="button" class="accounting-small-btn crm-ai-contact-approve" data-id="'+esc(c.id)+'">Save Contact</button>'+
         '<button type="button" class="accounting-small-btn crm-ai-contact-reject" data-id="'+esc(c.id)+'">Reject</button>'+
@@ -768,7 +768,7 @@ async function openContactResearchModal(accountId){
     '<div class="crm-research-section">'+
       '<div class="eyebrow">AI CONTACT FINDER</div>'+
       '<p class="crm-research-intro">AI searches public project, procurement, engineering and professional sources for <b>business contacts only</b>. It does not guess private contact information or email patterns.</p>'+
-      '<button type="button" class="primary-btn" id="crmAiContactFindBtn">✦ Find Contacts with AI</button>'+
+      '<div class="crm-ai-contact-find-wrap"><button type="button" class="primary-btn crm-ai-contact-find" id="crmAiContactFindBtn">✦ Find Contacts with AI</button></div>'+
       '<div id="crmAiContactStatus" class="crm-research-intro"></div>'+
       '<div id="crmAiContactResults" class="crm-research-grid"></div>'+
     '</div>'+
