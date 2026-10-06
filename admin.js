@@ -51,7 +51,8 @@ const accessMap={
   purchase:'purchase.manage',
   inventory:'inventory.manage',
   accounting:'accounting.manage',
-  settings:'settings.manage'
+  settings:'settings.manage',
+  'research-schedule':'research.manage'
 };
 
 const roleLabels={
@@ -396,6 +397,130 @@ function openSidebarForView(view){
   }
 }
 
+
+const RESEARCH_MONTH_LABELS=['Agt 2026','Sept 2026','Okt 2026','Nov 2026','Des 2026','Jan 2027','Feb 2027','Mar 2027','Apr 2027','Mei 2027','Jun 2027','Jul 2027','Agt 2027','Sept 2027','Nov 2027','Des 2027','Jan 2028','Feb 2028','Mar 2028'];
+const RESEARCH_MONTHS=RESEARCH_MONTH_LABELS.map((label,i)=>({label,start:i*4+1,end:i*4+4}));
+let researchScheduleState={items:[],filtered:[],loaded:false};
+
+function researchStatusLabel(status){
+  return ({planned:'Planned',in_progress:'In progress',completed:'Completed',on_hold:'On hold'})[status]||status||'Planned';
+}
+function researchEscape(v){return escapeHtml(v==null?'':v)}
+function researchRenderHeader(){
+  const head=document.getElementById('researchGanttHead'); if(!head)return;
+  head.innerHTML='<tr><th class="research-fixed-code">Code</th><th class="research-fixed-name">Activity / Work Breakdown</th><th class="research-fixed-meta">Status</th><th class="research-fixed-meta">Progress</th><th class="research-fixed-meta">PIC</th>'+RESEARCH_MONTHS.map(m=>'<th class="research-month" colspan="4">'+researchEscape(m.label)+'</th>').join('')+'</tr><tr><th></th><th></th><th></th><th></th><th></th>'+Array.from({length:76},(_,i)=>'<th class="research-week">'+(i+1)+'</th>').join('')+'</tr>';
+}
+function researchApplyFilters(){
+  const q=(document.getElementById('researchSearch')?.value||'').trim().toLowerCase();
+  const status=document.getElementById('researchStatusFilter')?.value||'';
+  const level=document.getElementById('researchLevelFilter')?.value||'';
+  researchScheduleState.filtered=researchScheduleState.items.filter(x=>{
+    const hay=(x.code+' '+x.name+' '+(x.assignee||'')).toLowerCase();
+    return (!q||hay.includes(q))&&(!status||x.status===status)&&(!level||x.item_type===level);
+  });
+  researchRenderRows();
+}
+function researchRenderRows(){
+  const body=document.getElementById('researchGanttBody'); if(!body)return;
+  const items=researchScheduleState.filtered;
+  body.innerHTML=items.map(x=>{
+    const bar=(x.start_week&&x.end_week)?Array.from({length:76},(_,i)=>{
+      const w=i+1, active=w>=x.start_week&&w<=x.end_week;
+      return '<td class="research-week-cell '+(active?'active '+(x.item_type==='group'?'group-bar':x.item_type==='work_package'?'package-bar':'task-bar'):'')+'"></td>';
+    }).join(''):Array.from({length:76},()=>'<td class="research-week-cell"></td>').join('');
+    const indent=Math.max(0,(Number(x.level||3)-1)*16);
+    return '<tr class="research-row research-'+researchEscape(x.item_type)+'" data-research-id="'+x.id+'">'+
+      '<td class="research-code">'+researchEscape(x.code)+'</td>'+
+      '<td class="research-name"><button type="button" class="research-edit-link" data-research-edit="'+x.id+'"><span style="padding-left:'+indent+'px">'+researchEscape(x.name)+'</span></button></td>'+
+      '<td class="research-status"><span class="research-status-pill '+researchEscape(x.status)+'">'+researchStatusLabel(x.status)+'</span></td>'+
+      '<td class="research-progress">'+Number(x.progress||0).toFixed(0)+'%</td>'+
+      '<td class="research-pic">'+researchEscape(x.assignee||'—')+'</td>'+bar+'</tr>';
+  }).join('')||'<tr><td colspan="81" class="research-empty">No research activities match the current filters.</td></tr>';
+  document.querySelectorAll('[data-research-edit]').forEach(b=>b.onclick=()=>researchOpenModal(b.dataset.researchEdit));
+  const scheduled=researchScheduleState.items.filter(x=>x.start_week&&x.end_week).length;
+  const completed=researchScheduleState.items.length?Math.round(researchScheduleState.items.reduce((a,x)=>a+Number(x.progress||0),0)/researchScheduleState.items.length):0;
+  document.getElementById('researchMetricTotal').textContent=researchScheduleState.items.length;
+  document.getElementById('researchMetricScheduled').textContent=scheduled;
+  document.getElementById('researchMetricCompleted').textContent=completed+'%';
+}
+async function loadResearchSchedule(){
+  if(!cloudReady()||!hasAdminPermission('research.manage'))return;
+  const status=document.getElementById('researchScheduleStatus');
+  if(status)status.textContent='Loading research schedule…';
+  const {data,error}=await window.PILARK_CMS.client.from('research_schedule_items').select('id,code,name,item_type,level,start_week,end_week,duration_weeks,status,progress,assignee,notes').order('sort_order',{ascending:true});
+  if(error){if(status)status.textContent='Unable to load research schedule: '+error.message;return;}
+  researchScheduleState.items=data||[]; researchScheduleState.loaded=true;
+  researchApplyFilters(); if(status)status.textContent='';
+}
+function researchOpenModal(id){
+  const modal=document.getElementById('researchActivityModal'); if(!modal)return;
+  const item=researchScheduleState.items.find(x=>x.id===id);
+  const title=document.getElementById('researchActivityTitle');
+  if(item){
+    title.textContent='Edit Activity';
+    document.getElementById('researchActivityId').value=item.id;
+    document.getElementById('researchActivityCode').value=item.code||'';
+    document.getElementById('researchActivityName').value=item.name||'';
+    document.getElementById('researchActivityLevel').value=String(item.level||3);
+    document.getElementById('researchActivityStart').value=item.start_week||'';
+    document.getElementById('researchActivityEnd').value=item.end_week||'';
+    document.getElementById('researchActivityStatus').value=item.status||'planned';
+    document.getElementById('researchActivityProgress').value=Number(item.progress||0);
+    document.getElementById('researchActivityAssignee').value=item.assignee||'';
+    document.getElementById('researchActivityNotes').value=item.notes||'';
+  }else{
+    title.textContent='Add Activity';
+    document.getElementById('researchActivityForm').reset();
+    document.getElementById('researchActivityId').value='';
+    document.getElementById('researchActivityLevel').value='3';
+    document.getElementById('researchActivityStatus').value='planned';
+    document.getElementById('researchActivityProgress').value='0';
+  }
+  modal.hidden=false;
+}
+function researchCloseModal(){const m=document.getElementById('researchActivityModal');if(m)m.hidden=true}
+async function researchSaveActivity(e){
+  e.preventDefault();
+  const id=document.getElementById('researchActivityId').value||null;
+  const start=Number(document.getElementById('researchActivityStart').value)||null;
+  const end=Number(document.getElementById('researchActivityEnd').value)||null;
+  if(start&&end&&end<start){alert('End week cannot be earlier than start week.');return;}
+  const payload={
+    code:document.getElementById('researchActivityCode').value.trim(),
+    name:document.getElementById('researchActivityName').value.trim(),
+    level:Number(document.getElementById('researchActivityLevel').value)||3,
+    item_type:Number(document.getElementById('researchActivityLevel').value)===1?'group':Number(document.getElementById('researchActivityLevel').value)===2?'work_package':'task',
+    start_week:start,end_week:end,duration_weeks:start&&end?end-start+1:null,
+    status:document.getElementById('researchActivityStatus').value,
+    progress:Math.max(0,Math.min(100,Number(document.getElementById('researchActivityProgress').value)||0)),
+    assignee:document.getElementById('researchActivityAssignee').value.trim()||null,
+    notes:document.getElementById('researchActivityNotes').value.trim()||null,
+    updated_at:new Date().toISOString()
+  };
+  if(!payload.code||!payload.name){alert('Code and activity name are required.');return;}
+  const status=document.getElementById('researchScheduleStatus');
+  try{
+    if(status)status.textContent='Saving…';
+    const c=window.PILARK_CMS.client;
+    const result=id?await c.from('research_schedule_items').update(payload).eq('id',id):await c.from('research_schedule_items').insert(payload);
+    if(result.error)throw result.error;
+    researchCloseModal();
+    await loadResearchSchedule();
+  }catch(err){if(status)status.textContent='Save failed: '+err.message;}
+}
+function initResearchSchedule(){
+  researchRenderHeader();
+  document.getElementById('researchSearch')?.addEventListener('input',researchApplyFilters);
+  document.getElementById('researchStatusFilter')?.addEventListener('change',researchApplyFilters);
+  document.getElementById('researchLevelFilter')?.addEventListener('change',researchApplyFilters);
+  document.getElementById('researchRefreshBtn')?.addEventListener('click',loadResearchSchedule);
+  document.getElementById('researchAddBtn')?.addEventListener('click',()=>researchOpenModal(null));
+  document.getElementById('researchActivityForm')?.addEventListener('submit',researchSaveActivity);
+  document.getElementById('researchActivityClose')?.addEventListener('click',researchCloseModal);
+  document.getElementById('researchActivityCancel')?.addEventListener('click',researchCloseModal);
+  document.querySelectorAll('[data-research-close]').forEach(x=>x.addEventListener('click',researchCloseModal));
+}
+
 function showView(name){
   if(!hasViewAccess(name))return;
   const host=document.getElementById('adminViewHost')||document.querySelector('.admin-main');
@@ -487,6 +612,7 @@ function showView(name){
   }
   if(name==='chat') loadAdminChats();
   if(name==='settings') renderSettingsAccess();
+  if(name==='research-schedule') loadResearchSchedule();
   if(name!=='settings' && !hasViewAccess(name)) showView('settings');
 }
 
@@ -569,6 +695,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
     });
 
     initSidebarMenus();
+    initResearchSchedule();
         const mobileNavToggle=document.getElementById('mobileNavToggle');
     const sidebar=document.querySelector('.sidebar');
     if(mobileNavToggle&&sidebar){
