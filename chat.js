@@ -16,7 +16,7 @@
   function render(){
     const body=$('chatMessages'); if(!body||!session||!client) return;
     client.rpc('chat_get_visitor_messages',{p_conversation_id:session.id,p_visitor_token:session.token}).then(({data,error})=>{
-      if(error) return;
+      if(error){ console.error('PILARK Live Chat load error:',error); return; }
       const sig=JSON.stringify(data||[]);
       if(sig===lastSignature) return;
       lastSignature=sig;
