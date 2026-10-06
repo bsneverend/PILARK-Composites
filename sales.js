@@ -422,6 +422,11 @@
   function bind(){document.querySelectorAll('[data-sales-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.salesTab));el('salesForm')?.addEventListener('submit',createQuotation);el('addSalesLine')?.addEventListener('click',()=>{el('salesLines').insertAdjacentHTML('beforeend',lineHtml(el('salesLines').children.length));updatePreview();});el('salesLines')?.addEventListener('click',e=>{if(e.target.classList.contains('sales-line-remove')){const rows=el('salesLines').querySelectorAll('.sales-line');if(rows.length>1)e.target.closest('.sales-line').remove();updatePreview();}});el('salesLines')?.addEventListener('input',updatePreview);el('salesRefresh')?.addEventListener('click',()=>Promise.all([load(),loadCRM()]).catch(e=>alert(e.message)));
     el('salesCrmRefresh')?.addEventListener('click',()=>loadCRM().catch(e=>alert(e.message)));
     el('salesAddProspect')?.addEventListener('click',openSalesProspectModal);
+    el('salesAiFindProspect')?.addEventListener('click',openAiProspectModal);
+    el('salesAiProspectClose')?.addEventListener('click',closeAiProspectModal);
+    el('salesAiFindBtn')?.addEventListener('click',runAiProspector);
+    document.querySelectorAll('[data-ai-prospect-close]').forEach(b=>b.addEventListener('click',closeAiProspectModal));
+    loadAiCandidates().catch(()=>{});
     el('salesProspectClose')?.addEventListener('click',closeSalesProspectModal);
     el('salesProspectCancel')?.addEventListener('click',closeSalesProspectModal);
     el('salesProspectForm')?.addEventListener('submit',createManualProspect);
@@ -548,6 +553,60 @@
     const created=(state.crm.opportunities||[]).find(x=>x.id===opp.id);
     if(created)renderOpportunityDetail(created.id);
   }
+  function openAiProspectModal(){el('salesAiProspectModal')?.removeAttribute('hidden');renderAiProspectResults();}
+  function closeAiProspectModal(){el('salesAiProspectModal')?.setAttribute('hidden','');}
+  function aiScoreClass(score){return Number(score)>=90?'ai-score-hot':Number(score)>=75?'ai-score-good':'ai-score-review';}
+  function renderAiProspectResults(){
+    const box=el('salesAiResults'); if(!box)return;
+    const rows=(state.crm.aiCandidates||[]).map(c=>'<div class="ai-prospect-card">'+
+      '<div class="ai-prospect-card-head"><div><strong>'+esc(c.company_name)+'</strong><span>'+esc(c.project_name||'Project signal')+' · '+esc(c.city||c.industry||'Indonesia')+'</span></div><div class="'+aiScoreClass(c.ai_score)+'">'+Number(c.ai_score||0)+'/100</div></div>'+
+      '<div class="ai-prospect-meta"><b>'+esc(c.product)+'</b><span>'+esc(c.application||'')+'</span></div>'+
+      '<p>'+esc(c.ai_reason||'')+'</p><small><b>Evidence:</b> '+esc(c.evidence||'')+'</small>'+\
+      '<div class="ai-prospect-actions"><a class="text-btn" href="'+esc(c.source_url||c.project_url||c.website||'#')+'" target="_blank" rel="noopener">Source ↗</a><button type="button" class="accounting-small-btn ai-approve-btn" data-id="'+esc(c.id)+'">Approve to CRM</button><button type="button" class="accounting-small-btn ai-reject-btn" data-id="'+esc(c.id)+'">Reject</button></div></div>').join('');
+    box.innerHTML=rows||'<div class="crm-research-empty">No AI candidates yet. Click <b>Find Prospects ✦</b> to search.</div>';
+    box.querySelectorAll('.ai-approve-btn').forEach(b=>b.onclick=()=>approveAiProspect(b.dataset.id));
+    box.querySelectorAll('.ai-reject-btn').forEach(b=>b.onclick=()=>rejectAiProspect(b.dataset.id));
+  }
+  async function loadAiCandidates(){
+    const {data,error}=await client().from('sales_prospect_candidates').select('*').eq('review_status','NEW').order('ai_score',{ascending:false});
+    if(error)throw error; state.crm.aiCandidates=data||[]; renderAiProspectResults();
+  }
+  async function runAiProspector(){
+    const btn=el('salesAiFindBtn'), status=el('salesAiStatus');
+    if(btn)btn.disabled=true; if(status)status.textContent='Searching public project signals and qualifying prospects…';
+    try{
+      const existing=(state.crm.accounts||[]).map(x=>x.company_name).filter(Boolean);
+      const {data,error}=await client().functions.invoke('sales-ai-prospect-finder',{body:{product_focus:el('aiProspectProduct')?.value||'Mixed GFRP / FRP / GRP',market:el('aiProspectMarket')?.value?.trim()||'Indonesia',limit:Number(el('aiProspectLimit')?.value||8),existing_accounts:existing}});
+      if(error)throw error;
+      const candidates=Array.isArray(data?.candidates)?data.candidates:[];
+      if(!candidates.length){if(status)status.textContent='No qualified new prospects found. Try another product focus or market.';return;}
+      const {data:userData}=await client().auth.getUser();
+      const existingLower=new Set(existing.map(x=>x.toLowerCase().trim()));
+      const clean=candidates.filter(x=>x.company_name&&!existingLower.has(String(x.company_name).toLowerCase().trim())).map(x=>({...x,review_status:'NEW',created_by:userData?.user?.id||null}));
+      if(clean.length){const ins=await client().from('sales_prospect_candidates').insert(clean);if(ins.error)throw ins.error;}
+      await loadAiCandidates();
+      if(status)status.textContent='Found '+clean.length+' new candidate'+(clean.length===1?'':'s')+'. Review the evidence before approving.';
+    }catch(e){if(status)status.textContent='AI prospect search failed: '+(e?.message||e);}
+    finally{if(btn)btn.disabled=false;}
+  }
+  async function approveAiProspect(id){
+    const candidate=(state.crm.aiCandidates||[]).find(x=>x.id===id); if(!candidate)return;
+    if(!confirm('Approve '+candidate.company_name+' and create it as a Sales CRM prospect?'))return;
+    const dup=await client().from('sales_accounts').select('id,company_name').ilike('company_name',candidate.company_name).limit(1);
+    if(dup.error)return alert(dup.error.message);
+    if(dup.data?.length){await client().from('sales_prospect_candidates').update({review_status:'DUPLICATE',reviewed_at:new Date().toISOString()}).eq('id',id);await loadAiCandidates();return alert('This company already exists in Sales CRM. Marked as duplicate.');}
+    const {data:userData}=await client().auth.getUser(), uid=userData?.user?.id||null;
+    const accountPayload={company_name:candidate.company_name,account_type:'company',industry:candidate.industry||null,website:candidate.website||null,city:candidate.city||null,priority:Number(candidate.ai_score)>=90?'HOT':Number(candidate.ai_score)>=75?'WARM':'COLD',source_url:candidate.source_url||candidate.project_url||null,contact_source:'AI Prospect Finder',contact_confidence:'MEDIUM',notes:'AI prospect evidence: '+(candidate.ai_reason||'')+' '+(candidate.evidence||''),is_active:true,created_by:uid};
+    const ar=await client().from('sales_accounts').insert(accountPayload).select().single(); if(ar.error)return alert(ar.error.message);
+    const pr=await client().from('sales_projects').insert({account_id:ar.data.id,project_name:candidate.project_name||candidate.company_name,location:candidate.city||null,project_type:candidate.application||candidate.industry||null,project_status:'target',project_value:Number(candidate.estimated_project_value||0),source_url:candidate.project_url||candidate.source_url||null,notes:candidate.evidence||candidate.ai_reason||null,created_by:uid}).select().single();
+    if(pr.error){await client().from('sales_accounts').delete().eq('id',ar.data.id);return alert(pr.error.message);}
+    const op=await client().from('sales_opportunities').insert({account_id:ar.data.id,project_id:pr.data.id,opportunity_name:candidate.project_name||candidate.company_name,product:candidate.product||'Other GFRP / FRP / GRP Solution',application:candidate.application||null,sales_strategy:'AI-identified technical-led project development',lead_status:Number(candidate.ai_score)>=90?'HOT':Number(candidate.ai_score)>=75?'WARM':'COLD',stage:'PROSPECT',probability:10,estimated_project_value:Number(candidate.estimated_project_value||0),estimated_pilark_value:Number(candidate.estimated_pilark_value||0),current_material:candidate.current_material||null,potential_alternative:candidate.potential_alternative||'PILARK GFRP / FRP / GRP solution',technical_requirement:candidate.technical_requirement||null,next_action:'Validate project, identify PIC and confirm specification',next_follow_up:crmTodayPlus(3),notes:candidate.ai_reason||candidate.evidence||null,sales_owner:uid,created_by:uid}).select().single();
+    if(op.error){await client().from('sales_projects').delete().eq('id',pr.data.id);await client().from('sales_accounts').delete().eq('id',ar.data.id);return alert(op.error.message);}
+    await client().from('sales_activities').insert({opportunity_id:op.data.id,activity_type:'FOLLOW-UP',subject:'Validate AI-identified project and identify PIC',activity_date:today(),due_date:crmTodayPlus(3),status:'PLANNED',notes:'Created after human approval of AI prospect. Source: '+(candidate.source_url||candidate.project_url||'public web')});
+    await client().from('sales_prospect_candidates').update({review_status:'APPROVED',reviewed_at:new Date().toISOString()}).eq('id',id);
+    await loadCRM(); await loadAiCandidates(); showTab('execution'); renderOpportunityDetail(op.data.id);
+  }
+  async function rejectAiProspect(id){if(!confirm('Reject this AI prospect?'))return;const {error}=await client().from('sales_prospect_candidates').update({review_status:'REJECTED',reviewed_at:new Date().toISOString()}).eq('id',id);if(error)return alert(error.message);await loadAiCandidates();}
   async function saveCRMContact(accountId){
   const v=id=>el(id)?.value?.trim()||null;
   const contact={account_id:accountId,contact_person:v('crmContactPerson'),position:v('crmContactPosition'),department:v('crmContactDepartment'),email:v('crmContactEmail'),phone:v('crmContactPhone'),mobile_phone:v('crmContactMobile'),whatsapp_phone:v('crmContactWhatsapp'),linkedin_url:v('crmContactLinkedin'),source_url:v('crmContactSourceUrl'),source_name:v('crmContactSourceName'),confidence:v('crmContactConfidence')||'MEDIUM',preferred_channel:v('crmContactPreferred'),notes:v('crmContactNotes')};
