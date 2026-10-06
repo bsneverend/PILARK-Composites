@@ -448,7 +448,7 @@ async function loadResearchSchedule(){
   if(!cloudReady()||!hasAdminPermission('research.manage'))return;
   const status=document.getElementById('researchScheduleStatus');
   if(status)status.textContent='Loading research schedule…';
-  const {data,error}=await window.PILARK_CMS.client.from('research_schedule_items').select('id,code,name,item_type,level,start_week,end_week,duration_weeks,status,progress,assignee,notes').order('sort_order',{ascending:true});
+  const {data,error}=await window.PILARK_CMS.client.from('research_schedule_items').select('id,code,name,item_type,level,start_week,end_week,duration_weeks,status,progress,assignee,notes,priority,deliverable,dependency,document_url,budget,result_summary,risk').order('sort_order',{ascending:true});
   if(error){if(status)status.textContent='Unable to load research schedule: '+error.message;return;}
   researchScheduleState.items=data||[]; researchScheduleState.loaded=true;
   researchApplyFilters(); if(status)status.textContent='';
@@ -468,6 +468,13 @@ function researchOpenModal(id){
     document.getElementById('researchActivityStatus').value=item.status||'planned';
     document.getElementById('researchActivityProgress').value=Number(item.progress||0);
     document.getElementById('researchActivityAssignee').value=item.assignee||'';
+    document.getElementById('researchActivityPriority').value=item.priority||'normal';
+    document.getElementById('researchActivityDeliverable').value=item.deliverable||'';
+    document.getElementById('researchActivityDependency').value=item.dependency||'';
+    document.getElementById('researchActivityDocumentUrl').value=item.document_url||'';
+    document.getElementById('researchActivityBudget').value=item.budget??'';
+    document.getElementById('researchActivityRisk').value=item.risk||'';
+    document.getElementById('researchActivityResult').value=item.result_summary||'';
     document.getElementById('researchActivityNotes').value=item.notes||'';
   }else{
     title.textContent='Add Activity';
@@ -494,6 +501,13 @@ async function researchSaveActivity(e){
     start_week:start,end_week:end,duration_weeks:start&&end?end-start+1:null,
     status:document.getElementById('researchActivityStatus').value,
     progress:Math.max(0,Math.min(100,Number(document.getElementById('researchActivityProgress').value)||0)),
+    priority:document.getElementById('researchActivityPriority').value,
+    deliverable:document.getElementById('researchActivityDeliverable').value.trim()||null,
+    dependency:document.getElementById('researchActivityDependency').value.trim()||null,
+    document_url:document.getElementById('researchActivityDocumentUrl').value.trim()||null,
+    budget:Number(document.getElementById('researchActivityBudget').value)||null,
+    result_summary:document.getElementById('researchActivityResult').value.trim()||null,
+    risk:document.getElementById('researchActivityRisk').value.trim()||null,
     assignee:document.getElementById('researchActivityAssignee').value.trim()||null,
     notes:document.getElementById('researchActivityNotes').value.trim()||null,
     updated_at:new Date().toISOString()
