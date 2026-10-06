@@ -4,6 +4,7 @@
   const el=id=>document.getElementById(id);
   const today=()=>new Date().toISOString().slice(0,10);
   const money=v=>'Rp'+Number(v||0).toLocaleString('id-ID',{maximumFractionDigits:2});
+  const moneyCompact=v=>{const n=Number(v||0);if(!n)return 'Rp0';if(n>=1e12)return 'Rp'+(n/1e12).toLocaleString('id-ID',{maximumFractionDigits:2})+' T';if(n>=1e9)return 'Rp'+(n/1e9).toLocaleString('id-ID',{maximumFractionDigits:2})+' B';if(n>=1e6)return 'Rp'+(n/1e6).toLocaleString('id-ID',{maximumFractionDigits:2})+' Jt';if(n>=1e3)return 'Rp'+(n/1e3).toLocaleString('id-ID',{maximumFractionDigits:1})+' Rb';return money(n);};
   const esc=v=>String(v??'').replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[m]));
   let state={orders:[],partners:[],products:[],tab:'overview',crm:{accounts:[],projects:[],opportunities:[],activities:[]}};
   async function load(){
@@ -265,11 +266,11 @@
     const hot=os.filter(o=>o.lead_status==='HOT').length;
     const due=acts.filter(a=>a.status==='PLANNED'&&a.due_date&&a.due_date<=today()).length;
     const meetings=os.filter(o=>['MEETING','TECHNICAL PRESENTATION'].includes(o.stage)).length;
-    const target=os.reduce((n,o)=>n+Number(o.estimated_project_value||0),0);
+    const target=os.reduce((n,o)=>n+Number(o.project_value_idr||((o.project_value_currency||'IDR')==='IDR'?o.estimated_project_value:0)||0),0);
     if(el('crmMetricHot'))el('crmMetricHot').textContent=hot;
     if(el('crmMetricDue'))el('crmMetricDue').textContent=due;
     if(el('crmMetricMeetings'))el('crmMetricMeetings').textContent=meetings;
-    if(el('crmMetricTarget'))el('crmMetricTarget').textContent=money(target);
+    if(el('crmMetricTarget'))el('crmMetricTarget').textContent=moneyCompact(target);
     const board=el('salesExecutionBoard');
     if(board){
       board.innerHTML=CRM_STAGES.map(stage=>{
