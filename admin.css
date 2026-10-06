@@ -858,3 +858,45 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:1
   .settings-grid{grid-template-columns:1fr}
   .settings-role-form{grid-template-columns:1fr}
 }
+
+
+/* 2026-10-06 desktop finance/settings visibility fix.
+   Keep the stable pre-floating AI state; only neutralize the desktop workspace
+   clipping that disappears once the responsive breakpoint is reached. */
+@media (min-width:801px){
+  html,body{
+    height:auto;
+    min-height:100%;
+    overflow-x:hidden;
+    overflow-y:auto;
+  }
+  .admin-app{
+    height:auto;
+    min-height:100vh;
+    overflow:visible;
+    align-items:start;
+  }
+  .sidebar{
+    position:sticky;
+    top:0;
+    height:100vh;
+    min-height:100vh;
+    max-height:100vh;
+    overflow-y:auto;
+    align-self:start;
+  }
+  .admin-main{
+    height:auto;
+    min-height:100vh;
+    max-height:none;
+    overflow-x:hidden;
+    overflow-y:visible;
+  }
+  .admin-main:not(.chat-mode) .view.active{
+    display:block;
+    position:relative;
+    height:auto;
+    min-height:0;
+    overflow:visible;
+  }
+}
