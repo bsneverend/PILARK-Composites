@@ -421,6 +421,11 @@
   }
   function bind(){document.querySelectorAll('[data-sales-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.salesTab));el('salesForm')?.addEventListener('submit',createQuotation);el('addSalesLine')?.addEventListener('click',()=>{el('salesLines').insertAdjacentHTML('beforeend',lineHtml(el('salesLines').children.length));updatePreview();});el('salesLines')?.addEventListener('click',e=>{if(e.target.classList.contains('sales-line-remove')){const rows=el('salesLines').querySelectorAll('.sales-line');if(rows.length>1)e.target.closest('.sales-line').remove();updatePreview();}});el('salesLines')?.addEventListener('input',updatePreview);el('salesRefresh')?.addEventListener('click',()=>Promise.all([load(),loadCRM()]).catch(e=>alert(e.message)));
     el('salesCrmRefresh')?.addEventListener('click',()=>loadCRM().catch(e=>alert(e.message)));
+    el('salesAddProspect')?.addEventListener('click',openSalesProspectModal);
+    el('salesProspectClose')?.addEventListener('click',closeSalesProspectModal);
+    el('salesProspectCancel')?.addEventListener('click',closeSalesProspectModal);
+    el('salesProspectForm')?.addEventListener('submit',createManualProspect);
+    document.querySelectorAll('[data-prospect-close]').forEach(b=>b.addEventListener('click',closeSalesProspectModal));
     el('crmAddActivity')?.addEventListener('click',()=>openCRMActivityModal());
     el('crmResearchContacts')?.addEventListener('click',()=>openContactResearchModal());
     el('crmActivityForm')?.addEventListener('submit',saveCRMActivity);
@@ -428,6 +433,121 @@
     el('crmActivityCancel')?.addEventListener('click',closeCRMActivityModal);
     document.querySelectorAll('[data-crm-activity-close]').forEach(b=>b.addEventListener('click',closeCRMActivityModal));
     el('crmActivityOpportunity')?.addEventListener('change',()=>{const o=(state.crm.opportunities||[]).find(x=>x.id===el('crmActivityOpportunity').value);if(o)el('crmActivityTo').value=o.sales_accounts?.public_email||'';});el('salesDate').value=today();el('salesLines').innerHTML=lineHtml(0);updatePreview();document.querySelector('.side-link[data-view="sales"]')?.addEventListener('click',()=>setTimeout(()=>Promise.all([load(),loadCRM()]).catch(console.warn),50));}
+  function openSalesProspectModal(){el('salesProspectModal')?.removeAttribute('hidden');el('prospectCompanyName')?.focus();}
+  function closeSalesProspectModal(){el('salesProspectModal')?.setAttribute('hidden','');}
+  async function createManualProspect(e){
+    e.preventDefault();
+    const v=id=>el(id)?.value?.trim()||null;
+    const company=v('prospectCompanyName'), opportunity=v('prospectOpportunityName');
+    if(!company||!opportunity)return alert('Company name and opportunity/project name are required.');
+    const {data:userData}=await client().auth.getUser();
+    const accountPayload={
+      company_name:company,
+      account_type:'company',
+      industry:v('prospectIndustry'),
+      website:v('prospectWebsite'),
+      city:v('prospectCity'),
+      contact_department:v('prospectDepartment'),
+      contact_person:v('prospectContactPerson'),
+      contact_position:v('prospectContactPosition'),
+      public_email:v('prospectEmail'),
+      public_phone:v('prospectPhone'),
+      mobile_phone:v('prospectWhatsapp'),
+      whatsapp_phone:v('prospectWhatsapp'),
+      priority:el('prospectPriority')?.value||'WARM',
+      contact_source:'Manual entry',
+      contact_confidence:'HIGH',
+      notes:v('prospectNotes'),
+      is_active:true,
+      created_by:userData?.user?.id||null
+    };
+    const {data:account,error:accountError}=await client().from('sales_accounts').insert(accountPayload).select().single();
+    if(accountError)return alert(accountError.message);
+    const projectValue=Number(el('prospectProjectValue')?.value||0);
+    const pilarkValue=Number(el('prospectPilarkValue')?.value||0);
+    let project=null;
+    const {data:projectData,error:projectError}=await client().from('sales_projects').insert({
+      account_id:account.id,
+      project_name:opportunity,
+      location:v('prospectCity'),
+      project_type:v('prospectApplication'),
+      project_status:'target',
+      project_value:projectValue,
+      notes:v('prospectNotes'),
+      created_by:userData?.user?.id||null
+    }).select().single();
+    if(projectError){
+      await client().from('sales_accounts').delete().eq('id',account.id);
+      return alert(projectError.message);
+    }
+    project=projectData;
+    const {data:opp,error:oppError}=await client().from('sales_opportunities').insert({
+      account_id:account.id,
+      project_id:project.id,
+      opportunity_name:opportunity,
+      product:el('prospectProduct')?.value||'Other GFRP / FRP / GRP Solution',
+      application:v('prospectApplication'),
+      sales_strategy:'Technical-led project development',
+      lead_status:el('prospectPriority')?.value||'WARM',
+      stage:'PROSPECT',
+      probability:10,
+      estimated_quantity:null,
+      estimated_project_value:projectValue,
+      estimated_pilark_value:pilarkValue,
+      current_material:v('prospectCurrentMaterial'),
+      potential_alternative:v('prospectAlternative'),
+      technical_requirement:v('prospectTechnicalRequirement'),
+      next_action:'Qualify prospect and identify project PIC',
+      next_follow_up:crmTodayPlus(3),
+      notes:v('prospectNotes'),
+      sales_owner:userData?.user?.id||null,
+      created_by:userData?.user?.id||null
+    }).select().single();
+    if(oppError){
+      await client().from('sales_projects').delete().eq('id',project.id);
+      await client().from('sales_accounts').delete().eq('id',account.id);
+      return alert(oppError.message);
+    }
+    const contactName=v('prospectContactPerson');
+    if(contactName){
+      const {error:contactError}=await client().from('sales_contacts').insert({
+        account_id:account.id,
+        project_id:project.id,
+        contact_person:contactName,
+        position:v('prospectContactPosition'),
+        department:v('prospectDepartment'),
+        email:v('prospectEmail'),
+        phone:v('prospectPhone'),
+        mobile_phone:v('prospectWhatsapp'),
+        whatsapp_phone:v('prospectWhatsapp'),
+        contact_type:'BUSINESS',
+        source_name:'Manual entry',
+        confidence:'HIGH',
+        preferred_channel:v('prospectWhatsapp')?'WHATSAPP':(v('prospectEmail')?'EMAIL':(v('prospectPhone')?'CALL':null)),
+        notes:v('prospectNotes')
+      });
+      if(contactError)return alert('Prospect created, but contact could not be saved: '+contactError.message);
+    }
+    await client().from('sales_activities').insert({
+      opportunity_id:opp.id,
+      activity_type:'FOLLOW-UP',
+      subject:'Qualify new prospect and identify project PIC',
+      activity_date:today(),
+      due_date:crmTodayPlus(3),
+      status:'PLANNED',
+      notes:'Automatic first follow-up created for manually added prospect.'
+    });
+    e.target.reset();
+    el('prospectPriority').value='WARM';
+    el('prospectProduct').value='GRP Jacking Pipe';
+    el('prospectProjectValue').value='0';
+    el('prospectPilarkValue').value='0';
+    closeSalesProspectModal();
+    await loadCRM();
+    showTab('execution');
+    const created=(state.crm.opportunities||[]).find(x=>x.id===opp.id);
+    if(created)renderOpportunityDetail(created.id);
+  }
   async function saveCRMContact(accountId){
   const v=id=>el(id)?.value?.trim()||null;
   const contact={account_id:accountId,contact_person:v('crmContactPerson'),position:v('crmContactPosition'),department:v('crmContactDepartment'),email:v('crmContactEmail'),phone:v('crmContactPhone'),mobile_phone:v('crmContactMobile'),whatsapp_phone:v('crmContactWhatsapp'),linkedin_url:v('crmContactLinkedin'),source_url:v('crmContactSourceUrl'),source_name:v('crmContactSourceName'),confidence:v('crmContactConfidence')||'MEDIUM',preferred_channel:v('crmContactPreferred'),notes:v('crmContactNotes')};
