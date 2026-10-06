@@ -635,8 +635,19 @@
         <label>Status<select id="researchActivityStatus"><option value="planned">Planned</option><option value="in_progress">In progress</option><option value="completed">Completed</option><option value="on_hold">On hold</option></select></label>
         <label>Progress %<input id="researchActivityProgress" type="number" min="0" max="100" step="1" value="0"></label>
       </div>
-      <label>Responsible / PIC<input id="researchActivityAssignee" placeholder="Research team / PIC"></label>
-      <label>Notes<textarea id="researchActivityNotes" rows="3" placeholder="Research notes, dependencies, deliverables…"></textarea></label>
+      <div class="accounting-form-row">
+        <label>Responsible / PIC<input id="researchActivityAssignee" placeholder="Research team / PIC"></label>
+        <label>Priority<select id="researchActivityPriority"><option value="low">Low</option><option value="normal" selected>Normal</option><option value="high">High</option><option value="critical">Critical</option></select></label>
+      </div>
+      <label>Deliverable<input id="researchActivityDeliverable" placeholder="Expected output / deliverable"></label>
+      <label>Dependency<input id="researchActivityDependency" placeholder="Related activity code or dependency"></label>
+      <label>Document / Reference URL<input id="researchActivityDocumentUrl" type="url" placeholder="https://…"></label>
+      <div class="accounting-form-row">
+        <label>Budget (IDR)<input id="researchActivityBudget" type="number" min="0" step="1000" placeholder="0"></label>
+        <label>Risk<input id="researchActivityRisk" placeholder="Low / medium / high or description"></label>
+      </div>
+      <label>Research Result / Summary<textarea id="researchActivityResult" rows="3" placeholder="Findings, result, conclusion or latest update…"></textarea></label>
+      <label>Notes<textarea id="researchActivityNotes" rows="3" placeholder="Research notes…"></textarea></label>
       <div class="crm-modal-form-actions">
         <button id="researchActivityCancel" class="accounting-small-btn" type="button">Cancel</button>
         <button class="primary-btn" type="submit">Save Activity →</button>
@@ -644,4 +655,4 @@
     </form>
   </div>
 </div>
-</main></div><script src="admin.js?v=20261007-research-schedule-v2"></script><script src="accounting.js?v=20261007-posted-journal-delete-v1"></script><script src="sales.js?v=20261006-ai-action-plan-v1"></script><script src="purchase.js?v=20261006-stable-pre-floating"></script><script src="inventory.js?v=20261006-stable-pre-floating"></script><script src="bank-reconciliation.js?v=20261006-stable-pre-floating"></script></body></html>
+</main></div><script src="admin.js?v=20261007-research-schedule-v3"></script><script src="accounting.js?v=20261007-posted-journal-delete-v1"></script><script src="sales.js?v=20261006-ai-action-plan-v1"></script><script src="purchase.js?v=20261006-stable-pre-floating"></script><script src="inventory.js?v=20261006-stable-pre-floating"></script><script src="bank-reconciliation.js?v=20261006-stable-pre-floating"></script></body></html>
