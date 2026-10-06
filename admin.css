@@ -1035,7 +1035,7 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:1
 #view-accounting .section-intro > .text-btn{display:none}
 
 /* 2026-10-07 finance topbar refresh button */
-.topbar .finance-refresh-btn{
+.topbar #topbarAction.finance-refresh-btn{
   background:var(--blue2);
   color:#fff;
 }
