@@ -860,21 +860,30 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:1
 }
 
 
-/* 2026-10-06 desktop finance/settings visibility fix.
-   Keep the stable pre-floating AI state; only neutralize the desktop workspace
-   clipping that disappears once the responsive breakpoint is reached. */
+/* 2026-10-06 desktop workspace restoration.
+   The view host now contains only the active module in normal flow, so the
+   desktop ERP can safely use a fixed shell with an independently scrolling main area. */
+.accounting-tab-panel{display:block}
+.accounting-tab-panel[hidden]{display:none!important}
+
+.admin-view-host{
+  width:100%;
+  min-width:0;
+  display:block;
+}
+
 @media (min-width:801px){
   html,body{
-    height:auto;
+    height:100%;
     min-height:100%;
-    overflow-x:hidden;
-    overflow-y:auto;
+    overflow:hidden;
   }
   .admin-app{
-    height:auto;
+    width:100%;
+    height:100vh;
     min-height:100vh;
-    overflow:visible;
-    align-items:start;
+    overflow:hidden;
+    align-items:stretch;
   }
   .sidebar{
     position:sticky;
@@ -883,17 +892,19 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:1
     min-height:100vh;
     max-height:100vh;
     overflow-y:auto;
-    align-self:start;
+    align-self:stretch;
   }
   .admin-main{
-    height:auto;
-    min-height:100vh;
-    max-height:none;
+    height:100vh;
+    min-height:0;
+    max-height:100vh;
     overflow-x:hidden;
-    overflow-y:visible;
+    overflow-y:auto;
+    min-width:0;
+    box-sizing:border-box;
   }
   .admin-main:not(.chat-mode) .view.active{
-    display:block;
+    display:block!important;
     position:relative;
     height:auto;
     min-height:0;
