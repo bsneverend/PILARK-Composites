@@ -260,7 +260,8 @@ function renderOpportunityDetail(id){
       '</div>';
     modal.hidden=false;
     el('crmDetailClose').onclick=()=>modal.hidden=true;
-    modal.querySelector('.crm-detail-advance').onclick=()=>advanceCRMStage(o.id,CRM_STAGES[Math.min(CRM_STAGES.indexOf(o.stage)+1,CRM_STAGES.length-1)]);\n    const aiPlanBox=el('crmAiSalesPlan');if(aiPlanBox){loadAiSalesActionPlan(o.id).then(plan=>{renderAiSalesActionPlan(plan);if(!plan)el('crmAiSalesPlanGenerate')?.addEventListener('click',()=>runAiSalesActionPlan(o.id));}).catch(()=>renderAiSalesActionPlan(null));}
+    modal.querySelector('.crm-detail-advance').onclick=()=>advanceCRMStage(o.id,CRM_STAGES[Math.min(CRM_STAGES.indexOf(o.stage)+1,CRM_STAGES.length-1)]);
+    const aiPlanBox=el('crmAiSalesPlan');if(aiPlanBox){loadAiSalesActionPlan(o.id).then(plan=>{renderAiSalesActionPlan(plan);if(!plan)el('crmAiSalesPlanGenerate')?.addEventListener('click',()=>runAiSalesActionPlan(o.id));}).catch(()=>renderAiSalesActionPlan(null));}
     modal.querySelector('.crm-detail-done').onclick=()=>completeNextCRMActivity(o.id);
     modal.querySelector('.crm-route-research')?.addEventListener('click',()=>openContactResearchModal(o.account_id));
     modal.querySelectorAll('.crm-route-btn,.crm-route-primary-btn,.crm-route-request').forEach(b=>b.onclick=()=>handleCRMContactAction(b.dataset.opp,b.dataset.contact||'',b.dataset.action));
