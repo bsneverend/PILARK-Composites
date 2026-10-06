@@ -447,13 +447,20 @@ function showView(name){
   if(topbarAction){
     const refreshId=financeRefreshMap[name];
     topbarAction.textContent=refreshId?'Refresh Data ↻':'Preview website ↗';
+    topbarAction.classList.toggle('finance-refresh-btn',!!refreshId);
     topbarAction.removeAttribute('onclick');
     if(refreshId){
       topbarAction.href='#';
       topbarAction.removeAttribute('target');
       topbarAction.onclick=e=>{
         e.preventDefault();
-        document.getElementById(refreshId)?.click();
+        const refreshButton=document.getElementById(refreshId);
+        if(refreshButton){
+          refreshButton.click();
+        }else{
+          // ERP Overview has no separate module loader, so refresh the page data directly.
+          window.location.reload();
+        }
       };
     }else{
       topbarAction.href='index.html';
