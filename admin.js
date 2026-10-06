@@ -341,7 +341,16 @@ async function sendAdminChatMessage(message){
   const convo=adminChatState.selected;if(!convo)return;
   const {error}=await window.PILARK_CMS.client.from('chat_messages').insert({conversation_id:convo.id,sender_type:'admin',message});if(error)throw error;
   await window.PILARK_CMS.client.from('chat_conversations').update({status:'pending',updated_at:new Date().toISOString()}).eq('id',convo.id);
-  convo.status='pending';await loadAdminChatMessages();await loadAdminChats();
+  convo.status='pending';
+  await loadAdminChatMessages();
+  // Sending a reply is an explicit operator action: always reveal the newest message.
+  const box=document.getElementById('adminChatMessages');
+  if(box){
+    box.scrollTop=box.scrollHeight;
+    requestAnimationFrame(()=>{ box.scrollTop=box.scrollHeight; });
+    setTimeout(()=>{ box.scrollTop=box.scrollHeight; },0);
+  }
+  await loadAdminChats();
 }
 
 const SIDEBAR_MENU_KEY='pilarkSidebarMenusV1';
