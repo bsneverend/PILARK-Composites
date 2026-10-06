@@ -624,3 +624,72 @@
   overflow-x:hidden;
   overscroll-behavior:contain;
 }
+
+
+/* 2026-10-06 Project Stakeholder controls match AI Contact Finder */
+#crmProjectStakeholderFindBtn{
+  display:inline-flex!important;
+  flex:0 0 auto;
+  width:auto!important;
+  min-width:230px;
+  height:44px;
+  min-height:44px;
+  margin:0!important;
+  padding:0 18px!important;
+  align-items:center;
+  justify-content:center;
+  box-sizing:border-box;
+  border-radius:11px;
+  font-size:13px!important;
+  line-height:1!important;
+  white-space:nowrap;
+}
+#crmProjectStakeholderResults .crm-ai-contact-actions{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:8px!important;
+  width:100%;
+  margin-top:8px;
+  align-items:stretch;
+}
+#crmProjectStakeholderResults .crm-ai-contact-actions .text-btn,
+#crmProjectStakeholderResults .crm-ai-contact-actions .accounting-small-btn{
+  display:flex!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:none!important;
+  height:40px!important;
+  min-height:40px!important;
+  margin:0!important;
+  padding:0 10px!important;
+  align-items:center;
+  justify-content:center;
+  box-sizing:border-box;
+  border-radius:9px;
+  white-space:nowrap;
+  line-height:1!important;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+#crmProjectStakeholderResults .crm-ai-contact-actions .text-btn{
+  font-size:12px!important;
+  font-weight:800!important;
+  border:1px solid #cfe0e7;
+  background:#fff;
+  color:#087fbd;
+}
+#crmProjectStakeholderResults .crm-ai-contact-actions .accounting-small-btn{
+  font-size:11px!important;
+  font-weight:700!important;
+  border:1px solid #cfe0e7;
+  background:#fff;
+  color:#087fbd;
+}
+@media(max-width:480px){
+  #crmProjectStakeholderFindBtn{min-width:0;width:auto!important;max-width:100%;}
+  #crmProjectStakeholderResults .crm-ai-contact-actions{gap:6px!important;}
+  #crmProjectStakeholderResults .crm-ai-contact-actions .text-btn,
+  #crmProjectStakeholderResults .crm-ai-contact-actions .accounting-small-btn{height:38px!important;min-height:38px!important;padding:0 6px!important;}
+  #crmProjectStakeholderResults .crm-ai-contact-actions .text-btn{font-size:11px!important;}
+  #crmProjectStakeholderResults .crm-ai-contact-actions .accounting-small-btn{font-size:10px!important;}
+}
