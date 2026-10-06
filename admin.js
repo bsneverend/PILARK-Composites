@@ -483,6 +483,20 @@ document.addEventListener('DOMContentLoaded',async()=>{
     });
     document.getElementById('adminChatCloseMobile')?.addEventListener('click',()=>setMobileChatOpen(false));
     window.addEventListener('resize',()=>{if(!isMobileChatViewport())setMobileChatOpen(false);});
+    // Sales module tabs are delegated here so they remain functional even if the module script is delayed.
+    document.addEventListener('click',e=>{
+      const tab=e.target.closest('[data-sales-tab]');
+      if(!tab)return;
+      const name=tab.dataset.salesTab;
+      document.querySelectorAll('[data-sales-tab]').forEach(b=>b.classList.toggle('active',b.dataset.salesTab===name));
+      document.querySelectorAll('[data-sales-panel]').forEach(p=>{
+        const active=p.dataset.salesPanel===name;
+        p.hidden=!active;
+        p.toggleAttribute('hidden',!active);
+        p.style.setProperty('display',active?'block':'none','important');
+      });
+      e.preventDefault();
+    });
     document.querySelectorAll('[data-goto]').forEach(b=>b.onclick=()=>showView(b.dataset.goto));
     document.getElementById('productSearch')?.addEventListener('input',e=>renderProducts(e.target.value));
     document.getElementById('chatRefreshBtn')?.addEventListener('click',()=>{loadAdminChats();loadAdminChatMessages();});
