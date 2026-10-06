@@ -153,10 +153,10 @@
 
 .aging-reconciliation-note{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px;padding:11px 12px;border:1px solid #dce8ee;border-radius:10px;background:#f7fafb;color:#637681;font-size:11px}.aging-reconciliation-note b{color:#07121a;font-size:12px}.aging-grid .accounting-table{min-width:920px}@media(max-width:800px){.aging-reconciliation-note{grid-template-columns:1fr 1fr}}
 
-.accounting-ai-launch{position:fixed;right:28px;bottom:24px;z-index:1001;margin:0;display:block}
+.accounting-ai-launch{display:flex;justify-content:flex-end;margin:-4px 0 10px}
 .accounting-ai-fab{display:inline-flex;align-items:center;gap:8px;border:1px solid #d4e3ea;background:#07121a;color:#fff;border-radius:999px;padding:11px 17px;font:700 13px Inter,sans-serif;cursor:pointer;box-shadow:0 8px 24px rgba(7,18,26,.16)}
 .accounting-ai-spark{font-size:16px;color:#66d6ff}
-.accounting-ai-panel{position:fixed;right:28px;bottom:88px;width:min(430px,calc(100vw - 40px));height:min(650px,calc(100vh - 48px));z-index:1000;background:#fff;border:1px solid #d9e5ea;border-radius:18px;box-shadow:0 24px 70px rgba(7,18,26,.25);display:grid;grid-template-rows:auto minmax(0,1fr) auto auto auto;overflow:hidden}
+.accounting-ai-panel{position:fixed;right:28px;bottom:24px;width:min(430px,calc(100vw - 40px));height:min(650px,calc(100vh - 48px));z-index:1000;background:#fff;border:1px solid #d9e5ea;border-radius:18px;box-shadow:0 24px 70px rgba(7,18,26,.25);display:grid;grid-template-rows:auto minmax(0,1fr) auto auto auto;overflow:hidden}
 .accounting-ai-panel[hidden]{display:none}
 .accounting-ai-head{display:flex;justify-content:space-between;gap:14px;padding:17px 18px;border-bottom:1px solid #e5ecef;background:#f8fbfc}
 .accounting-ai-kicker{font-size:10px;letter-spacing:.16em;font-weight:800;color:#0b91cf}
@@ -204,9 +204,3 @@
 .accounting-ai-action-memo{margin-top:9px;font-size:11px;line-height:1.45;opacity:.78}
 .accounting-ai-review-btn{margin-top:12px;border:0;border-radius:9px;padding:9px 12px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
 @media(max-width:640px){.accounting-ai-action-grid{grid-template-columns:1fr}}
-
-@media(max-width:640px){
-  .accounting-ai-launch{right:16px;bottom:16px}
-  .accounting-ai-panel{right:12px;bottom:78px;width:calc(100vw - 24px);height:min(650px,calc(100vh - 94px))}
-  .accounting-ai-fab{padding:12px 15px}
-}
