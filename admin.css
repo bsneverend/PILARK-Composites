@@ -926,3 +926,9 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:1
 .sidebar-children .side-link:hover{background:#0d2029;color:#fff}
 .sidebar-children .chat-unread-badge{margin-top:1px}
 @media(max-width:800px){.sidebar-menu-group{margin-top:4px}.sidebar-parent{padding:11px 12px}.sidebar-children{padding-left:8px}}
+
+/* 2026-10-06 main workspace scroll reset */
+@media (min-width:801px){
+  .admin-main{scroll-behavior:auto!important;overflow-anchor:none;}
+  .admin-view-host{scroll-margin-top:0!important;}
+}
