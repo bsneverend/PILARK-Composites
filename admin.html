@@ -4,7 +4,7 @@
 <title>PILARK Admin Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="admin.css?v=20261007-finance-refresh-topbar-v3"><link rel="stylesheet" href="accounting.css?v=20261007-posted-journal-delete-v1"><link rel="stylesheet" href="bank-reconciliation.css?v=20261006-stable-pre-floating"><link rel="stylesheet" href="sales.css?v=20261006-ai-score-spacing-v2"><link rel="stylesheet" href="purchase.css?v=20261006-stable-pre-floating"><link rel="stylesheet" href="inventory.css?v=20261006-stable-pre-floating">
+<link rel="stylesheet" href="admin.css?v=20261007-research-schedule-v1"><link rel="stylesheet" href="accounting.css?v=20261007-posted-journal-delete-v1"><link rel="stylesheet" href="bank-reconciliation.css?v=20261006-stable-pre-floating"><link rel="stylesheet" href="sales.css?v=20261006-ai-score-spacing-v2"><link rel="stylesheet" href="purchase.css?v=20261006-stable-pre-floating"><link rel="stylesheet" href="inventory.css?v=20261006-stable-pre-floating">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script><script src="cms.js"></script></head><body>
 <div id="loginView" class="login-view"><div class="login-card"><a class="admin-logo" href="index.html"><img src="assets/pilark-logo-footer.svg" alt="PILARK Composites"></a><div class="eyebrow">Admin access</div><h1>Welcome back.</h1><p>Manage website images, product thumbnails and selected content from one place.</p><form id="loginForm" novalidate><label>Email<input id="adminEmail" type="email" placeholder="admin@pilarkomposit.com" required autocomplete="email"></label><label>Password<input id="adminPassword" type="password" placeholder="Enter password" required autocomplete="current-password"></label><button id="loginBtn" class="primary-btn" type="submit">Login to dashboard →</button><div id="loginStatus" class="content-status"></div></form><div class="prototype-note"><b>Secure admin access</b><span>Sign in with your authorized Supabase account to manage website media, products and content stored in the cloud.</span></div><a class="back-link" href="index.html">← Back to website</a></div></div>
 <div id="adminApp" class="admin-app" hidden><aside class="sidebar"><button id="mobileNavToggle" class="mobile-nav-toggle" type="button" aria-label="Open admin navigation" aria-expanded="false"><span></span><span></span><span></span></button><a class="admin-logo" href="index.html"><img src="assets/pilark-logo-footer.svg" alt="PILARK Composites"></a><div class="sidebar-menu-group" data-menu-group="content"><button class="sidebar-parent" type="button" data-menu-toggle="content" aria-expanded="false"><span>Content Management</span><span class="sidebar-chevron">⌄</span></button><div class="sidebar-children" data-menu-children="content"><button class="side-link" data-view="dashboard">Overview</button><button class="side-link" data-view="media">Media Library</button><button class="side-link" data-view="products">Products</button><button class="side-link" data-view="sections">Website Content</button></div></div><div class="sidebar-menu-group" data-menu-group="communication"><button class="sidebar-parent" type="button" data-menu-toggle="communication" aria-expanded="false"><span>Customer Communication</span><span class="sidebar-chevron">⌄</span></button><div class="sidebar-children" data-menu-children="communication"><button class="side-link" data-view="chat">Live Chat <span id="chatUnreadBadge" class="chat-unread-badge" hidden>0</span></button></div></div><div class="sidebar-menu-group" data-menu-group="finance"><button class="sidebar-parent" type="button" data-menu-toggle="finance" aria-expanded="false"><span>Finance</span><span class="sidebar-chevron">⌄</span></button><div class="sidebar-children" data-menu-children="finance"><button class="side-link" data-view="erp-overview">Overview</button><button class="side-link" data-view="sales">Sales</button><button class="side-link" data-view="purchase">Purchase</button><button class="side-link" data-view="inventory">Inventory</button><button class="side-link" data-view="accounting">Accounting</button></div></div><div class="sidebar-menu-group" data-menu-group="research"><button class="sidebar-parent" type="button" data-menu-toggle="research" aria-expanded="false"><span>Research</span><span class="sidebar-chevron">⌄</span></button><div class="sidebar-children" data-menu-children="research"><button class="side-link" data-view="research-schedule">Schedule</button></div></div><div class="sidebar-menu-group" data-menu-group="settings"><button class="sidebar-parent" type="button" data-menu-toggle="settings" aria-expanded="false"><span>Settings</span><span class="sidebar-chevron">⌄</span></button><div class="sidebar-children" data-menu-children="settings"><button class="side-link" data-view="settings">User Access</button></div></div><div class="sidebar-bottom"><a href="index.html" target="_blank">View website ↗</a><button id="logoutBtn">Logout</button></div></aside>
@@ -570,12 +570,78 @@
   </div>
 </section>
 <section class="view" id="view-research-schedule">
-  <div class="section-intro">
-    <div><h2>Schedule</h2><p>Research schedule and activities.</p></div>
+  <div class="research-schedule-head">
+    <div>
+      <div class="eyebrow">Research Management</div>
+      <h2>Research Schedule</h2>
+      <p>Master timetable imported from the GFRP / FRP research plan. The 76-week structure follows the workbook timeline.</p>
+    </div>
+    <div class="research-schedule-actions">
+      <button id="researchRefreshBtn" class="text-btn" type="button">Refresh ↻</button>
+      <button id="researchAddBtn" class="primary-btn" type="button">+ Add Activity</button>
+    </div>
   </div>
-  <div class="panel">
-    <div class="panel-head"><div><h2>Research Schedule</h2><p>Plan and manage upcoming research activities, tasks and follow-ups.</p></div></div>
-    <div class="check-grid"><div>✓ Research activities</div><div>✓ Upcoming schedule</div><div>✓ Follow-up planning</div><div>✓ Activity tracking</div></div>
+  <div class="research-metrics">
+    <div class="sales-metric"><span>Total activities</span><b id="researchMetricTotal">0</b></div>
+    <div class="sales-metric"><span>Scheduled</span><b id="researchMetricScheduled">0</b></div>
+    <div class="sales-metric"><span>Completed</span><b id="researchMetricCompleted">0%</b></div>
+    <div class="sales-metric"><span>Current plan span</span><b id="researchMetricSpan">76 weeks</b></div>
+  </div>
+  <div class="panel research-schedule-panel">
+    <div class="research-toolbar">
+      <input id="researchSearch" type="search" placeholder="Search activity, code or work package…">
+      <select id="researchStatusFilter">
+        <option value="">All statuses</option>
+        <option value="planned">Planned</option>
+        <option value="in_progress">In progress</option>
+        <option value="completed">Completed</option>
+        <option value="on_hold">On hold</option>
+      </select>
+      <select id="researchLevelFilter">
+        <option value="">All levels</option>
+        <option value="group">Main groups</option>
+        <option value="work_package">Work packages</option>
+        <option value="task">Tasks</option>
+      </select>
+    </div>
+    <div id="researchScheduleStatus" class="content-status"></div>
+    <div class="research-gantt-wrap">
+      <table class="research-gantt-table">
+        <thead id="researchGanttHead"></thead>
+        <tbody id="researchGanttBody"></tbody>
+      </table>
+    </div>
   </div>
 </section>
+<div class="crm-modal" id="researchActivityModal" hidden>
+  <div class="crm-modal-backdrop" data-research-close></div>
+  <div class="crm-modal-card research-modal-card" role="dialog" aria-modal="true" aria-labelledby="researchActivityTitle">
+    <div class="crm-modal-head">
+      <div><div class="eyebrow">Research Schedule</div><h2 id="researchActivityTitle">Edit Activity</h2><p>Update timing and execution status without changing the master hierarchy.</p></div>
+      <button id="researchActivityClose" class="crm-modal-close" type="button" aria-label="Close">×</button>
+    </div>
+    <form id="researchActivityForm" class="crm-modal-body accounting-form">
+      <input id="researchActivityId" type="hidden">
+      <div class="accounting-form-row">
+        <label>Code<input id="researchActivityCode" required></label>
+        <label>Level<select id="researchActivityLevel"><option value="1">Main group</option><option value="2">Work package</option><option value="3" selected>Task</option><option value="4">Sub-task</option></select></label>
+      </div>
+      <label>Activity / Work Breakdown<input id="researchActivityName" required></label>
+      <div class="accounting-form-row">
+        <label>Start week<input id="researchActivityStart" type="number" min="1" max="76"></label>
+        <label>End week<input id="researchActivityEnd" type="number" min="1" max="76"></label>
+      </div>
+      <div class="accounting-form-row">
+        <label>Status<select id="researchActivityStatus"><option value="planned">Planned</option><option value="in_progress">In progress</option><option value="completed">Completed</option><option value="on_hold">On hold</option></select></label>
+        <label>Progress %<input id="researchActivityProgress" type="number" min="0" max="100" step="1" value="0"></label>
+      </div>
+      <label>Responsible / PIC<input id="researchActivityAssignee" placeholder="Research team / PIC"></label>
+      <label>Notes<textarea id="researchActivityNotes" rows="3" placeholder="Research notes, dependencies, deliverables…"></textarea></label>
+      <div class="crm-modal-form-actions">
+        <button id="researchActivityCancel" class="accounting-small-btn" type="button">Cancel</button>
+        <button class="primary-btn" type="submit">Save Activity →</button>
+      </div>
+    </form>
+  </div>
+</div>
 </main></div><script src="admin.js?v=20261007-finance-refresh-hard-reload-v4"></script><script src="accounting.js?v=20261007-posted-journal-delete-v1"></script><script src="sales.js?v=20261006-ai-action-plan-v1"></script><script src="purchase.js?v=20261006-stable-pre-floating"></script><script src="inventory.js?v=20261006-stable-pre-floating"></script><script src="bank-reconciliation.js?v=20261006-stable-pre-floating"></script></body></html>
