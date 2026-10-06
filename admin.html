@@ -35,8 +35,62 @@
     <div class="check-grid"><div>✓ Quotation numbering</div><div>✓ Customer and line items</div><div>✓ Confirmation to Sales Order</div><div>✓ Automatic accounting invoice</div></div>
   </div>
 </div>
+<div class="crm-modal" id="salesProspectModal" hidden>
+  <div class="crm-modal-backdrop" data-prospect-close></div>
+  <div class="crm-modal-card crm-prospect-modal-card" role="dialog" aria-modal="true" aria-labelledby="salesProspectTitle">
+    <div class="crm-modal-head">
+      <div><div class="eyebrow">Sales CRM</div><h2 id="salesProspectTitle">Add Prospect</h2><p>Manually register a company and create its first sales opportunity.</p></div>
+      <button id="salesProspectClose" class="crm-modal-close" type="button" aria-label="Close">×</button>
+    </div>
+    <form id="salesProspectForm" class="crm-modal-body accounting-form">
+      <div class="crm-form-section-title">Company Information</div>
+      <label>Company Name *<input id="prospectCompanyName" required placeholder="e.g. PT ABC Infrastruktur"></label>
+      <div class="accounting-form-row">
+        <label>Industry<input id="prospectIndustry" placeholder="Construction / Infrastructure"></label>
+        <label>City / Location<input id="prospectCity" placeholder="Jakarta"></label>
+      </div>
+      <div class="accounting-form-row">
+        <label>Website<input id="prospectWebsite" placeholder="https://"></label>
+        <label>Priority<select id="prospectPriority"><option value="HOT">HOT</option><option value="WARM" selected>WARM</option><option value="COLD">COLD</option></select></label>
+      </div>
+      <div class="crm-form-section-title">Contact Person</div>
+      <div class="accounting-form-row">
+        <label>Contact Person<input id="prospectContactPerson" placeholder="Name"></label>
+        <label>Position<input id="prospectContactPosition" placeholder="Project / Engineering / Procurement"></label>
+      </div>
+      <div class="accounting-form-row">
+        <label>Email<input id="prospectEmail" type="email" placeholder="name@company.com"></label>
+        <label>Phone<input id="prospectPhone" placeholder="+62..."></label>
+      </div>
+      <div class="accounting-form-row">
+        <label>Mobile / WhatsApp<input id="prospectWhatsapp" placeholder="+62..."></label>
+        <label>Department<input id="prospectDepartment" placeholder="Engineering / Procurement"></label>
+      </div>
+      <div class="crm-form-section-title">Opportunity</div>
+      <label>Opportunity / Project Name *<input id="prospectOpportunityName" required placeholder="e.g. Sewer Rehabilitation Project"></label>
+      <div class="accounting-form-row">
+        <label>Product<select id="prospectProduct"><option>GRP Jacking Pipe</option><option>GRP Pipe</option><option>FRP Sheet Pile</option><option>GFRP Rebar</option><option>Other GFRP / FRP / GRP Solution</option></select></label>
+        <label>Application<input id="prospectApplication" placeholder="Sewer / Marine / River / Infrastructure"></label>
+      </div>
+      <div class="accounting-form-row">
+        <label>Estimated Project Value<input id="prospectProjectValue" type="number" min="0" step="0.01" value="0"></label>
+        <label>Estimated PILARK Value<input id="prospectPilarkValue" type="number" min="0" step="0.01" value="0"></label>
+      </div>
+      <div class="accounting-form-row">
+        <label>Current Material<input id="prospectCurrentMaterial" placeholder="HDPE / PVC / Concrete / Steel"></label>
+        <label>Potential Alternative<input id="prospectAlternative" placeholder="PILARK solution"></label>
+      </div>
+      <label>Technical Requirement<textarea id="prospectTechnicalRequirement" rows="3" placeholder="Diameter, length, load, installation method, specification..."></textarea></label>
+      <label>Notes<textarea id="prospectNotes" rows="3" placeholder="Sales notes / project information"></textarea></label>
+      <div class="crm-modal-form-actions">
+        <button id="salesProspectCancel" class="accounting-small-btn" type="button">Cancel</button>
+        <button class="primary-btn" type="submit">Create Prospect →</button>
+      </div>
+    </form>
+  </div>
+</div>
 <div class="accounting-tab-panel" data-sales-panel="execution" hidden>
-  <div class="section-intro accounting-intro crm-execution-head"><div><h2>Sales Execution Board</h2><p>15 priority accounts, project context, next action and follow-up cadence.</p></div><button id="salesCrmRefresh" class="text-btn">Refresh CRM ↻</button></div>
+  <div class="section-intro accounting-intro crm-execution-head"><div><h2>Sales Execution Board</h2><p>Prospects, opportunities, project context, next action and follow-up cadence.</p></div><div class="crm-execution-actions"><button id="salesAddProspect" class="primary-btn" type="button">+ Add Prospect</button><button id="salesCrmRefresh" class="text-btn">Refresh CRM ↻</button></div></div>
   <div class="sales-metrics crm-metrics">
     <div class="sales-metric"><span>HOT opportunities</span><b id="crmMetricHot">0</b></div>
     <div class="sales-metric"><span>Activities due</span><b id="crmMetricDue">0</b></div>
