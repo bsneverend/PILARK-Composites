@@ -911,3 +911,18 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:1
     overflow:visible;
   }
 }
+
+
+/* 2026-10-06 Collapsible parent sidebar navigation */
+.sidebar-menu-group{display:grid;gap:2px;margin-top:8px}
+.sidebar-parent{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;border:0;background:transparent;color:#71858e;text-align:left;padding:13px 12px;border-radius:12px;font-size:.68rem;text-transform:uppercase;letter-spacing:.16em;font-weight:900;cursor:pointer;transition:background .18s ease,color .18s ease}
+.sidebar-parent:hover,.sidebar-parent.open{background:#0c1d25;color:#a9bdc6}
+.sidebar-chevron{font-size:1rem;letter-spacing:0;text-transform:none;line-height:1;transition:transform .18s ease;color:#71858e}
+.sidebar-parent.open .sidebar-chevron{transform:rotate(180deg);color:#08a6e8}
+.sidebar-children{display:grid;gap:2px;padding:2px 0 5px 10px}
+.sidebar-children[hidden]{display:none!important}
+.sidebar-children .side-link{padding:12px 14px;font-size:.88rem;color:#9eb0b8}
+.sidebar-children .side-link.active{background:#10242d;color:#fff}
+.sidebar-children .side-link:hover{background:#0d2029;color:#fff}
+.sidebar-children .chat-unread-badge{margin-top:1px}
+@media(max-width:800px){.sidebar-menu-group{margin-top:4px}.sidebar-parent{padding:11px 12px}.sidebar-children{padding-left:8px}}
