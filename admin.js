@@ -367,11 +367,19 @@ function showView(name){
   // still appears visually active.
   if(name==='sales'){
     document.querySelectorAll('[data-sales-tab]').forEach(b=>b.classList.toggle('active',b.dataset.salesTab==='overview'));
-    document.querySelectorAll('[data-sales-panel]').forEach(p=>p.hidden=p.dataset.salesPanel!=='overview');
+    document.querySelectorAll('[data-sales-panel]').forEach(p=>{
+      const active=p.dataset.salesPanel==='overview';
+      if(active){p.hidden=false;p.removeAttribute('hidden');p.style.setProperty('display','block','important');}
+      else{p.hidden=true;p.setAttribute('hidden','');p.style.setProperty('display','none','important');}
+    });
   }
   if(name==='purchase'){
     document.querySelectorAll('[data-purchase-tab]').forEach(b=>b.classList.toggle('active',b.dataset.purchaseTab==='overview'));
-    document.querySelectorAll('[data-purchase-panel]').forEach(p=>p.hidden=p.dataset.purchasePanel!=='overview');
+    document.querySelectorAll('[data-purchase-panel]').forEach(p=>{
+      const active=p.dataset.purchasePanel==='overview';
+      if(active){p.hidden=false;p.removeAttribute('hidden');p.style.setProperty('display','block','important');}
+      else{p.hidden=true;p.setAttribute('hidden','');p.style.setProperty('display','none','important');}
+    });
   }
   if(name==='chat') loadAdminChats();
   if(name==='settings') renderSettingsAccess();
