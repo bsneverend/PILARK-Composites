@@ -586,7 +586,18 @@
       if(clean.length){const ins=await client().from('sales_prospect_candidates').insert(clean);if(ins.error)throw ins.error;}
       await loadAiCandidates();
       if(status)status.textContent='Found '+clean.length+' new candidate'+(clean.length===1?'':'s')+'. Review the evidence before approving.';
-    }catch(e){if(status)status.textContent='AI prospect search failed: '+(e?.message||e);}
+    }catch(e){
+      let detail=e?.message||'AI prospect search failed.';
+      try{
+        const response=e?.context;
+        if(response && typeof response.clone==='function'){
+          const payload=await response.clone().json();
+          if(payload?.error)detail=payload.error;
+          if(payload?.upstream_status)detail+=' (HTTP '+payload.upstream_status+(payload?.model?'; '+payload.model:'')+')';
+        }
+      }catch(_){}
+      if(status)status.textContent='AI prospect search failed: '+detail;
+    }
     finally{if(btn)btn.disabled=false;}
   }
   async function approveAiProspect(id){
