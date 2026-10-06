@@ -528,7 +528,6 @@ function initResearchSchedule(){
   document.getElementById('researchSearch')?.addEventListener('input',researchApplyFilters);
   document.getElementById('researchStatusFilter')?.addEventListener('change',researchApplyFilters);
   document.getElementById('researchLevelFilter')?.addEventListener('change',researchApplyFilters);
-  document.getElementById('researchRefreshBtn')?.addEventListener('click',loadResearchSchedule);
   document.getElementById('researchAddBtn')?.addEventListener('click',()=>researchOpenModal(null));
   document.getElementById('researchActivityForm')?.addEventListener('submit',researchSaveActivity);
   document.getElementById('researchActivityClose')?.addEventListener('click',researchCloseModal);
@@ -582,7 +581,8 @@ function showView(name){
     sales:'salesRefresh',
     purchase:'purchaseRefresh',
     inventory:'inventoryRefresh',
-    accounting:'accountingRefresh'
+    accounting:'accountingRefresh',
+    'research-schedule':'researchScheduleRefresh'
   };
   if(topbarAction){
     const refreshId=financeRefreshMap[name];
