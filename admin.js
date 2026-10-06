@@ -344,6 +344,49 @@ async function sendAdminChatMessage(message){
   convo.status='pending';await loadAdminChatMessages();await loadAdminChats();
 }
 
+const SIDEBAR_MENU_KEY='pilarkSidebarMenusV1';
+function setSidebarMenu(group,open){
+  const parent=document.querySelector('[data-menu-toggle="'+group+'"]');
+  const children=document.querySelector('[data-menu-children="'+group+'"]');
+  if(!parent||!children)return;
+  parent.setAttribute('aria-expanded',String(open));
+  parent.classList.toggle('open',open);
+  children.hidden=!open;
+  children.classList.toggle('open',open);
+}
+function initSidebarMenus(){
+  document.querySelectorAll('[data-menu-toggle]').forEach(btn=>{
+    btn.onclick=()=>{
+      const group=btn.dataset.menuToggle;
+      const open=btn.getAttribute('aria-expanded')!=='true';
+      setSidebarMenu(group,open);
+      try{
+        const saved=JSON.parse(localStorage.getItem(SIDEBAR_MENU_KEY)||'{}');
+        saved[group]=open;
+        localStorage.setItem(SIDEBAR_MENU_KEY,JSON.stringify(saved));
+      }catch(_){}
+    };
+  });
+  let saved={};
+  try{saved=JSON.parse(localStorage.getItem(SIDEBAR_MENU_KEY)||'{}')||{};}catch(_){}
+  document.querySelectorAll('[data-menu-toggle]').forEach(btn=>{
+    const group=btn.dataset.menuToggle;
+    setSidebarMenu(group,saved[group]===true);
+  });
+}
+function openSidebarForView(view){
+  const parent=document.querySelector('.side-link[data-view="'+view+'"]')?.closest('[data-menu-group]');
+  if(parent){
+    const group=parent.dataset.menuGroup;
+    setSidebarMenu(group,true);
+    try{
+      const saved=JSON.parse(localStorage.getItem(SIDEBAR_MENU_KEY)||'{}')||{};
+      saved[group]=true;
+      localStorage.setItem(SIDEBAR_MENU_KEY,JSON.stringify(saved));
+    }catch(_){}
+  }
+}
+
 function showView(name){
   if(!hasViewAccess(name))return;
   const host=document.getElementById('adminViewHost')||document.querySelector('.admin-main');
@@ -357,6 +400,7 @@ function showView(name){
   });
   if(host && host.id==='adminViewHost')host.scrollIntoView({block:'start',behavior:'auto'});
   document.querySelectorAll('.side-link').forEach(b=>b.classList.toggle('active',b.dataset.view===name));
+  openSidebarForView(name);
   const main=document.querySelector('.admin-main');
   main?.classList.toggle('chat-mode',name==='chat');
   if(name!=='chat')setMobileChatOpen(false);
@@ -464,7 +508,8 @@ document.addEventListener('DOMContentLoaded',async()=>{
       }catch(err){if(status)status.textContent=err.message||'Role assignment failed.';}
     });
 
-    const mobileNavToggle=document.getElementById('mobileNavToggle');
+    initSidebarMenus();
+        const mobileNavToggle=document.getElementById('mobileNavToggle');
     const sidebar=document.querySelector('.sidebar');
     if(mobileNavToggle&&sidebar){
       mobileNavToggle.onclick=()=>{
