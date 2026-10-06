@@ -795,12 +795,13 @@ async function openContactResearchModal(accountId){
     '<div class="crm-research-section"><div class="eyebrow">Known contacts</div><div class="crm-known-contacts">'+rows+'</div></div>'+
   '</div>';
   const modal=el('salesOpportunityModal'); if(!modal)return;
+  modal.classList.add('crm-contact-research-modal');
   el('crmDetailTitle').textContent='Contact Research';
   el('crmDetailSubtitle').textContent=a.company_name;
   const eyebrow=modal.querySelector('.crm-modal-head .eyebrow'); if(eyebrow)eyebrow.textContent='CONTACT INTELLIGENCE';
   el('crmDetailBody').innerHTML=html;
   modal.hidden=false;
-  el('crmDetailClose').onclick=()=>{modal.hidden=true;if(eyebrow)eyebrow.textContent='SALES OPPORTUNITY';};
+  el('crmDetailClose').onclick=()=>{modal.hidden=true;modal.classList.remove('crm-contact-research-modal');if(eyebrow)eyebrow.textContent='SALES OPPORTUNITY';};
   el('crmResearchAccount').onchange=e=>openContactResearchModal(e.target.value);
   el('crmAiContactFindBtn').onclick=()=>runAiContactFinder(a.id);
   loadAiContactCandidates(a.id).then(rows=>renderAiContactCandidates(a.id,rows)).catch(()=>renderAiContactCandidates(a.id,[]));
