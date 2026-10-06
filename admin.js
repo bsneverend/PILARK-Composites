@@ -402,9 +402,23 @@ function showView(name){
   // Reset that container to the top when switching modules so every child page
   // always opens from its own top, rather than inheriting the previous module's
   // scroll position.
-  const mainScroll=document.querySelector('.admin-main');
-  if(mainScroll)mainScroll.scrollTop=0;
-  if(host && host.id==='adminViewHost')host.scrollIntoView({block:'start',inline:'nearest',behavior:'auto'});
+  const resetWorkspaceScroll=()=>{
+    const mainScroll=document.querySelector('.admin-main');
+    if(mainScroll){
+      mainScroll.scrollTop=0;
+      mainScroll.scrollTo({top:0,left:0,behavior:'auto'});
+    }
+    if(host){
+      host.scrollTop=0;
+      host.scrollTo?.({top:0,left:0,behavior:'auto'});
+    }
+    window.scrollTo({top:0,left:0,behavior:'auto'});
+  };
+  // Reset after the new view has been inserted/rendered as well as immediately.
+  // This prevents the browser from restoring the previous scroll position when
+  // a tall view replaces a shorter one.
+  resetWorkspaceScroll();
+  requestAnimationFrame(()=>requestAnimationFrame(resetWorkspaceScroll));
   document.querySelectorAll('.side-link').forEach(b=>b.classList.toggle('active',b.dataset.view===name));
   openSidebarForView(name);
   const main=document.querySelector('.admin-main');
