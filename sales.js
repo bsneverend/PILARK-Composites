@@ -627,22 +627,156 @@
   await loadCRM();
   openContactResearchModal(accountId);
 }
-function openContactResearchModal(accountId){
+async function loadAiContactCandidates(accountId){
+  const {data,error}=await client().from('sales_contact_candidates').select('*').eq('account_id',accountId).eq('review_status','NEW').order('ai_score',{ascending:false});
+  if(error)throw error;
+  return data||[];
+}
+function renderAiContactCandidates(accountId, rows){
+  const box=el('crmAiContactResults');
+  if(!box)return;
+  const data=rows||[];
+  box.innerHTML=data.length?data.map(c=>
+    '<div class="crm-research-item">'+
+      '<strong>'+esc(c.contact_person||'Business contact')+'</strong>'+
+      '<span>'+esc(c.position||c.department||'Business contact')+' · <b>'+esc(c.confidence||'—')+'</b> · AI '+Number(c.ai_score||0)+'/100</span>'+
+      '<small>'+(c.email?esc(c.email)+' · ':'')+(c.phone||c.mobile_phone?esc(c.phone||c.mobile_phone)+' · ':'')+(c.linkedin_url?'LinkedIn available · ':'')+esc(c.source_name||'Public source')+'</small>'+
+      '<p>'+esc(c.evidence||'')+'</p>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+        '<a class="text-btn" href="'+esc(c.source_url||'#')+'" target="_blank" rel="noopener">Source ↗</a>'+
+        '<button type="button" class="accounting-small-btn crm-ai-contact-approve" data-id="'+esc(c.id)+'">Save Contact</button>'+
+        '<button type="button" class="accounting-small-btn crm-ai-contact-reject" data-id="'+esc(c.id)+'">Reject</button>'+
+      '</div>'+
+    '</div>'
+  ).join(''):'<div class="crm-research-empty">No AI contact candidates yet. Click <b>Find Contacts with AI</b>.</div>';
+  box.querySelectorAll('.crm-ai-contact-approve').forEach(b=>b.onclick=()=>approveAiContactCandidate(b.dataset.id,accountId));
+  box.querySelectorAll('.crm-ai-contact-reject').forEach(b=>b.onclick=()=>rejectAiContactCandidate(b.dataset.id,accountId));
+}
+async function runAiContactFinder(accountId){
+  const a=(state.crm.accounts||[]).find(x=>x.id===accountId);
+  if(!a)return;
+  const opp=(state.crm.opportunities||[]).find(x=>x.account_id===accountId);
+  const p=opp?.sales_projects|| (state.crm.projects||[]).find(x=>x.account_id===accountId)||{};
+  const btn=el('crmAiContactFindBtn'),status=el('crmAiContactStatus');
+  if(btn)btn.disabled=true;
+  if(status)status.textContent='AI is searching public project, procurement, engineering and professional sources…';
+  try{
+    const {data,error}=await client().functions.invoke('sales-ai-contact-finder',{body:{
+      company_name:a.company_name,
+      project_name:p.project_name||opp?.opportunity_name||'',
+      website:a.website||'',
+      project_url:p.source_url||'',
+      source_url:opp?.sales_projects?.source_url||a.source_url||'',
+      city:a.city||p.location||'',
+      product:opp?.product||'',
+      limit:8
+    }});
+    if(error)throw error;
+    const contacts=Array.isArray(data?.contacts)?data.contacts:[];
+    const {data:userData}=await client().auth.getUser();
+    const clean=contacts.filter(c=>c.contact_person&&c.source_url).map(c=>({
+      account_id:accountId,
+      project_id:p.id||opp?.project_id||null,
+      opportunity_id:opp?.id||null,
+      contact_person:c.contact_person,
+      position:c.position||null,
+      department:c.department||null,
+      email:c.email||null,
+      phone:c.phone||null,
+      mobile_phone:c.mobile_phone||null,
+      whatsapp_phone:c.whatsapp_phone||null,
+      linkedin_url:c.linkedin_url||null,
+      source_url:c.source_url,
+      source_name:c.source_name||'Public web source',
+      confidence:c.confidence||'LOW',
+      ai_score:Number(c.ai_score||0),
+      evidence:c.evidence||null,
+      search_query:'AI contact research',
+      review_status:'NEW',
+      created_by:userData?.user?.id||null
+    }));
+    if(clean.length){
+      const ins=await client().from('sales_contact_candidates').insert(clean);
+      if(ins.error)throw ins.error;
+    }
+    const rows=await loadAiContactCandidates(accountId);
+    renderAiContactCandidates(accountId,rows);
+    if(status)status.textContent=clean.length?'Found '+clean.length+' public contact candidate'+(clean.length===1?'':'s')+'. Review before saving to CRM.':'No verified public contact candidates found. Try again later or use manual research.';
+  }catch(e){
+    let detail=e?.message||'AI contact research failed.';
+    try{
+      const response=e?.context;
+      if(response&&typeof response.clone==='function'){
+        const payload=await response.clone().json();
+        if(payload?.error)detail=payload.error;
+        if(payload?.upstream_status)detail+=' (HTTP '+payload.upstream_status+(payload?.model?'; '+payload.model:'')+')';
+      }
+    }catch(_){}
+    if(status)status.textContent='AI contact research failed: '+detail;
+  }finally{if(btn)btn.disabled=false;}
+}
+async function approveAiContactCandidate(id,accountId){
+  const {data:c,error}=await client().from('sales_contact_candidates').select('*').eq('id',id).single();
+  if(error)return alert(error.message);
+  if(!confirm('Save '+(c.contact_person||'this contact')+' as a verified business contact in CRM?'))return;
+  const existing=await client().from('sales_contacts').select('id').eq('account_id',accountId).or('email.eq.'+String(c.email||'').replace(/,/g,'')+',linkedin_url.eq.'+String(c.linkedin_url||'').replace(/,/g,'')).limit(1);
+  if(existing.error&&c.email)return alert(existing.error.message);
+  if(existing.data?.length){await client().from('sales_contact_candidates').update({review_status:'DUPLICATE',reviewed_at:new Date().toISOString()}).eq('id',id);const rows=await loadAiContactCandidates(accountId);renderAiContactCandidates(accountId,rows);return alert('A matching contact already exists. Marked as duplicate.');}
+  const payload={
+    account_id:accountId,
+    project_id:c.project_id||null,
+    contact_person:c.contact_person,
+    position:c.position||null,
+    department:c.department||null,
+    email:c.email||null,
+    phone:c.phone||null,
+    mobile_phone:c.mobile_phone||null,
+    whatsapp_phone:c.whatsapp_phone||null,
+    linkedin_url:c.linkedin_url||null,
+    contact_type:'BUSINESS',
+    source_url:c.source_url||null,
+    source_name:c.source_name||'AI Contact Finder',
+    confidence:c.confidence||'MEDIUM',
+    preferred_channel:c.whatsapp_phone||c.mobile_phone?'WHATSAPP':c.phone?'CALL':c.email?'EMAIL':c.linkedin_url?'LINKEDIN':null,
+    notes:'AI contact research evidence: '+(c.evidence||''),
+    is_active:true
+  };
+  const ins=await client().from('sales_contacts').insert(payload);
+  if(ins.error)return alert(ins.error.message);
+  await client().from('sales_contact_candidates').update({review_status:'APPROVED',reviewed_at:new Date().toISOString()}).eq('id',id);
+  await loadCRM();
+  openContactResearchModal(accountId);
+}
+async function rejectAiContactCandidate(id,accountId){
+  if(!confirm('Reject this contact candidate?'))return;
+  const {error}=await client().from('sales_contact_candidates').update({review_status:'REJECTED',reviewed_at:new Date().toISOString()}).eq('id',id);
+  if(error)return alert(error.message);
+  const rows=await loadAiContactCandidates(accountId);
+  renderAiContactCandidates(accountId,rows);
+}
+async function openContactResearchModal(accountId){
   const accounts=state.crm.accounts||[];
   if(!accounts.length)return;
   const selected=accounts.find(x=>x.id===accountId)||null;
   const a=selected||accounts[0];
   const contacts=(state.crm.contacts||[]).filter(x=>x.account_id===a.id);
-  const rows=contacts.length?contacts.map(x=>'<div class="crm-research-contact"><strong>'+esc(x.contact_person)+'</strong><span>'+(esc(x.position||x.department||'Business contact'))+' · <b>'+esc(x.confidence)+'</b></span><small>'+(esc(x.email||''))+' '+(esc(x.mobile_phone||x.phone||''))+'</small></div>').join(''):'<div class="crm-research-empty">No individual contacts stored yet.</div>';
+  const opp=(state.crm.opportunities||[]).find(x=>x.account_id===a.id);
+  const rows=contacts.length?contacts.map(x=>'<div class="crm-research-contact"><strong>'+esc(x.contact_person)+'</strong><span>'+esc(x.position||x.department||'Business contact')+' · <b>'+esc(x.confidence)+'</b></span><small>'+esc(x.email||'')+' '+esc(x.mobile_phone||x.phone||'')+'</small></div>').join(''):'<div class="crm-research-empty">No individual contacts stored yet.</div>';
   const accountOptions=accounts.map(x=>'<option value="'+x.id+'" '+(x.id===a.id?'selected':'')+'>'+esc(x.company_name)+'</option>').join('');
   const html='<div class="crm-research-card">'+
     '<div class="crm-research-toolbar"><label>Account<select id="crmResearchAccount">'+accountOptions+'</select></label><div><span class="crm-confidence-badge">'+contacts.length+' contact'+(contacts.length===1?'':'s')+'</span></div></div>'+
-    '<p class="crm-research-intro">Research and save verified <b>public business contacts</b> for the selected account. Personal/private contact data is not collected.</p>'+
+    '<div class="crm-research-section">'+
+      '<div class="eyebrow">AI CONTACT FINDER</div>'+
+      '<p class="crm-research-intro">AI searches public project, procurement, engineering and professional sources for <b>business contacts only</b>. It does not guess private contact information or email patterns.</p>'+
+      '<button type="button" class="primary-btn" id="crmAiContactFindBtn">✦ Find Contacts with AI</button>'+
+      '<div id="crmAiContactStatus" class="crm-research-intro"></div>'+
+      '<div id="crmAiContactResults" class="crm-research-grid"></div>'+
+    '</div>'+
     '<div class="crm-research-grid">'+
       '<div class="crm-research-item"><strong>Official / Project / Procurement</strong><span>Engineering, Project, Procurement, SCM or BD contacts.</span><button type="button" class="text-btn crm-research-open" data-query="'+encodeURIComponent(a.company_name+' official contact engineering procurement project')+'">Search ↗</button></div>'+
       '<div class="crm-research-item"><strong>LinkedIn</strong><span>Public professional/company information.</span><button type="button" class="text-btn crm-research-open" data-query="'+encodeURIComponent(a.company_name+' LinkedIn engineering project procurement')+'">Search ↗</button></div>'+
     '</div>'+
-    '<div class="crm-research-section"><div class="eyebrow">Add verified business contact</div>'+
+    '<div class="crm-research-section"><div class="eyebrow">Add verified business contact manually</div>'+
       '<div class="crm-contact-form-grid">'+
         '<label>Name<input id="crmContactPerson" placeholder="e.g. Project Manager"></label>'+
         '<label>Position<input id="crmContactPosition" placeholder="e.g. Engineering Manager"></label>'+
@@ -666,11 +800,14 @@ function openContactResearchModal(accountId){
   const eyebrow=modal.querySelector('.crm-modal-head .eyebrow'); if(eyebrow)eyebrow.textContent='CONTACT INTELLIGENCE';
   el('crmDetailBody').innerHTML=html;
   modal.hidden=false;
-  el('crmDetailClose').onclick=()=>{modal.hidden=true; if(eyebrow)eyebrow.textContent='SALES OPPORTUNITY';};
+  el('crmDetailClose').onclick=()=>{modal.hidden=true;if(eyebrow)eyebrow.textContent='SALES OPPORTUNITY';};
   el('crmResearchAccount').onchange=e=>openContactResearchModal(e.target.value);
+  el('crmAiContactFindBtn').onclick=()=>runAiContactFinder(a.id);
+  loadAiContactCandidates(a.id).then(rows=>renderAiContactCandidates(a.id,rows)).catch(()=>renderAiContactCandidates(a.id,[]));
   el('crmDetailBody').querySelectorAll('.crm-research-open').forEach(b=>b.onclick=()=>window.open('https://www.google.com/search?q='+b.dataset.query,'_blank','noopener'));
   el('crmSaveContact').onclick=()=>saveCRMContact(a.id);
 }
+
 function init(){if(!el('view-sales'))return;bind();if(client())Promise.all([load(),loadCRM()]).catch(e=>console.warn('Sales init:',e));}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
