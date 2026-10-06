@@ -451,12 +451,15 @@ function showView(name){
     topbarAction.onclick=null;
     if(refreshId){
       topbarAction.onclick=()=>{
-        const refreshButton=document.getElementById(refreshId);
-        if(refreshButton){
-          refreshButton.click();
-        }else{
+        // Always perform a real data refresh from the server. This avoids relying
+        // on a hidden module button whose listener may not yet be bound.
+        topbarAction.disabled=true;
+        const originalLabel=topbarAction.textContent;
+        topbarAction.textContent='Refreshing…';
+        window.setTimeout(()=>{
           window.location.reload();
-        }
+        },120);
+        return false;
       };
     }else{
       topbarAction.onclick=()=>window.open('index.html','_blank','noopener');
