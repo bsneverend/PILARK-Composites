@@ -561,8 +561,7 @@
     const rows=(state.crm.aiCandidates||[]).map(c=>'<div class="ai-prospect-card">'+
       '<div class="ai-prospect-card-head"><div><strong>'+esc(c.company_name)+'</strong><span>'+esc(c.project_name||'Project signal')+' · '+esc(c.city||c.industry||'Indonesia')+'</span></div><div class="'+aiScoreClass(c.ai_score)+'">'+Number(c.ai_score||0)+'/100</div></div>'+
       '<div class="ai-prospect-meta"><b>'+esc(c.product)+'</b><span>'+esc(c.application||'')+'</span></div>'+
-      '<p>'+esc(c.ai_reason||'')+'</p><small><b>Evidence:</b> '+esc(c.evidence||'')+'</small>'+\
-      '<div class="ai-prospect-actions"><a class="text-btn" href="'+esc(c.source_url||c.project_url||c.website||'#')+'" target="_blank" rel="noopener">Source ↗</a><button type="button" class="accounting-small-btn ai-approve-btn" data-id="'+esc(c.id)+'">Approve to CRM</button><button type="button" class="accounting-small-btn ai-reject-btn" data-id="'+esc(c.id)+'">Reject</button></div></div>').join('');
+      '<p>'+esc(c.ai_reason||'')+'</p><small><b>Evidence:</b> '+esc(c.evidence||'')+'</small>'+\n      '<div class="ai-prospect-actions"><a class="text-btn" href="'+esc(c.source_url||c.project_url||c.website||'#')+'" target="_blank" rel="noopener">Source ↗</a><button type="button" class="accounting-small-btn ai-approve-btn" data-id="'+esc(c.id)+'">Approve to CRM</button><button type="button" class="accounting-small-btn ai-reject-btn" data-id="'+esc(c.id)+'">Reject</button></div></div>').join('');
     box.innerHTML=rows||'<div class="crm-research-empty">No AI candidates yet. Click <b>Find Prospects ✦</b> to search.</div>';
     box.querySelectorAll('.ai-approve-btn').forEach(b=>b.onclick=()=>approveAiProspect(b.dataset.id));
     box.querySelectorAll('.ai-reject-btn').forEach(b=>b.onclick=()=>rejectAiProspect(b.dataset.id));
