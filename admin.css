@@ -1026,3 +1026,10 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:1
 .view > .section-intro > div > h2,
 .view > .section-intro > div > p{display:none}
 .view > .section-intro{min-height:0;margin-bottom:18px}
+
+/* 2026-10-07 finance topbar refresh */
+#view-erp-overview .section-intro > .text-btn,
+#view-sales .section-intro > .text-btn,
+#view-purchase .section-intro > .text-btn,
+#view-inventory .section-intro > .text-btn,
+#view-accounting .section-intro > .text-btn{display:none}
