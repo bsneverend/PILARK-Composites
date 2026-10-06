@@ -398,7 +398,13 @@ function showView(name){
     v.hidden=!isActive;
     v.style.setProperty('display',isActive?'block':'none','important');
   });
-  if(host && host.id==='adminViewHost')host.scrollIntoView({block:'start',behavior:'auto'});
+  // The desktop workspace uses .admin-main as the scroll container.
+  // Reset that container to the top when switching modules so every child page
+  // always opens from its own top, rather than inheriting the previous module's
+  // scroll position.
+  const mainScroll=document.querySelector('.admin-main');
+  if(mainScroll)mainScroll.scrollTop=0;
+  if(host && host.id==='adminViewHost')host.scrollIntoView({block:'start',inline:'nearest',behavior:'auto'});
   document.querySelectorAll('.side-link').forEach(b=>b.classList.toggle('active',b.dataset.view===name));
   openSidebarForView(name);
   const main=document.querySelector('.admin-main');
