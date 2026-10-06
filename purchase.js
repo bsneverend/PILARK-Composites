@@ -123,7 +123,11 @@
   function showTab(tab){
     state.tab=tab;
     document.querySelectorAll('[data-purchase-tab]').forEach(b=>b.classList.toggle('active',b.dataset.purchaseTab===tab));
-    document.querySelectorAll('[data-purchase-panel]').forEach(p=>p.hidden=p.dataset.purchasePanel!==tab);
+    document.querySelectorAll('[data-purchase-panel]').forEach(p=>{
+      const active=p.dataset.purchasePanel===tab;
+      if(active){p.hidden=false;p.removeAttribute('hidden');p.style.setProperty('display','block','important');}
+      else{p.hidden=true;p.setAttribute('hidden','');p.style.setProperty('display','none','important');}
+    });
   }
   function bind(){
     document.querySelectorAll('[data-purchase-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.purchaseTab));
