@@ -204,3 +204,12 @@
 .accounting-ai-action-memo{margin-top:9px;font-size:11px;line-height:1.45;opacity:.78}
 .accounting-ai-review-btn{margin-top:12px;border:0;border-radius:9px;padding:9px 12px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
 @media(max-width:640px){.accounting-ai-action-grid{grid-template-columns:1fr}}
+
+
+/* Journal entry detail modal — keeps the accounting overview/list layout unchanged. */
+.accounting-entry-detail{position:fixed;inset:0;z-index:10040;display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;margin:0!important;background:rgba(7,18,26,.34);backdrop-filter:blur(2px);overflow:auto}
+.accounting-entry-detail[hidden]{display:none!important}
+.accounting-entry-dialog{position:relative;width:min(1180px,calc(100vw - 48px));max-height:min(820px,calc(100vh - 48px));overflow:auto;background:#fff;border:1px solid #dce8ee;border-radius:16px;box-shadow:0 24px 80px rgba(7,18,26,.28);padding:24px;box-sizing:border-box}
+.accounting-entry-dialog .entry-detail-head{position:sticky;top:-24px;background:#fff;padding-top:0;padding-bottom:16px;z-index:2}
+.accounting-entry-dialog .entry-detail-table{min-width:780px}
+@media(max-width:700px){.accounting-entry-detail{padding:12px}.accounting-entry-dialog{width:calc(100vw - 24px);max-height:calc(100vh - 24px);padding:18px}.accounting-entry-dialog .entry-detail-head{top:-18px}}
