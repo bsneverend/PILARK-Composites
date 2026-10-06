@@ -455,3 +455,24 @@
 .crm-research-section .crm-ai-contact-find{
   margin:0 auto!important;
 }
+
+
+/* 2026-10-06 Contact Research independent scrolling */
+.crm-contact-research-modal .crm-modal-card{
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+.crm-contact-research-modal .crm-modal-head{
+  flex:0 0 auto;
+  position:relative;
+  z-index:2;
+  background:#fff;
+}
+.crm-contact-research-modal .crm-modal-body{
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  overscroll-behavior:contain;
+}
