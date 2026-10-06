@@ -932,3 +932,11 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:1
   .admin-main{scroll-behavior:auto!important;overflow-anchor:none;}
   .admin-view-host{scroll-margin-top:0!important;}
 }
+
+/* Live chat reply composer: keep reply field permanently visible at the bottom */
+@media (min-width:901px){
+  .admin-main.chat-mode .chat-admin-thread-panel{position:relative;}
+  .admin-main.chat-mode #adminChatThread:not([hidden]){position:relative;display:flex;flex-direction:column;height:100%;min-height:0;}
+  .admin-main.chat-mode .admin-chat-messages{flex:1 1 auto;min-height:0;height:auto;padding-bottom:24px;}
+  .admin-main.chat-mode .admin-chat-composer{display:flex!important;flex:0 0 auto;position:relative;bottom:auto;left:auto;right:auto;}
+}
