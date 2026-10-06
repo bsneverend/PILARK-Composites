@@ -58,9 +58,16 @@
       }));
   }
   function balanceForAccount(lines,a) {
-    const rows=lines.filter(x=>x.account_id===a.id);
-    const d=rows.reduce((s,x)=>s+Number(x.debit||0),0), c=rows.reduce((s,x)=>s+Number(x.credit||0),0);
-    const debitNormal=['asset_receivable','asset_cash','asset_current','asset_non_current','asset_prepayments','asset_fixed','expense','expense_other','expense_depreciation','expense_direct_cost'].includes(a.account_type);
+    // Accept either an account object or an account id. Overview dashboards
+    // pass the id, while other reports pass the full account object.
+    const accountId=typeof a==='string'?a:a?.id;
+    const accountType=typeof a==='string'
+      ? state.accounts.find(x=>x.id===accountId)?.account_type
+      : a?.account_type;
+    const rows=lines.filter(x=>x.account_id===accountId);
+    const d=rows.reduce((s,x)=>s+Number(x.debit||0),0);
+    const c=rows.reduce((s,x)=>s+Number(x.credit||0),0);
+    const debitNormal=['asset_receivable','asset_cash','asset_current','asset_non_current','asset_prepayments','asset_fixed','expense','expense_other','expense_depreciation','expense_direct_cost'].includes(accountType);
     return debitNormal?d-c:c-d;
   }
 
