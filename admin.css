@@ -1019,3 +1019,10 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:1
   background:#fff!important;
   box-sizing:border-box!important;
 }
+
+/* 2026-10-07 hide redundant page-level subheaders/subtitles */
+.view > .section-intro > h2,
+.view > .section-intro > p,
+.view > .section-intro > div > h2,
+.view > .section-intro > div > p{display:none}
+.view > .section-intro{min-height:0;margin-bottom:18px}
