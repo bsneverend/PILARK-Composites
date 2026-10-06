@@ -620,13 +620,18 @@ async function autoMatchReconcile(){const lines=state.entryLines.filter(l=>{cons
     if(el('erpDashboardPeriodText'))el('erpDashboardPeriodText').textContent=period.label+' · '+dateText(period.from)+' – '+dateText(period.to);
 
     const posted=state.entries.filter(x=>x.status==='posted');
-    const periodEntryIds=posted.filter(x=>x.entry_date>=period.from&&x.entry_date<=period.to).map(x=>x.id);
-    let periodLines=[];
-    if(periodEntryIds.length){
-      const {data,error}=await client().from('accounting_lines').select('entry_id,account_id,debit,credit,accounting_accounts(code,name,account_type)').in('entry_id',periodEntryIds);
-      if(error)throw error;
-      periodLines=data||[];
-    }
+    const periodEntryIds=new Set(posted.filter(x=>x.entry_date>=period.from&&x.entry_date<=period.to).map(x=>x.id));
+    // Reuse the accounting lines loaded by load(). This keeps ERP Overview
+    // consistent with Journal Entries and avoids a second RLS/session query.
+    const periodLines=state.entryLines
+      .filter(l=>periodEntryIds.has(l.entry_id))
+      .map(l=>({
+        entry_id:l.entry_id,
+        account_id:l.account_id,
+        debit:l.debit,
+        credit:l.credit,
+        accounting_accounts:l.accounting_accounts
+      }));
     const periodBalances=state.accounts.map(a=>({account:a,balance:balanceForAccount(periodLines,a.id)}));
     const sumTypes=types=>periodBalances.filter(x=>types.includes(x.account.account_type)).reduce((s,x)=>s+x.balance,0);
     const revenue=sumTypes(['income','income_other']);
