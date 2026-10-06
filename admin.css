@@ -975,3 +975,47 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:1
     min-height:42px!important;
   }
 }
+
+/* Final live-chat workspace sizing */
+.admin-main.chat-mode .view-chat.active{
+  display:flex!important;
+  flex:1 1 auto!important;
+  min-height:0!important;
+  height:auto!important;
+  flex-direction:column!important;
+}
+.admin-main.chat-mode .view-chat.active .chat-admin-layout{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  height:auto!important;
+}
+.admin-main.chat-mode .chat-admin-thread-panel{
+  position:relative!important;
+  min-height:0!important;
+}
+.admin-main.chat-mode #adminChatThread:not([hidden]){
+  position:relative!important;
+  display:flex!important;
+  flex:1 1 auto!important;
+  height:100%!important;
+  min-height:0!important;
+  flex-direction:column!important;
+}
+.admin-main.chat-mode #adminChatMessages{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  height:auto!important;
+  overflow-y:auto!important;
+  padding-bottom:88px!important;
+}
+.admin-main.chat-mode #adminChatComposer{
+  flex:0 0 auto!important;
+  position:absolute!important;
+  left:0!important;
+  right:0!important;
+  bottom:0!important;
+  z-index:50!important;
+  display:flex!important;
+  background:#fff!important;
+  box-sizing:border-box!important;
+}
