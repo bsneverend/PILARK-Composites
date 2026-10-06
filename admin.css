@@ -900,38 +900,3 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:1
     overflow:visible;
   }
 }
-
-
-/* 2026-10-06 — Make every non-active workspace view flow exactly like the CMS Overview. */
-@media (min-width:801px){
-  .admin-main:not(.chat-mode){
-    position:relative;
-  }
-  .admin-main:not(.chat-mode) > .view:not(.active){
-    display:none !important;
-    visibility:hidden !important;
-    position:absolute !important;
-    inset:auto !important;
-    width:100% !important;
-    height:0 !important;
-    min-height:0 !important;
-    max-height:0 !important;
-    margin:0 !important;
-    padding:0 !important;
-    overflow:hidden !important;
-    transform:none !important;
-  }
-  .admin-main:not(.chat-mode) > .view.active{
-    display:block !important;
-    visibility:visible !important;
-    position:relative !important;
-    inset:auto !important;
-    width:100% !important;
-    height:auto !important;
-    min-height:0 !important;
-    max-height:none !important;
-    margin:0 !important;
-    overflow:visible !important;
-    transform:none !important;
-  }
-}
