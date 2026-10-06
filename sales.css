@@ -593,3 +593,13 @@
   overflow-x:hidden;
   overscroll-behavior:contain;
 }
+
+
+/* 2026-10-06 AI prospect value intelligence */
+.ai-prospect-value{
+  margin:8px 0 4px;
+  color:#405966;
+  font-size:11px;
+}
+.ai-prospect-value b{color:#087fbd}
+.ai-prospect-value span{color:#80919a;font-size:10px;text-transform:uppercase}
