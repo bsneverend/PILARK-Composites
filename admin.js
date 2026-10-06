@@ -434,6 +434,32 @@ function showView(name){
   main?.classList.toggle('chat-mode',name==='chat');
   if(name!=='chat')setMobileChatOpen(false);
   document.getElementById('pageTitle').textContent={dashboard:'Website overview',media:'Media Library',products:'Product thumbnails',sections:'Website Content',chat:'Live Chat',sales:'Sales',purchase:'Purchase',inventory:'Inventory',accounting:'Accounting', 'erp-overview':'ERP Overview', settings:'Settings'}[name]||'PILARK Admin';
+  // Finance modules use the top-right action slot for data refresh instead of
+  // the Preview Website button position. Non-finance pages keep Preview Website.
+  const topbarAction=document.getElementById('topbarAction');
+  const financeRefreshMap={
+    'erp-overview':'erpDashboardRefresh',
+    sales:'salesRefresh',
+    purchase:'purchaseRefresh',
+    inventory:'inventoryRefresh',
+    accounting:'accountingRefresh'
+  };
+  if(topbarAction){
+    const refreshId=financeRefreshMap[name];
+    topbarAction.textContent=refreshId?'Refresh Data ↻':'Preview website ↗';
+    topbarAction.removeAttribute('onclick');
+    if(refreshId){
+      topbarAction.href='#';
+      topbarAction.removeAttribute('target');
+      topbarAction.onclick=e=>{
+        e.preventDefault();
+        document.getElementById(refreshId)?.click();
+      };
+    }else{
+      topbarAction.href='index.html';
+      topbarAction.target='_blank';
+    }
+  }
   // Sidebar navigation should always open Sales/Purchase at their Overview tab.
   // The module tab state is local to the current DOM, so without resetting it here,
   // returning from Quotations/RFQs could leave the panel hidden while Overview
