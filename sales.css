@@ -714,3 +714,9 @@
 .crm-ai-plan-columns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px}.crm-ai-plan-columns>div{background:#fff;border:1px solid #dce8ed;border-radius:9px;padding:10px}.crm-ai-plan-columns h4{margin-bottom:6px}.crm-ai-plan-columns ul{margin:0;padding-left:17px}.crm-ai-plan-columns li{font-size:11px;margin:5px 0;line-height:1.4}
 .crm-ai-plan-empty,.crm-ai-plan-loading,.crm-ai-plan-error{padding:14px;color:#718793;font-size:12px}.crm-ai-plan-error{color:#a33}.crm-ai-plan-generated{display:block;color:#8a9ba3;margin-top:14px;font-size:10px}
 @media(max-width:700px){.crm-ai-plan-title-row{align-items:flex-start;flex-direction:column}.crm-ai-plan-title-row .primary-btn{width:100%}.crm-ai-plan-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.crm-ai-plan-list,.crm-ai-plan-columns{grid-template-columns:1fr}}
+
+/* 2026-10-06 AI Sales score / regenerate spacing */
+.crm-ai-plan-head{gap:18px;}
+.crm-ai-plan-head>div{flex:0 0 auto;min-width:145px;}
+.crm-ai-plan-head .accounting-small-btn{flex:1 1 auto;min-width:220px;width:100%;height:44px;min-height:44px;margin:0!important;}
+@media(max-width:700px){.crm-ai-plan-head{align-items:stretch;flex-direction:column;gap:10px}.crm-ai-plan-head>div{min-width:0}.crm-ai-plan-head .accounting-small-btn{min-width:0;width:100%;}}
