@@ -36,14 +36,26 @@
   }
 
   async function postedLines(fromDate=null,toDate=null) {
-    const ids=state.entries
-      .filter(x=>x.status==='posted')
-      .filter(x=>!fromDate||x.entry_date>=fromDate)
-      .filter(x=>!toDate||x.entry_date<=toDate)
-      .map(x=>x.id);
-    if(!ids.length) return [];
-    const {data,error}=await client().from('accounting_lines').select('entry_id,account_id,debit,credit,accounting_accounts(code,name,account_type)').in('entry_id',ids);
-    if(error) throw error; return data||[];
+    // The initial accounting load already fetches all journal lines with their
+    // account metadata. Reuse that authoritative in-memory dataset here instead
+    // of issuing a second query that can be affected by RLS/session timing.
+    const postedIds=new Set(
+      state.entries
+        .filter(x=>x.status==='posted')
+        .filter(x=>!fromDate||x.entry_date>=fromDate)
+        .filter(x=>!toDate||x.entry_date<=toDate)
+        .map(x=>x.id)
+    );
+    if(!postedIds.size) return [];
+    return state.entryLines
+      .filter(l=>postedIds.has(l.entry_id))
+      .map(l=>({
+        entry_id:l.entry_id,
+        account_id:l.account_id,
+        debit:l.debit,
+        credit:l.credit,
+        accounting_accounts:l.accounting_accounts
+      }));
   }
   function balanceForAccount(lines,a) {
     const rows=lines.filter(x=>x.account_id===a.id);
@@ -187,8 +199,10 @@ async function autoMatchReconcile(){const lines=state.entryLines.filter(l=>{cons
     if(el('entryFilteredCount'))el('entryFilteredCount').textContent=rows.length;
     if(el('entryDebitTotal'))el('entryDebitTotal').textContent=money(totals.debit);
     if(el('entryCreditTotal'))el('entryCreditTotal').textContent=money(totals.credit);
-    el('accountingEntriesBody').innerHTML=rows.map(e=>{const lines=state.entryLines.filter(l=>l.entry_id===e.id),debit=lines.reduce((x,l)=>x+Number(l.debit||0),0),credit=lines.reduce((x,l)=>x+Number(l.credit||0),0);return `<tr><td><button class="entry-link" data-entry-id="${e.id}" type="button"><b>${esc(e.entry_no)}</b></button></td><td>${dateText(e.entry_date)}</td><td>${esc(e.accounting_journals?.code||'')}</td><td>${esc(e.accounting_partners?.name||'—')}</td><td>${esc(e.reference||'—')}</td><td class="num">${money(debit)}</td><td class="num">${money(credit)}</td><td><span class="${statusClass(e.status)}">${esc(e.status)}</span></td><td>${e.status==='draft'?'<button class="accounting-small-btn post-entry-btn" data-entry-id="'+e.id+'">Post</button>':''}</td></tr>`}).join('')||'<tr><td colspan="9" class="accounting-empty">No journal entries match the current filters.</td></tr>';
-    document.querySelectorAll('.post-entry-btn').forEach(b=>b.onclick=()=>postEntry(b.dataset.entryId));document.querySelectorAll('.entry-link').forEach(b=>b.onclick=()=>showEntryDetail(b.dataset.entryId));
+    el('accountingEntriesBody').innerHTML=rows.map(e=>{const lines=state.entryLines.filter(l=>l.entry_id===e.id),debit=lines.reduce((x,l)=>x+Number(l.debit||0),0),credit=lines.reduce((x,l)=>x+Number(l.credit||0),0);const actions='<button class="accounting-small-btn view-entry-btn" data-entry-id="'+e.id+'">View</button>'+(e.status==='draft'?'<button class="accounting-small-btn post-entry-btn" data-entry-id="'+e.id+'">Post</button>':'');return `<tr><td><button class="entry-link" data-entry-id="${e.id}" type="button"><b>${esc(e.entry_no)}</b></button></td><td>${dateText(e.entry_date)}</td><td>${esc(e.accounting_journals?.code||'')}</td><td>${esc(e.accounting_partners?.name||'—')}</td><td>${esc(e.reference||'—')}</td><td class="num">${money(debit)}</td><td class="num">${money(credit)}</td><td><span class="${statusClass(e.status)}">${esc(e.status)}</span></td><td class="accounting-actions">${actions}</td></tr>`}).join('')||'<tr><td colspan="9" class="accounting-empty">No journal entries match the current filters.</td></tr>';
+    document.querySelectorAll('.post-entry-btn').forEach(b=>b.onclick=()=>postEntry(b.dataset.entryId));
+    document.querySelectorAll('.view-entry-btn').forEach(b=>b.onclick=()=>showEntryDetail(b.dataset.entryId));
+    document.querySelectorAll('.entry-link').forEach(b=>b.onclick=()=>showEntryDetail(b.dataset.entryId));
   }
   async function showEntryDetail(id){
     const e=state.entries.find(x=>x.id===id);if(!e)return;const lines=state.entryLines.filter(l=>l.entry_id===id),debit=lines.reduce((x,l)=>x+Number(l.debit||0),0),credit=lines.reduce((x,l)=>x+Number(l.credit||0),0);
