@@ -426,11 +426,18 @@ function researchRenderRows(){
   const body=document.getElementById('researchGanttBody'); if(!body)return;
   const items=researchScheduleState.filtered;
   body.innerHTML=items.map(x=>{
-    const bar=(x.start_week&&x.end_week)?Array.from({length:76},(_,i)=>{
-      const w=i+1, active=w>=x.start_week&&w<=x.end_week;
-      const selected=researchScheduleInteraction.moveId===x.id;
-      return '<td class="research-week-cell '+(active?'active '+(x.item_type==='group'?'group-bar':x.item_type==='work_package'?'package-bar':'task-bar'):'')+(selected?' move-selected':'')+'" data-research-week="'+w+'" data-research-id="'+x.id+'" title="'+(active?'Click to select this activity for moving.':'Click to move selected activity here.')+'"></td>';
-    }).join(''):Array.from({length:76},(_,i)=>'<td class="research-week-cell" data-research-week="'+(i+1)+'" data-research-id="'+x.id+'" title="Click to place this activity here."></td>').join('');
+    const isGroup=Number(x.level||3)===1||x.item_type==='group';
+    const bar=isGroup
+      ? Array.from({length:76},(_,i)=>{
+          const selected=researchScheduleInteraction.moveId===x.id;
+          return '<td class="research-week-cell research-parent-fill'+(selected?' move-selected':'')+'" data-research-week="'+(i+1)+'" data-research-id="'+x.id+'" title="Parent task — schedule is represented by child tasks."></td>';
+        }).join('')
+      : (x.start_week&&x.end_week)?Array.from({length:76},(_,i)=>{
+          const w=i+1, active=w>=x.start_week&&w<=x.end_week;
+          const selected=researchScheduleInteraction.moveId===x.id;
+          return '<td class="research-week-cell '+(active?'active '+(x.item_type==='work_package'?'package-bar':'task-bar'):'')+(selected?' move-selected':'')+'" data-research-week="'+w+'" data-research-id="'+x.id+'" title="'+(active?'Click to select this activity for moving.':'Click to move selected activity here.')+'"></td>';
+        }).join('')
+      : Array.from({length:76},(_,i)=>'<td class="research-week-cell" data-research-week="'+(i+1)+'" data-research-id="'+x.id+'" title="Click to place this activity here."></td>').join('');
     const indent=Math.max(0,(Number(x.level||3)-1)*16);
     return '<tr class="research-row research-'+researchEscape(x.item_type)+'" data-research-id="'+x.id+'">'+
       '<td class="research-code">'+researchEscape(x.code)+'</td>'+
@@ -493,22 +500,30 @@ function researchApplyCalculatedProgress(){
 }
 function researchRecalculateParents(){
   const items=researchScheduleState.items;
-  // Parent progress is always derived from the average of its immediate
-  // child headings/work packages, never from the parent's own schedule bar.
-  const parents=items.filter(x=>Number(x.level||3)<3).sort((a,b)=>Number(b.level||1)-Number(a.level||1));
-  for(const parent of parents){
-    const prefix=String(parent.code||'')+'.';
-    const childLevel=Number(parent.level||1)+1;
-    const children=items.filter(x=>Number(x.level||3)===childLevel && String(x.code||'').startsWith(prefix));
-    if(children.length){
-      const total=children.reduce((sum,x)=>sum+Number(x.calculated_progress??researchDateProgress(x)),0);
-      parent.calculated_progress=Math.round(total/children.length);
-      parent.calculated_status=parent.calculated_progress>=100?'completed':parent.calculated_progress>0?'in_progress':'planned';
-    }else{
-      parent.calculated_progress=0;
-      parent.calculated_status='planned';
-    }
-  }
+  const byCode=new Map(items.map(x=>[String(x.code||''),x]));
+  // Three-level hierarchy:
+  // Level 3 task -> calculated directly from its schedule.
+  // Level 2 sub-child -> average of its level 3 child tasks.
+  // Level 1 parent -> average of its level 2 sub-child tasks.
+  const updateLevel=(level)=>{
+    items.filter(x=>Number(x.level||3)===level).forEach(parent=>{
+      const prefix=String(parent.code||'')+'.';
+      const children=items.filter(x=>{
+        const childCode=String(x.code||'');
+        return Number(x.level||3)===level+1 && childCode.startsWith(prefix);
+      });
+      if(children.length){
+        const total=children.reduce((sum,x)=>sum+Number(x.calculated_progress??researchDateProgress(x)),0);
+        parent.calculated_progress=Math.round(total/children.length);
+        parent.calculated_status=parent.calculated_progress>=100?'completed':parent.calculated_progress>0?'in_progress':'planned';
+      }else{
+        parent.calculated_progress=0;
+        parent.calculated_status='planned';
+      }
+    });
+  };
+  updateLevel(2);
+  updateLevel(1);
 }
 async function researchQuickUpdate(id,payload){
   const item=researchScheduleState.items.find(x=>x.id===id);
