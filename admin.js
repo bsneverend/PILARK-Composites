@@ -435,13 +435,13 @@ function researchRenderRows(){
     return '<tr class="research-row research-'+researchEscape(x.item_type)+'" data-research-id="'+x.id+'">'+
       '<td class="research-code">'+researchEscape(x.code)+'</td>'+
       '<td class="research-name"><button type="button" class="research-edit-link" data-research-edit="'+x.id+'"><span style="padding-left:'+indent+'px">'+researchEscape(x.name)+'</span></button></td>'+
-      '<td class="research-status"><span class="research-status-pill '+researchEscape(x.status)+'">'+researchStatusLabel(x.status)+'</span></td>'+
-      '<td class="research-progress"><div class="research-progress-editor '+(Number(x.level||3)<3?'auto-progress':'')+'"><input type="range" min="0" max="100" step="1" value="'+Number(x.progress||0).toFixed(0)+'" data-research-progress="'+x.id+'" '+(Number(x.level||3)<3?'disabled':'')+' aria-label="Progress for '+researchEscape(x.code)+'"><span>'+Number(x.progress||0).toFixed(0)+'%</span></div></td>'+
+      '<td class="research-status"><span class="research-status-pill '+researchEscape(x.calculated_status||researchStatusFromSchedule(x))+'">'+researchStatusLabel(x.calculated_status||researchStatusFromSchedule(x))+'</span></td>'+
+      '<td class="research-progress"><div class="research-progress-editor '+(Number(x.level||3)<3?'auto-progress':'')+'"><span class="research-progress-value">'+Number(x.calculated_progress??researchDateProgress(x)).toFixed(0)+'%</span></div></td>'+
       '<td class="research-pic"><input class="research-pic-input" data-research-pic="'+x.id+'" value="'+researchEscape(x.assignee||'')+'" placeholder="PIC" aria-label="PIC for '+researchEscape(x.code)+'"></td>'+bar+'</tr>';
   }).join('')||'<tr><td colspan="81" class="research-empty">No research activities match the current filters.</td></tr>';
   document.querySelectorAll('[data-research-edit]').forEach(b=>b.onclick=()=>researchOpenModal(b.dataset.researchEdit));
   const scheduled=researchScheduleState.items.filter(x=>x.start_week&&x.end_week).length;
-  const completed=researchScheduleState.items.length?Math.round(researchScheduleState.items.reduce((a,x)=>a+Number(x.progress||0),0)/researchScheduleState.items.length):0;
+  const completed=researchScheduleState.items.length?Math.round(researchScheduleState.items.reduce((a,x)=>a+Number(x.calculated_progress??researchDateProgress(x)),0)/researchScheduleState.items.length):0;
   document.getElementById('researchMetricTotal').textContent=researchScheduleState.items.length;
   document.getElementById('researchMetricScheduled').textContent=scheduled;
   document.getElementById('researchMetricCompleted').textContent=completed+'%';
@@ -458,27 +458,51 @@ async function researchPersistRow(id,payload){
   researchScheduleState.filtered=researchScheduleState.filtered.map(x=>x.id===id?result.data:x);
   return result.data;
 }
-function researchStatusFromProgress(progress){
-  const p=Math.max(0,Math.min(100,Number(progress)||0));
-  return p>=100?'completed':p>0?'in_progress':'planned';
+const RESEARCH_PLAN_START_YEAR=2026;
+const RESEARCH_PLAN_START_MONTH=7; // August, zero-based
+function researchCurrentPlanWeek(date=new Date()){
+  const y=date.getFullYear(),m=date.getMonth(),d=date.getDate();
+  const monthOffset=(y-RESEARCH_PLAN_START_YEAR)*12+(m-RESEARCH_PLAN_START_MONTH);
+  if(monthOffset<0)return 0;
+  return Math.max(1,monthOffset*4+Math.min(4,Math.ceil(d/7)));
 }
-async function researchRecalculateParents(){
-  const parents=researchScheduleState.items.filter(x=>Number(x.level||3)<3).sort((a,b)=>Number(b.level||1)-Number(a.level||1));
-  const changed=[];
-  for(const originalParent of parents){
-    const parent=researchScheduleState.items.find(x=>x.id===originalParent.id)||originalParent;
+function researchDateProgress(item,date=new Date()){
+  const start=Number(item.start_week),end=Number(item.end_week);
+  if(!start||!end||end<start)return 0;
+  const currentWeek=researchCurrentPlanWeek(date);
+  if(currentWeek<start)return 0;
+  if(currentWeek>=end)return 100;
+  const duration=end-start+1;
+  const elapsed=currentWeek-start+1;
+  return Math.round(Math.max(0,Math.min(100,(elapsed/duration)*100)));
+}
+function researchStatusFromSchedule(item,date=new Date()){
+  const progress=researchDateProgress(item,date);
+  const start=Number(item.start_week);
+  const currentWeek=researchCurrentPlanWeek(date);
+  if(progress>=100)return 'completed';
+  if(start&&currentWeek>=start)return 'in_progress';
+  return 'planned';
+}
+function researchApplyCalculatedProgress(){
+  const now=new Date();
+  researchScheduleState.items.forEach(item=>{
+    item.calculated_progress=researchDateProgress(item,now);
+    item.calculated_status=researchStatusFromSchedule(item,now);
+  });
+}
+function researchRecalculateParents(){
+  const items=researchScheduleState.items;
+  const parents=items.filter(x=>Number(x.level||3)<3).sort((a,b)=>Number(b.level||1)-Number(a.level||1));
+  for(const parent of parents){
     const prefix=String(parent.code||'')+'.';
     const childLevel=Number(parent.level||1)+1;
-    const children=researchScheduleState.items.filter(x=>Number(x.level||3)===childLevel && String(x.code||'').startsWith(prefix));
-    if(!children.length)continue;
-    const progress=Math.round(children.reduce((sum,x)=>sum+Number(x.progress||0),0)/children.length);
-    const status=researchStatusFromProgress(progress);
-    if(Number(parent.progress||0)!==progress || parent.status!==status){
-      await researchPersistRow(parent.id,{progress,status});
-      changed.push(parent.id);
+    const children=items.filter(x=>Number(x.level||3)===childLevel && String(x.code||'').startsWith(prefix));
+    if(children.length){
+      parent.calculated_progress=Math.round(children.reduce((sum,x)=>sum+Number(x.calculated_progress??researchDateProgress(x)),0)/children.length);
+      parent.calculated_status=parent.calculated_progress>=100?'completed':parent.calculated_progress>0?'in_progress':'planned';
     }
   }
-  return changed;
 }
 async function researchQuickUpdate(id,payload){
   const item=researchScheduleState.items.find(x=>x.id===id);
@@ -534,13 +558,6 @@ async function researchSavePicInput(input){
   if(value===(item.assignee||''))return;
   await researchQuickUpdate(id,{assignee:value||null});
 }
-async function researchSaveProgress(input){
-  const id=input.dataset.researchProgress;
-  const item=researchScheduleState.items.find(x=>x.id===id);
-  if(!item || Number(item.level||3)<3)return;
-  const progress=Math.max(0,Math.min(100,Number(input.value)||0));
-  await researchQuickUpdate(id,{progress});
-}
 async function loadResearchSchedule(){
   if(!cloudReady()||!hasAdminPermission('research.manage'))return;
   const status=document.getElementById('researchScheduleStatus');
@@ -548,8 +565,8 @@ async function loadResearchSchedule(){
   const {data,error}=await window.PILARK_CMS.client.from('research_schedule_items').select('id,code,name,item_type,level,start_week,end_week,duration_weeks,status,progress,assignee,notes,priority,deliverable,dependency,document_url,budget,result_summary,risk').order('sort_order',{ascending:true});
   if(error){if(status)status.textContent='Unable to load research schedule: '+error.message;return;}
   researchScheduleState.items=data||[]; researchScheduleState.loaded=true;
-  researchApplyFilters();
-  await researchRecalculateParents().catch(err=>console.warn('Research parent progress:',err));
+  researchApplyCalculatedProgress();
+  researchRecalculateParents();
   researchApplyFilters();
   if(status)status.textContent='';
 }
@@ -566,7 +583,7 @@ function researchOpenModal(id){
     document.getElementById('researchActivityStart').value=item.start_week||'';
     document.getElementById('researchActivityEnd').value=item.end_week||'';
     document.getElementById('researchActivityStatus').value=item.status||'planned';
-    document.getElementById('researchActivityProgress').value=Number(item.progress||0);
+    document.getElementById('researchActivityProgress').value=Number(item.calculated_progress??researchDateProgress(item));
     document.getElementById('researchActivityAssignee').value=item.assignee||'';
     document.getElementById('researchActivityPriority').value=item.priority||'normal';
     document.getElementById('researchActivityDeliverable').value=item.deliverable||'';
@@ -584,6 +601,16 @@ function researchOpenModal(id){
     document.getElementById('researchActivityStatus').value='planned';
     document.getElementById('researchActivityProgress').value='0';
   }
+  const progressInput=document.getElementById('researchActivityProgress');
+  if(progressInput){
+    progressInput.disabled=true;
+    progressInput.title='Calculated automatically from the planned schedule and current week.';
+  }
+  const statusInput=document.getElementById('researchActivityStatus');
+  if(statusInput){
+    statusInput.disabled=true;
+    statusInput.title='Calculated automatically from the planned schedule and current week.';
+  }
   modal.hidden=false;
 }
 function researchCloseModal(){const m=document.getElementById('researchActivityModal');if(m)m.hidden=true}
@@ -599,8 +626,7 @@ async function researchSaveActivity(e){
     level:Number(document.getElementById('researchActivityLevel').value)||3,
     item_type:Number(document.getElementById('researchActivityLevel').value)===1?'group':Number(document.getElementById('researchActivityLevel').value)===2?'work_package':'task',
     start_week:start,end_week:end,duration_weeks:start&&end?end-start+1:null,
-    status:document.getElementById('researchActivityStatus').value,
-    progress:Math.max(0,Math.min(100,Number(document.getElementById('researchActivityProgress').value)||0)),
+    status:'planned',
     priority:document.getElementById('researchActivityPriority').value,
     deliverable:document.getElementById('researchActivityDeliverable').value.trim()||null,
     dependency:document.getElementById('researchActivityDependency').value.trim()||null,
@@ -612,7 +638,6 @@ async function researchSaveActivity(e){
     notes:document.getElementById('researchActivityNotes').value.trim()||null,
     updated_at:new Date().toISOString()
   };
-  if(Number(payload.level||3)>=3)payload.status=researchStatusFromProgress(payload.progress);
   if(!payload.code||!payload.name){alert('Code and activity name are required.');return;}
   const status=document.getElementById('researchScheduleStatus');
   try{
@@ -626,28 +651,28 @@ async function researchSaveActivity(e){
     researchRenderRows();
   }catch(err){if(status)status.textContent='Save failed: '+err.message;}
 }
+function researchStartProgressClock(){
+  if(window.__researchProgressClock)clearInterval(window.__researchProgressClock);
+  window.__researchProgressClock=setInterval(()=>{
+    if(researchScheduleState.loaded){
+      researchApplyCalculatedProgress();
+      researchRecalculateParents();
+      researchRenderRows();
+    }
+  },60000);
+}
 function initResearchSchedule(){
   researchRenderHeader();
   document.getElementById('researchSearch')?.addEventListener('input',researchApplyFilters);
   document.getElementById('researchStatusFilter')?.addEventListener('change',researchApplyFilters);
   document.getElementById('researchLevelFilter')?.addEventListener('change',researchApplyFilters);
   document.getElementById('researchAddBtn')?.addEventListener('click',()=>researchOpenModal(null));
+  researchStartProgressClock();
   document.getElementById('researchGanttBody')?.addEventListener('click',e=>{
     const pic=e.target.closest('[data-research-pic]');
     if(pic)return;
     const cell=e.target.closest('[data-research-week]');
     if(cell)researchHandleWeekClick(cell);
-  });
-  document.getElementById('researchGanttBody')?.addEventListener('input',e=>{
-    const progress=e.target.closest('[data-research-progress]');
-    if(progress){
-      const label=progress.parentElement?.querySelector('span');
-      if(label)label.textContent=Number(progress.value||0)+'%';
-    }
-  });
-  document.getElementById('researchGanttBody')?.addEventListener('change',e=>{
-    const progress=e.target.closest('[data-research-progress]');
-    if(progress)researchSaveProgress(progress);
   });
   document.getElementById('researchGanttBody')?.addEventListener('keydown',e=>{
     const pic=e.target.closest('[data-research-pic]');
