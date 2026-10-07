@@ -974,9 +974,8 @@ async function autoMatchReconcile(){const lines=state.entryLines.filter(l=>{cons
       const up=await client().storage.from('accounting-ai').upload(path,file,{contentType:file.type,upsert:false});
       if(up.error) throw up.error;
       setReceiptStatus('Document uploaded. Sending to AI…','working');
-      const dataUrl=await fileToBase64(file);
       const {data,error}=await client().functions.invoke('accounting-ai',{body:{
-        mode:'scan_receipt',image_base64:dataUrl,mime_type:file.type,context:receiptContext()
+        mode:'scan_receipt',storage_path:path,mime_type:file.type,context:receiptContext()
       }});
       if(error) throw error;
       if(data?.error) throw new Error(data.error);
