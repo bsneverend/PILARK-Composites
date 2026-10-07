@@ -1105,3 +1105,10 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:1
   .research-toolbar{flex-wrap:wrap}
   .research-toolbar input{min-width:100%}
 }
+
+.research-row.research-group .research-week-cell.research-parent-fill{
+  background:#f1f7f9;
+}
+.research-row.research-group .research-week-cell.research-parent-fill:hover{
+  background:#e8f3f6!important;
+}
