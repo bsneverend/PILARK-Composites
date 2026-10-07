@@ -462,33 +462,25 @@ async function researchQuickUpdate(id,payload){
 }
 function researchHandleWeekClick(cell){
   const id=cell.dataset.researchId, week=Number(cell.dataset.researchWeek);
-  const item=researchScheduleState.items.find(x=>x.id===id);
-  if(!item||!week)return;
-  if(researchScheduleInteraction.moveId===id){
-    const duration=Math.max(1,Number(item.duration_weeks)||((item.end_week&&item.start_week)?item.end_week-item.start_week+1:1));
-    const end=Math.min(76,week+duration-1);
-    const start=Math.max(1,end-duration+1);
-    researchScheduleInteraction.moveId=null;
-    researchQuickUpdate(id,{start_week:start,end_week:end,duration_weeks:end-start+1});
+  if(!week)return;
+  if(researchScheduleInteraction.moveId){
+    const selected=researchScheduleState.items.find(x=>x.id===researchScheduleInteraction.moveId);
+    if(selected){
+      const duration=Math.max(1,Number(selected.duration_weeks)||((selected.end_week&&selected.start_week)?selected.end_week-selected.start_week+1:1));
+      const end=Math.min(76,week+duration-1);
+      const start=Math.max(1,end-duration+1);
+      researchScheduleInteraction.moveId=null;
+      researchQuickUpdate(selected.id,{start_week:start,end_week:end,duration_weeks:end-start+1});
+    }
     return;
   }
+  const item=researchScheduleState.items.find(x=>x.id===id);
+  if(!item)return;
   if(item.start_week&&item.end_week&&week>=item.start_week&&week<=item.end_week){
     researchScheduleInteraction.moveId=id;
     researchRenderRows();
     const status=document.getElementById('researchScheduleStatus');
-    if(status)status.textContent='Move selected: click the new start week for '+item.code+'.';
-    return;
-  }
-  if(researchScheduleInteraction.moveId){
-    const selected=researchScheduleState.items.find(x=>x.id===researchScheduleInteraction.moveId);
-    if(selected){
-      const duration=Math.max(1,Number(selected.duration_weeks)||1);
-      const end=Math.min(76,week+duration-1);
-      const start=Math.max(1,end-duration+1);
-      const id2=selected.id;
-      researchScheduleInteraction.moveId=null;
-      researchQuickUpdate(id2,{start_week:start,end_week:end,duration_weeks:end-start+1});
-    }
+    if(status)status.textContent='Move selected: click the new start week anywhere on this activity row.';
   }
 }
 async function researchSavePicInput(input){
