@@ -517,8 +517,11 @@ function researchRecalculateParents(){
         parent.calculated_progress=Math.round(total/children.length);
         parent.calculated_status=parent.calculated_progress>=100?'completed':parent.calculated_progress>0?'in_progress':'planned';
       }else{
-        parent.calculated_progress=0;
-        parent.calculated_status='planned';
+        // A work package can legitimately have no level-3 children.
+        // In that case its own planned schedule remains the source of truth
+        // instead of being reset to 0%.
+        parent.calculated_progress=researchDateProgress(parent);
+        parent.calculated_status=researchStatusFromSchedule(parent);
       }
     });
   };
