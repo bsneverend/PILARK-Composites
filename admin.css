@@ -1112,3 +1112,11 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:1
 .research-row.research-group .research-week-cell.research-parent-fill:hover{
   background:#e8f3f6!important;
 }
+
+.research-row.research-work_package .research-week-cell.active.package-bar{
+  background:#76c8e6;
+  box-shadow:inset 0 0 0 1px rgba(7,135,183,.08);
+}
+.research-row.research-work_package .research-week-cell.active{
+  min-height:32px;
+}
