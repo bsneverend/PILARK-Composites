@@ -402,6 +402,7 @@ function openSidebarForView(view){
 const RESEARCH_MONTH_LABELS=['Agt 2026','Sept 2026','Okt 2026','Nov 2026','Des 2026','Jan 2027','Feb 2027','Mar 2027','Apr 2027','Mei 2027','Jun 2027','Jul 2027','Agt 2027','Sept 2027','Nov 2027','Des 2027','Jan 2028','Feb 2028','Mar 2028'];
 const RESEARCH_MONTHS=RESEARCH_MONTH_LABELS.map((label,i)=>({label,start:i*4+1,end:i*4+4}));
 let researchScheduleState={items:[],filtered:[],loaded:false};
+let researchScheduleInteraction={moveId:null};
 
 function researchStatusLabel(status){
   return ({planned:'Planned',in_progress:'In progress',completed:'Completed',on_hold:'On hold'})[status]||status||'Planned';
@@ -427,15 +428,16 @@ function researchRenderRows(){
   body.innerHTML=items.map(x=>{
     const bar=(x.start_week&&x.end_week)?Array.from({length:76},(_,i)=>{
       const w=i+1, active=w>=x.start_week&&w<=x.end_week;
-      return '<td class="research-week-cell '+(active?'active '+(x.item_type==='group'?'group-bar':x.item_type==='work_package'?'package-bar':'task-bar'):'')+'"></td>';
-    }).join(''):Array.from({length:76},()=>'<td class="research-week-cell"></td>').join('');
+      const selected=researchScheduleInteraction.moveId===x.id;
+      return '<td class="research-week-cell '+(active?'active '+(x.item_type==='group'?'group-bar':x.item_type==='work_package'?'package-bar':'task-bar'):'')+(selected?' move-selected':'')+'" data-research-week="'+w+'" data-research-id="'+x.id+'" title="'+(active?'Click to select this activity for moving.':'Click to move selected activity here.')+'"></td>';
+    }).join(''):Array.from({length:76},(_,i)=>'<td class="research-week-cell" data-research-week="'+(i+1)+'" data-research-id="'+x.id+'" title="Click to place this activity here."></td>').join('');
     const indent=Math.max(0,(Number(x.level||3)-1)*16);
     return '<tr class="research-row research-'+researchEscape(x.item_type)+'" data-research-id="'+x.id+'">'+
       '<td class="research-code">'+researchEscape(x.code)+'</td>'+
       '<td class="research-name"><button type="button" class="research-edit-link" data-research-edit="'+x.id+'"><span style="padding-left:'+indent+'px">'+researchEscape(x.name)+'</span></button></td>'+
       '<td class="research-status"><span class="research-status-pill '+researchEscape(x.status)+'">'+researchStatusLabel(x.status)+'</span></td>'+
       '<td class="research-progress">'+Number(x.progress||0).toFixed(0)+'%</td>'+
-      '<td class="research-pic">'+researchEscape(x.assignee||'—')+'</td>'+bar+'</tr>';
+      '<td class="research-pic"><input class="research-pic-input" data-research-pic="'+x.id+'" value="'+researchEscape(x.assignee||'')+'" placeholder="PIC" aria-label="PIC for '+researchEscape(x.code)+'"></td>'+bar+'</tr>';
   }).join('')||'<tr><td colspan="81" class="research-empty">No research activities match the current filters.</td></tr>';
   document.querySelectorAll('[data-research-edit]').forEach(b=>b.onclick=()=>researchOpenModal(b.dataset.researchEdit));
   const scheduled=researchScheduleState.items.filter(x=>x.start_week&&x.end_week).length;
@@ -443,6 +445,59 @@ function researchRenderRows(){
   document.getElementById('researchMetricTotal').textContent=researchScheduleState.items.length;
   document.getElementById('researchMetricScheduled').textContent=scheduled;
   document.getElementById('researchMetricCompleted').textContent=completed+'%';
+}
+async function researchQuickUpdate(id,payload){
+  const item=researchScheduleState.items.find(x=>x.id===id);
+  if(!item)return;
+  const status=document.getElementById('researchScheduleStatus');
+  if(status)status.textContent='Saving…';
+  const {data,error}=await window.PILARK_CMS.client.from('research_schedule_items').update({...payload,updated_at:new Date().toISOString()}).eq('id',id).select('id,code,name,item_type,level,start_week,end_week,duration_weeks,status,progress,assignee,notes,priority,deliverable,dependency,document_url,budget,result_summary,risk').single();
+  if(error){if(status)status.textContent='Save failed: '+error.message;return false;}
+  const idx=researchScheduleState.items.findIndex(x=>x.id===id);
+  if(idx>=0)researchScheduleState.items[idx]=data;
+  researchScheduleState.filtered=researchScheduleState.filtered.map(x=>x.id===id?data:x);
+  researchRenderRows();
+  if(status)status.textContent='';
+  return true;
+}
+function researchHandleWeekClick(cell){
+  const id=cell.dataset.researchId, week=Number(cell.dataset.researchWeek);
+  const item=researchScheduleState.items.find(x=>x.id===id);
+  if(!item||!week)return;
+  if(researchScheduleInteraction.moveId===id){
+    const duration=Math.max(1,Number(item.duration_weeks)||((item.end_week&&item.start_week)?item.end_week-item.start_week+1:1));
+    const end=Math.min(76,week+duration-1);
+    const start=Math.max(1,end-duration+1);
+    researchScheduleInteraction.moveId=null;
+    researchQuickUpdate(id,{start_week:start,end_week:end,duration_weeks:end-start+1});
+    return;
+  }
+  if(item.start_week&&item.end_week&&week>=item.start_week&&week<=item.end_week){
+    researchScheduleInteraction.moveId=id;
+    researchRenderRows();
+    const status=document.getElementById('researchScheduleStatus');
+    if(status)status.textContent='Move selected: click the new start week for '+item.code+'.';
+    return;
+  }
+  if(researchScheduleInteraction.moveId){
+    const selected=researchScheduleState.items.find(x=>x.id===researchScheduleInteraction.moveId);
+    if(selected){
+      const duration=Math.max(1,Number(selected.duration_weeks)||1);
+      const end=Math.min(76,week+duration-1);
+      const start=Math.max(1,end-duration+1);
+      const id2=selected.id;
+      researchScheduleInteraction.moveId=null;
+      researchQuickUpdate(id2,{start_week:start,end_week:end,duration_weeks:end-start+1});
+    }
+  }
+}
+async function researchSavePicInput(input){
+  const id=input.dataset.researchPic;
+  const item=researchScheduleState.items.find(x=>x.id===id);
+  if(!item)return;
+  const value=input.value.trim();
+  if(value===(item.assignee||''))return;
+  await researchQuickUpdate(id,{assignee:value||null});
 }
 async function loadResearchSchedule(){
   if(!cloudReady()||!hasAdminPermission('research.manage'))return;
@@ -529,6 +584,20 @@ function initResearchSchedule(){
   document.getElementById('researchStatusFilter')?.addEventListener('change',researchApplyFilters);
   document.getElementById('researchLevelFilter')?.addEventListener('change',researchApplyFilters);
   document.getElementById('researchAddBtn')?.addEventListener('click',()=>researchOpenModal(null));
+  document.getElementById('researchGanttBody')?.addEventListener('click',e=>{
+    const pic=e.target.closest('[data-research-pic]');
+    if(pic)return;
+    const cell=e.target.closest('[data-research-week]');
+    if(cell)researchHandleWeekClick(cell);
+  });
+  document.getElementById('researchGanttBody')?.addEventListener('keydown',e=>{
+    const pic=e.target.closest('[data-research-pic]');
+    if(pic&&e.key==='Enter'){e.preventDefault();pic.blur();}
+  });
+  document.getElementById('researchGanttBody')?.addEventListener('blur',e=>{
+    const pic=e.target.closest('[data-research-pic]');
+    if(pic)researchSavePicInput(pic);
+  },true);
   document.getElementById('researchActivityForm')?.addEventListener('submit',researchSaveActivity);
   document.getElementById('researchActivityClose')?.addEventListener('click',researchCloseModal);
   document.getElementById('researchActivityCancel')?.addEventListener('click',researchCloseModal);
