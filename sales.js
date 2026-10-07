@@ -426,7 +426,7 @@ function renderOpportunityDetail(id){
     await loadCRM();
   }
   function bind(){document.querySelectorAll('[data-sales-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.salesTab));el('salesForm')?.addEventListener('submit',createQuotation);el('addSalesLine')?.addEventListener('click',()=>{el('salesLines').insertAdjacentHTML('beforeend',lineHtml(el('salesLines').children.length));updatePreview();});el('salesLines')?.addEventListener('click',e=>{if(e.target.classList.contains('sales-line-remove')){const rows=el('salesLines').querySelectorAll('.sales-line');if(rows.length>1)e.target.closest('.sales-line').remove();updatePreview();}});el('salesLines')?.addEventListener('input',updatePreview);el('salesRefresh')?.addEventListener('click',()=>Promise.all([load(),loadCRM()]).catch(e=>alert(e.message)));
-    window.addEventListener('pilark:refresh-view',e=>{if(e.detail?.view==='sales')Promise.all([load(),loadCRM()]).catch(e=>console.warn('Sales refresh:',e));});
+    window.addEventListener('pilark:refresh-view',e=>{if(e.detail?.view==='sales')Promise.all([load(),loadCRM()]).then(()=>e.detail?.done?.()).catch(err=>e.detail?.done?.(err));});
     el('salesCrmRefresh')?.addEventListener('click',()=>loadCRM().catch(e=>alert(e.message)));
     el('salesAddProspect')?.addEventListener('click',openSalesProspectModal);
     el('salesAiFindProspect')?.addEventListener('click',openAiProspectModal);
