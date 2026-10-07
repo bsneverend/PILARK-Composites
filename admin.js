@@ -590,15 +590,24 @@ function showView(name){
     topbarAction.classList.toggle('finance-refresh-btn',!!refreshId);
     topbarAction.onclick=null;
     if(refreshId){
-      topbarAction.onclick=()=>{
-        // Always perform a real data refresh from the server. This avoids relying
-        // on a hidden module button whose listener may not yet be bound.
+      topbarAction.onclick=async()=>{
         topbarAction.disabled=true;
         const originalLabel=topbarAction.textContent;
         topbarAction.textContent='Refreshing…';
-        window.setTimeout(()=>{
-          window.location.reload();
-        },120);
+        try{
+          if(name==='research-schedule'){
+            await loadResearchSchedule();
+          }else{
+            const refreshButton=document.getElementById(refreshId);
+            if(refreshButton) refreshButton.click();
+            else window.location.reload();
+          }
+        }catch(err){
+          console.warn('Refresh failed:',err);
+        }finally{
+          topbarAction.disabled=false;
+          topbarAction.textContent=originalLabel;
+        }
         return false;
       };
     }else{
