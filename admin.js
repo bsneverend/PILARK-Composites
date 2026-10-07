@@ -436,7 +436,7 @@ function researchRenderRows(){
       '<td class="research-code">'+researchEscape(x.code)+'</td>'+
       '<td class="research-name"><button type="button" class="research-edit-link" data-research-edit="'+x.id+'"><span style="padding-left:'+indent+'px">'+researchEscape(x.name)+'</span></button></td>'+
       '<td class="research-status"><span class="research-status-pill '+researchEscape(x.status)+'">'+researchStatusLabel(x.status)+'</span></td>'+
-      '<td class="research-progress">'+Number(x.progress||0).toFixed(0)+'%</td>'+
+      '<td class="research-progress"><div class="research-progress-editor '+(Number(x.level||3)<3?'auto-progress':'')+'"><input type="range" min="0" max="100" step="1" value="'+Number(x.progress||0).toFixed(0)+'" data-research-progress="'+x.id+'" '+(Number(x.level||3)<3?'disabled':'')+' aria-label="Progress for '+researchEscape(x.code)+'"><span>'+Number(x.progress||0).toFixed(0)+'%</span></div></td>'+
       '<td class="research-pic"><input class="research-pic-input" data-research-pic="'+x.id+'" value="'+researchEscape(x.assignee||'')+'" placeholder="PIC" aria-label="PIC for '+researchEscape(x.code)+'"></td>'+bar+'</tr>';
   }).join('')||'<tr><td colspan="81" class="research-empty">No research activities match the current filters.</td></tr>';
   document.querySelectorAll('[data-research-edit]').forEach(b=>b.onclick=()=>researchOpenModal(b.dataset.researchEdit));
@@ -446,19 +446,64 @@ function researchRenderRows(){
   document.getElementById('researchMetricScheduled').textContent=scheduled;
   document.getElementById('researchMetricCompleted').textContent=completed+'%';
 }
+async function researchPersistRow(id,payload){
+  const result=await window.PILARK_CMS.client.from('research_schedule_items')
+    .update({...payload,updated_at:new Date().toISOString()})
+    .eq('id',id)
+    .select('id,code,name,item_type,level,start_week,end_week,duration_weeks,status,progress,assignee,notes,priority,deliverable,dependency,document_url,budget,result_summary,risk')
+    .single();
+  if(result.error)throw result.error;
+  const idx=researchScheduleState.items.findIndex(x=>x.id===id);
+  if(idx>=0)researchScheduleState.items[idx]=result.data;
+  researchScheduleState.filtered=researchScheduleState.filtered.map(x=>x.id===id?result.data:x);
+  return result.data;
+}
+function researchStatusFromProgress(progress){
+  const p=Math.max(0,Math.min(100,Number(progress)||0));
+  return p>=100?'completed':p>0?'in_progress':'planned';
+}
+async function researchRecalculateParents(){
+  const items=researchScheduleState.items.slice();
+  const parents=items.filter(x=>Number(x.level||3)<3).sort((a,b)=>Number(b.level||1)-Number(a.level||1));
+  const changed=[];
+  for(const parent of parents){
+    const prefix=String(parent.code||'')+'.';
+    const childLevel=Number(parent.level||1)+1;
+    const children=items.filter(x=>Number(x.level||3)===childLevel && String(x.code||'').startsWith(prefix));
+    if(!children.length)continue;
+    const progress=Math.round(children.reduce((sum,x)=>sum+Number(x.progress||0),0)/children.length);
+    const status=researchStatusFromProgress(progress);
+    if(Number(parent.progress||0)!==progress || parent.status!==status){
+      parent.progress=progress;
+      parent.status=status;
+      await researchPersistRow(parent.id,{progress,status});
+      changed.push(parent.id);
+    }
+  }
+  return changed;
+}
 async function researchQuickUpdate(id,payload){
   const item=researchScheduleState.items.find(x=>x.id===id);
-  if(!item)return;
-  const status=document.getElementById('researchScheduleStatus');
-  if(status)status.textContent='Saving…';
-  const {data,error}=await window.PILARK_CMS.client.from('research_schedule_items').update({...payload,updated_at:new Date().toISOString()}).eq('id',id).select('id,code,name,item_type,level,start_week,end_week,duration_weeks,status,progress,assignee,notes,priority,deliverable,dependency,document_url,budget,result_summary,risk').single();
-  if(error){if(status)status.textContent='Save failed: '+error.message;return false;}
-  const idx=researchScheduleState.items.findIndex(x=>x.id===id);
-  if(idx>=0)researchScheduleState.items[idx]=data;
-  researchScheduleState.filtered=researchScheduleState.filtered.map(x=>x.id===id?data:x);
-  researchRenderRows();
-  if(status)status.textContent='';
-  return true;
+  if(!item)return false;
+  const statusEl=document.getElementById('researchScheduleStatus');
+  if(statusEl)statusEl.textContent='Saving…';
+  try{
+    const next={...payload};
+    if(Object.prototype.hasOwnProperty.call(next,'progress') && Number(item.level||3)>=3){
+      next.progress=Math.max(0,Math.min(100,Number(next.progress)||0));
+      next.status=researchStatusFromProgress(next.progress);
+    }
+    await researchPersistRow(id,next);
+    if(Object.prototype.hasOwnProperty.call(next,'progress')){
+      await researchRecalculateParents();
+    }
+    researchRenderRows();
+    if(statusEl)statusEl.textContent='';
+    return true;
+  }catch(err){
+    if(statusEl)statusEl.textContent='Save failed: '+err.message;
+    return false;
+  }
 }
 function researchHandleWeekClick(cell){
   const id=cell.dataset.researchId, week=Number(cell.dataset.researchWeek);
@@ -490,6 +535,13 @@ async function researchSavePicInput(input){
   const value=input.value.trim();
   if(value===(item.assignee||''))return;
   await researchQuickUpdate(id,{assignee:value||null});
+}
+async function researchSaveProgress(input){
+  const id=input.dataset.researchProgress;
+  const item=researchScheduleState.items.find(x=>x.id===id);
+  if(!item || Number(item.level||3)<3)return;
+  const progress=Math.max(0,Math.min(100,Number(input.value)||0));
+  await researchQuickUpdate(id,{progress});
 }
 async function loadResearchSchedule(){
   if(!cloudReady()||!hasAdminPermission('research.manage'))return;
@@ -566,8 +618,14 @@ async function researchSaveActivity(e){
     const c=window.PILARK_CMS.client;
     const result=id?await c.from('research_schedule_items').update(payload).eq('id',id):await c.from('research_schedule_items').insert(payload);
     if(result.error)throw result.error;
+    if(Number(payload.level||3)>=3){
+      const syncedStatus=researchStatusFromProgress(payload.progress);
+      await window.PILARK_CMS.client.from('research_schedule_items').update({status:syncedStatus,updated_at:new Date().toISOString()}).eq('id',id||result.data?.[0]?.id||'');
+    }
     researchCloseModal();
     await loadResearchSchedule();
+    await researchRecalculateParents();
+    researchRenderRows();
   }catch(err){if(status)status.textContent='Save failed: '+err.message;}
 }
 function initResearchSchedule(){
@@ -581,6 +639,17 @@ function initResearchSchedule(){
     if(pic)return;
     const cell=e.target.closest('[data-research-week]');
     if(cell)researchHandleWeekClick(cell);
+  });
+  document.getElementById('researchGanttBody')?.addEventListener('input',e=>{
+    const progress=e.target.closest('[data-research-progress]');
+    if(progress){
+      const label=progress.parentElement?.querySelector('span');
+      if(label)label.textContent=Number(progress.value||0)+'%';
+    }
+  });
+  document.getElementById('researchGanttBody')?.addEventListener('change',e=>{
+    const progress=e.target.closest('[data-research-progress]');
+    if(progress)researchSaveProgress(progress);
   });
   document.getElementById('researchGanttBody')?.addEventListener('keydown',e=>{
     const pic=e.target.closest('[data-research-pic]');
