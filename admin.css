@@ -1071,6 +1071,13 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:1
 .research-status{left:472px;padding:0 7px}
 .research-progress{left:564px;text-align:center;padding:0 4px}
 .research-pic{left:656px;padding:0 7px;white-space:nowrap;max-width:92px;overflow:hidden;text-overflow:ellipsis}
+.research-pic-input{width:78px;max-width:78px;border:1px solid transparent;background:transparent;border-radius:7px;padding:5px 6px;color:#20333b;font:inherit;outline:none}
+.research-pic-input:hover,.research-pic-input:focus{border-color:#b9dce8;background:#fff}
+.research-pic-input::placeholder{color:#91a1a8}
+.research-week-cell{cursor:pointer}
+.research-week-cell:hover{background:#e9f8fc!important}
+.research-week-cell.move-selected{outline:2px solid #0787b7;outline-offset:-2px;position:relative;z-index:2}
+
 .research-row.research-group .research-code,.research-row.research-group .research-name,.research-row.research-group .research-status,.research-row.research-group .research-progress,.research-row.research-group .research-pic{background:#f1f7f9;font-weight:900}
 .research-row.research-work_package .research-name{font-weight:800}
 .research-edit-link{border:0;background:transparent;padding:0;text-align:left;width:100%;font:inherit;color:#20333b;cursor:pointer}
