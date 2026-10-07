@@ -418,7 +418,7 @@ function researchApplyFilters(){
   const level=document.getElementById('researchLevelFilter')?.value||'';
   researchScheduleState.filtered=researchScheduleState.items.filter(x=>{
     const hay=(x.code+' '+x.name+' '+(x.assignee||'')).toLowerCase();
-    return (!q||hay.includes(q))&&(!status||x.status===status)&&(!level||x.item_type===level);
+    return (!q||hay.includes(q))&&(!status||(x.calculated_status||researchStatusFromSchedule(x))===status)&&(!level||x.item_type===level);
   });
   researchRenderRows();
 }
@@ -582,7 +582,7 @@ function researchOpenModal(id){
     document.getElementById('researchActivityLevel').value=String(item.level||3);
     document.getElementById('researchActivityStart').value=item.start_week||'';
     document.getElementById('researchActivityEnd').value=item.end_week||'';
-    document.getElementById('researchActivityStatus').value=item.status||'planned';
+    document.getElementById('researchActivityStatus').value=item.calculated_status||researchStatusFromSchedule(item);
     document.getElementById('researchActivityProgress').value=Number(item.calculated_progress??researchDateProgress(item));
     document.getElementById('researchActivityAssignee').value=item.assignee||'';
     document.getElementById('researchActivityPriority').value=item.priority||'normal';
