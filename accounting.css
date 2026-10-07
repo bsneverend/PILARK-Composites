@@ -217,3 +217,33 @@
 /* Posted journal delete action */
 .accounting-small-btn.delete-entry-btn{color:#c62828;border-color:#f1c6c6;background:#fff}
 .accounting-small-btn.delete-entry-btn:hover{color:#fff;background:#c62828;border-color:#c62828}
+
+/* AI Receipt Scanner */
+.receipt-scanner-grid{display:grid;grid-template-columns:minmax(300px,.85fr) minmax(420px,1.4fr);gap:16px}
+.receipt-upload-panel,.receipt-result-panel{min-height:460px}
+.receipt-dropzone{min-height:260px;border:2px dashed #c8dce5;border-radius:16px;background:#f8fbfc;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;transition:.18s}
+.receipt-dropzone.dragging{border-color:#0b91cf;background:#eef9fd;transform:scale(1.01)}
+.receipt-upload-icon{width:56px;height:56px;border-radius:16px;display:grid;place-items:center;background:#e7f5fa;color:#0b91cf;font-size:30px;font-weight:800;margin-bottom:12px}
+.receipt-dropzone h3{margin:0 0 6px;font-size:18px;color:#07121a}.receipt-dropzone p{margin:0 0 18px;color:#71838d;font-size:12px;line-height:1.5}
+.receipt-scan-status{margin-top:12px;padding:11px 12px;border-radius:10px;background:#f4f7f8;color:#647680;font-size:12px}
+.receipt-scan-status.working{background:#fff8e8;color:#9a6900}.receipt-scan-status.success{background:#edf9f1;color:#27733e}.receipt-scan-status.error{background:#fff0f0;color:#b02a37}
+.receipt-preview-wrap{margin-top:12px;border:1px solid #dce8ee;border-radius:12px;overflow:hidden;background:#f7fafb;max-height:380px;text-align:center}
+.receipt-preview-wrap img{display:block;width:100%;max-height:380px;object-fit:contain}
+.receipt-result-empty{min-height:350px;display:grid;place-items:center;text-align:center;color:#7a8b94;font-size:13px}
+.receipt-loading{min-height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;color:#536a76}
+.receipt-loading span{width:28px;height:28px;border:3px solid #d9e8ee;border-top-color:#0b91cf;border-radius:50%;animation:receiptSpin .8s linear infinite}
+@keyframes receiptSpin{to{transform:rotate(360deg)}}
+.receipt-loading small{color:#8a9aa2}.receipt-error,.receipt-success{padding:18px;border-radius:12px;background:#fff2f2;color:#9b3038}.receipt-success{background:#edf9f1;color:#27733e;display:flex;flex-direction:column;gap:5px}
+.receipt-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.receipt-fields label,.receipt-journal-grid label{display:grid;gap:5px;color:#566c77;font-size:11px;font-weight:800}
+.receipt-fields input,.receipt-journal-grid select{width:100%;box-sizing:border-box;border:1px solid #d5e3e9;border-radius:9px;background:#fff;color:#07121a;padding:9px 10px;font:500 13px Inter,sans-serif}
+.receipt-journal-head{display:flex;justify-content:space-between;gap:12px;align-items:center;margin:18px 0 10px;padding-top:15px;border-top:1px solid #e6eef1}
+.receipt-journal-head b{font-size:13px;color:#07121a}.receipt-journal-head span{font-size:10px;color:#84939a}
+.receipt-journal-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.receipt-lines{margin-top:16px;border-top:1px solid #e6eef1;padding-top:12px}.receipt-lines>b{font-size:12px;color:#405864}
+.receipt-lines>div{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid #edf2f4;font-size:12px}.receipt-lines strong{font-size:12px}.receipt-ai-note{margin-top:12px;padding:10px 11px;border-radius:9px;background:#f7fafb;color:#637781;font-size:11px;line-height:1.5}
+.receipt-confidence{display:inline-flex;padding:6px 9px;border-radius:999px;background:#edf8fc;color:#0b7eaf;font-size:10px;font-weight:800}
+.receipt-action-bar{display:flex;justify-content:flex-end;gap:10px;margin-top:14px}
+.receipt-action-bar[hidden]{display:none}
+@media(max-width:900px){.receipt-scanner-grid{grid-template-columns:1fr}.receipt-upload-panel,.receipt-result-panel{min-height:auto}}
+@media(max-width:600px){.receipt-fields,.receipt-journal-grid{grid-template-columns:1fr}.receipt-action-bar{flex-direction:column}.receipt-action-bar button{width:100%}}
