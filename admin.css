@@ -1070,6 +1070,12 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:1
 .research-name{left:82px;padding:0 9px}
 .research-status{left:472px;padding:0 7px}
 .research-progress{left:564px;text-align:center;padding:0 4px}
+.research-progress-editor{display:flex;align-items:center;gap:5px;min-width:82px}
+.research-progress-editor input[type="range"]{width:58px;height:4px;accent-color:#0787b7;cursor:pointer;margin:0}
+.research-progress-editor span{min-width:28px;font-size:12px;font-weight:800;text-align:right;color:#29424d}
+.research-progress-editor.auto-progress{opacity:.78}
+.research-progress-editor input[type="range"]:disabled{cursor:default}
+
 .research-pic{left:656px;padding:0 7px;white-space:nowrap;max-width:92px;overflow:hidden;text-overflow:ellipsis}
 .research-pic-input{width:78px;max-width:78px;border:1px solid transparent;background:transparent;border-radius:7px;padding:5px 6px;color:#20333b;font:inherit;outline:none}
 .research-pic-input:hover,.research-pic-input:focus{border-color:#b9dce8;background:#fff}
