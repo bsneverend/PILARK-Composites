@@ -493,14 +493,20 @@ function researchApplyCalculatedProgress(){
 }
 function researchRecalculateParents(){
   const items=researchScheduleState.items;
+  // Parent progress is always derived from the average of its immediate
+  // child headings/work packages, never from the parent's own schedule bar.
   const parents=items.filter(x=>Number(x.level||3)<3).sort((a,b)=>Number(b.level||1)-Number(a.level||1));
   for(const parent of parents){
     const prefix=String(parent.code||'')+'.';
     const childLevel=Number(parent.level||1)+1;
     const children=items.filter(x=>Number(x.level||3)===childLevel && String(x.code||'').startsWith(prefix));
     if(children.length){
-      parent.calculated_progress=Math.round(children.reduce((sum,x)=>sum+Number(x.calculated_progress??researchDateProgress(x)),0)/children.length);
+      const total=children.reduce((sum,x)=>sum+Number(x.calculated_progress??researchDateProgress(x)),0);
+      parent.calculated_progress=Math.round(total/children.length);
       parent.calculated_status=parent.calculated_progress>=100?'completed':parent.calculated_progress>0?'in_progress':'planned';
+    }else{
+      parent.calculated_progress=0;
+      parent.calculated_status='planned';
     }
   }
 }
