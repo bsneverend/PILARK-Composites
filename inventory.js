@@ -112,7 +112,7 @@
   }
 
   function bind(){
-    el('inventoryRefresh')?.addEventListener('click',()=>load().catch(e=>alert(e.message)));\n    window.addEventListener('pilark:refresh-view',e=>{if(e.detail?.view==='inventory')load().catch(e=>console.warn('Inventory refresh:',e));});
+    el('inventoryRefresh')?.addEventListener('click',()=>load().catch(e=>alert(e.message)));\n    window.addEventListener('pilark:refresh-view',e=>{if(e.detail?.view==='inventory')load().then(()=>e.detail?.done?.()).catch(err=>e.detail?.done?.(err));});
     document.querySelectorAll('[data-inventory-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.inventoryTab));
     el('inventoryAdjustmentForm')?.addEventListener('submit',adjust);
     el('inventoryCardApply')?.addEventListener('click',renderStockCard);
