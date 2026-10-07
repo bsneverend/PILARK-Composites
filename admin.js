@@ -598,9 +598,8 @@ function showView(name){
           if(name==='research-schedule'){
             await loadResearchSchedule();
           }else{
-            const refreshButton=document.getElementById(refreshId);
-            if(refreshButton) refreshButton.click();
-            else window.location.reload();
+            window.dispatchEvent(new CustomEvent('pilark:refresh-view',{detail:{view:name}}));
+            await new Promise(resolve=>window.setTimeout(resolve,450));
           }
         }catch(err){
           console.warn('Refresh failed:',err);
