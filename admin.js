@@ -463,19 +463,17 @@ function researchStatusFromProgress(progress){
   return p>=100?'completed':p>0?'in_progress':'planned';
 }
 async function researchRecalculateParents(){
-  const items=researchScheduleState.items.slice();
-  const parents=items.filter(x=>Number(x.level||3)<3).sort((a,b)=>Number(b.level||1)-Number(a.level||1));
+  const parents=researchScheduleState.items.filter(x=>Number(x.level||3)<3).sort((a,b)=>Number(b.level||1)-Number(a.level||1));
   const changed=[];
-  for(const parent of parents){
+  for(const originalParent of parents){
+    const parent=researchScheduleState.items.find(x=>x.id===originalParent.id)||originalParent;
     const prefix=String(parent.code||'')+'.';
     const childLevel=Number(parent.level||1)+1;
-    const children=items.filter(x=>Number(x.level||3)===childLevel && String(x.code||'').startsWith(prefix));
+    const children=researchScheduleState.items.filter(x=>Number(x.level||3)===childLevel && String(x.code||'').startsWith(prefix));
     if(!children.length)continue;
     const progress=Math.round(children.reduce((sum,x)=>sum+Number(x.progress||0),0)/children.length);
     const status=researchStatusFromProgress(progress);
     if(Number(parent.progress||0)!==progress || parent.status!==status){
-      parent.progress=progress;
-      parent.status=status;
       await researchPersistRow(parent.id,{progress,status});
       changed.push(parent.id);
     }
@@ -550,7 +548,10 @@ async function loadResearchSchedule(){
   const {data,error}=await window.PILARK_CMS.client.from('research_schedule_items').select('id,code,name,item_type,level,start_week,end_week,duration_weeks,status,progress,assignee,notes,priority,deliverable,dependency,document_url,budget,result_summary,risk').order('sort_order',{ascending:true});
   if(error){if(status)status.textContent='Unable to load research schedule: '+error.message;return;}
   researchScheduleState.items=data||[]; researchScheduleState.loaded=true;
-  researchApplyFilters(); if(status)status.textContent='';
+  researchApplyFilters();
+  await researchRecalculateParents().catch(err=>console.warn('Research parent progress:',err));
+  researchApplyFilters();
+  if(status)status.textContent='';
 }
 function researchOpenModal(id){
   const modal=document.getElementById('researchActivityModal'); if(!modal)return;
@@ -611,6 +612,7 @@ async function researchSaveActivity(e){
     notes:document.getElementById('researchActivityNotes').value.trim()||null,
     updated_at:new Date().toISOString()
   };
+  if(Number(payload.level||3)>=3)payload.status=researchStatusFromProgress(payload.progress);
   if(!payload.code||!payload.name){alert('Code and activity name are required.');return;}
   const status=document.getElementById('researchScheduleStatus');
   try{
@@ -618,10 +620,6 @@ async function researchSaveActivity(e){
     const c=window.PILARK_CMS.client;
     const result=id?await c.from('research_schedule_items').update(payload).eq('id',id):await c.from('research_schedule_items').insert(payload);
     if(result.error)throw result.error;
-    if(Number(payload.level||3)>=3){
-      const syncedStatus=researchStatusFromProgress(payload.progress);
-      await window.PILARK_CMS.client.from('research_schedule_items').update({status:syncedStatus,updated_at:new Date().toISOString()}).eq('id',id||result.data?.[0]?.id||'');
-    }
     researchCloseModal();
     await loadResearchSchedule();
     await researchRecalculateParents();
