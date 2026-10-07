@@ -962,7 +962,7 @@ async function autoMatchReconcile(){const lines=state.entryLines.filter(l=>{cons
   }
 
   async function scanReceipt(file){
-    if(!/^image\\/(jpeg|png|webp)$/i.test(file.type)) return alert('Please upload JPG, PNG or WEBP.');
+    if(!/^image\/(jpeg|png|webp)$/i.test(file.type)) return alert('Please upload JPG, PNG or WEBP.');
     if(file.size>13*1024*1024) return alert('Please use an image smaller than 13 MB.');
     const preview=el('receiptPreview'), wrap=el('receiptPreviewWrap');
     preview.src=URL.createObjectURL(file);wrap.hidden=false;
