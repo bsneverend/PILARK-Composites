@@ -977,7 +977,14 @@ async function autoMatchReconcile(){const lines=state.entryLines.filter(l=>{cons
       const {data,error}=await client().functions.invoke('accounting-ai',{body:{
         mode:'scan_receipt',storage_path:path,mime_type:file.type,context:receiptContext()
       }});
-      if(error) throw error;
+      if(error){
+        let detail=error.message||'Failed to call Accounting AI.';
+        try{
+          const body=error.context && typeof error.context.json==='function' ? await error.context.json() : null;
+          if(body?.error) detail=body.error;
+        }catch(_){}
+        throw new Error(detail);
+      }
       if(data?.error) throw new Error(data.error);
       const d=data?.document||{};
       const js=d.journal_suggestion||{};
