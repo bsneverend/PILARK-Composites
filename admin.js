@@ -525,6 +525,51 @@ function researchRecalculateParents(){
   updateLevel(2);
   updateLevel(1);
 }
+async function researchSyncScheduleBounds(){
+  const items=researchScheduleState.items;
+  const syncLevel=level=>{
+    const parents=items.filter(x=>Number(x.level||3)===level);
+    return parents.reduce((changed,parent)=>{
+      const prefix=String(parent.code||'')+'.';
+      const children=items.filter(x=>{
+        const childCode=String(x.code||'');
+        return Number(x.level||3)===level+1 &&
+          childCode.startsWith(prefix) &&
+          Number(x.start_week)>0 &&
+          Number(x.end_week)>=Number(x.start_week);
+      });
+      if(!children.length)return changed;
+      const start=Math.min(...children.map(x=>Number(x.start_week)));
+      const end=Math.max(...children.map(x=>Number(x.end_week)));
+      const duration=end-start+1;
+      if(Number(parent.start_week)===start && Number(parent.end_week)===end && Number(parent.duration_weeks)===duration)return changed;
+      parent.start_week=start;
+      parent.end_week=end;
+      parent.duration_weeks=duration;
+      changed.push(parent);
+      return changed;
+    },[]);
+  };
+
+  const changedParents=[...syncLevel(2),...syncLevel(1)];
+  for(const parent of changedParents){
+    const result=await window.PILARK_CMS.client
+      .from('research_schedule_items')
+      .update({
+        start_week:parent.start_week,
+        end_week:parent.end_week,
+        duration_weeks:parent.duration_weeks,
+        updated_at:new Date().toISOString()
+      })
+      .eq('id',parent.id)
+      .select('id,code,name,item_type,level,start_week,end_week,duration_weeks,status,progress,assignee,notes,priority,deliverable,dependency,document_url,budget,result_summary,risk')
+      .single();
+    if(result.error)throw result.error;
+    const idx=items.findIndex(x=>x.id===parent.id);
+    if(idx>=0)items[idx]=result.data;
+  }
+  return changedParents.length;
+}
 async function researchQuickUpdate(id,payload){
   const item=researchScheduleState.items.find(x=>x.id===id);
   if(!item)return false;
@@ -537,9 +582,13 @@ async function researchQuickUpdate(id,payload){
       next.status=researchStatusFromProgress(next.progress);
     }
     await researchPersistRow(id,next);
-    if(Object.prototype.hasOwnProperty.call(next,'progress')){
-      await researchRecalculateParents();
+    if(Object.prototype.hasOwnProperty.call(next,'start_week') ||
+       Object.prototype.hasOwnProperty.call(next,'end_week') ||
+       Object.prototype.hasOwnProperty.call(next,'duration_weeks')){
+      await researchSyncScheduleBounds();
     }
+    researchApplyCalculatedProgress();
+    researchRecalculateParents();
     researchRenderRows();
     if(statusEl)statusEl.textContent='';
     return true;
@@ -586,6 +635,7 @@ async function loadResearchSchedule(){
   const {data,error}=await window.PILARK_CMS.client.from('research_schedule_items').select('id,code,name,item_type,level,start_week,end_week,duration_weeks,status,progress,assignee,notes,priority,deliverable,dependency,document_url,budget,result_summary,risk').order('sort_order',{ascending:true});
   if(error){if(status)status.textContent='Unable to load research schedule: '+error.message;return;}
   researchScheduleState.items=data||[]; researchScheduleState.loaded=true;
+  await researchSyncScheduleBounds();
   researchApplyCalculatedProgress();
   researchRecalculateParents();
   researchApplyFilters();
