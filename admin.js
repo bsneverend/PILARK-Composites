@@ -419,6 +419,24 @@ function researchApplyFilters(){
   researchScheduleState.filtered=researchScheduleState.items.filter(x=>{
     const hay=(x.code+' '+x.name+' '+(x.assignee||'')).toLowerCase();
     return (!q||hay.includes(q))&&(!status||(x.calculated_status||researchStatusFromSchedule(x))===status)&&(!level||x.item_type===level);
+  }).sort((a,b)=>{
+    // Render the WBS in true hierarchy order: 1 → 1.1 → 1.1.1 → 1.1.2 → 1.2 …
+    // rather than relying on database insertion/sort_order, which can put a
+    // newly inserted work package after its child tasks.
+    const parseCode=value=>String(value||'').split('.').map(part=>{
+      const n=Number(part);
+      return Number.isFinite(n)?n:part.toLowerCase();
+    });
+    const aa=parseCode(a.code),bb=parseCode(b.code);
+    const length=Math.max(aa.length,bb.length);
+    for(let i=0;i<length;i++){
+      if(i>=aa.length)return -1;
+      if(i>=bb.length)return 1;
+      if(aa[i]===bb[i])continue;
+      if(typeof aa[i]==='number'&&typeof bb[i]==='number')return aa[i]-bb[i];
+      return String(aa[i]).localeCompare(String(bb[i]));
+    }
+    return 0;
   });
   researchRenderRows();
 }
