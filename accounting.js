@@ -887,6 +887,178 @@ async function autoMatchReconcile(){const lines=state.entryLines.filter(l=>{cons
       setTimeout(()=>el('accountingAiInput')?.focus(),30);
     }
   }
+
+  function ensureReceiptScannerUi(){
+    const view=el('view-accounting'); if(!view || el('receiptScannerPanel')) return;
+    const tabs=view.querySelector('[data-accounting-tab="overview"]')?.parentElement;
+    if(tabs && !tabs.querySelector('[data-accounting-tab="ai-scanner"]')){
+      const b=document.createElement('button');
+      b.type='button'; b.dataset.accountingTab='ai-scanner'; b.textContent='✦ AI Receipt Scanner';
+      tabs.appendChild(b);
+    }
+    const panel=document.createElement('div');
+    panel.id='receiptScannerPanel'; panel.className='accounting-tab-panel'; panel.dataset.accountingPanel='ai-scanner'; panel.hidden=true;
+    panel.innerHTML=`
+      <div class="section-intro accounting-intro">
+        <div><h2>AI Receipt Scanner</h2><p>Upload a receipt, bill or invoice. AI will read it, map it to the existing Chart of Accounts, and prepare a journal draft for review.</p></div>
+      </div>
+      <div class="receipt-scanner-grid">
+        <div class="panel receipt-upload-panel">
+          <div id="receiptDropzone" class="receipt-dropzone">
+            <div class="receipt-upload-icon">⌁</div>
+            <h3>Upload receipt / bill</h3>
+            <p>JPG, PNG or WEBP. You can also drag and drop an image here.</p>
+            <input id="receiptFileInput" type="file" accept="image/jpeg,image/png,image/webp" hidden>
+            <button id="receiptChooseBtn" class="primary-btn" type="button">Choose image</button>
+          </div>
+          <div id="receiptScanStatus" class="receipt-scan-status">Ready to scan.</div>
+          <div id="receiptPreviewWrap" class="receipt-preview-wrap" hidden><img id="receiptPreview" alt="Receipt preview"></div>
+        </div>
+        <div class="panel receipt-result-panel">
+          <div class="panel-head"><div><h2>AI Review</h2><p>Nothing is posted automatically. Review the extracted values and journal mapping first.</p></div><span id="receiptConfidence" class="receipt-confidence">—</span></div>
+          <div id="receiptResult" class="receipt-result-empty">Upload a document to begin.</div>
+        </div>
+      </div>
+      <div id="receiptActionBar" class="receipt-action-bar" hidden>
+        <button id="receiptRejectBtn" class="accounting-small-btn" type="button">Reject</button>
+        <button id="receiptPostBtn" class="primary-btn" type="button">✓ Approve &amp; Post to Journal</button>
+      </div>`;
+    view.appendChild(panel);
+
+    const input=el('receiptFileInput'), choose=el('receiptChooseBtn'), drop=el('receiptDropzone');
+    choose.onclick=()=>input.click();
+    input.onchange=()=>{const f=input.files?.[0]; if(f)scanReceipt(f);};
+    ['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('dragging');}));
+    ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('dragging');}));
+    drop.addEventListener('drop',e=>{const f=e.dataTransfer.files?.[0];if(f)scanReceipt(f);});
+    el('receiptPostBtn').onclick=postScannedReceipt;
+    el('receiptRejectBtn').onclick=rejectScannedReceipt;
+  }
+
+  function receiptAccountOptions(selected='', allowBlank=false){
+    const accounts=state.accounts.filter(a=>a.is_active&&!a.is_group).sort((a,b)=>String(a.code).localeCompare(String(b.code),undefined,{numeric:true}));
+    return (allowBlank?'<option value="">Not selected</option>':'<option value="">Select account…</option>')+
+      accounts.map(a=>`<option value="${esc(a.code)}" ${a.code===selected?'selected':''}>${esc(a.code)} — ${esc(a.name)}</option>`).join('');
+  }
+
+  function receiptJournalOptions(selected=''){
+    return '<option value="">Select journal…</option>'+state.journals.filter(j=>j.is_active).map(j=>`<option value="${esc(j.code)}" ${j.code===selected?'selected':''}>${esc(j.code)} — ${esc(j.name)}</option>`).join('');
+  }
+
+  function setReceiptStatus(message,kind=''){
+    const x=el('receiptScanStatus'); if(x){x.className='receipt-scan-status '+kind;x.textContent=message;}
+  }
+
+  function fileToBase64(file){
+    return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result||''));r.onerror=reject;r.readAsDataURL(file);});
+  }
+
+  function receiptContext(){
+    return {
+      accounts:state.accounts.filter(a=>a.is_active&&!a.is_group).map(a=>({code:a.code,name:a.name,account_type:a.account_type})),
+      journals:state.journals.filter(j=>j.is_active).map(j=>({code:j.code,name:j.name,journal_type:j.journal_type})),
+      partners:state.partners.filter(p=>p.is_active).map(p=>({name:p.name,partner_type:p.partner_type}))
+    };
+  }
+
+  async function scanReceipt(file){
+    if(!/^image\\/(jpeg|png|webp)$/i.test(file.type)) return alert('Please upload JPG, PNG or WEBP.');
+    if(file.size>13*1024*1024) return alert('Please use an image smaller than 13 MB.');
+    const preview=el('receiptPreview'), wrap=el('receiptPreviewWrap');
+    preview.src=URL.createObjectURL(file);wrap.hidden=false;
+    setReceiptStatus('Uploading document…','working');
+    el('receiptResult').innerHTML='<div class="receipt-loading"><span></span><b>AI is reading the document…</b><small>Extracting vendor, date, amounts and accounting mapping.</small></div>';
+    el('receiptActionBar').hidden=true;
+    try{
+      const path=`scans/${new Date().toISOString().slice(0,10)}/${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
+      const up=await client().storage.from('accounting-ai').upload(path,file,{contentType:file.type,upsert:false});
+      if(up.error) throw up.error;
+      setReceiptStatus('Document uploaded. Sending to AI…','working');
+      const dataUrl=await fileToBase64(file);
+      const {data,error}=await client().functions.invoke('accounting-ai',{body:{
+        mode:'scan_receipt',image_base64:dataUrl,mime_type:file.type,context:receiptContext()
+      }});
+      if(error) throw error;
+      if(data?.error) throw new Error(data.error);
+      const d=data?.document||{};
+      const js=d.journal_suggestion||{};
+      const {data:userData}=await client().auth.getUser();
+      const {data:saved,error:saveError}=await client().from('accounting_ai_documents').insert({
+        file_name:file.name,storage_path:path,mime_type:file.type,document_type:d.document_type||'unknown',status:'draft',
+        vendor_name:d.vendor_name||null,document_number:d.document_number||null,document_date:d.document_date||null,due_date:d.due_date||null,
+        currency_code:d.currency_code||'IDR',subtotal:Number(d.subtotal||0),tax_amount:Number(d.tax_amount||0),total_amount:Number(d.total_amount||0),
+        extracted_data:d,journal_suggestion:js,confidence:Number(d.confidence||0),notes:d.notes||null,created_by:userData?.user?.id||null
+      }).select().single();
+      if(saveError) throw saveError;
+      const lines=(d.lines||[]).map((l,i)=>({
+        ai_document_id:saved.id,line_no:i+1,description:l.description||'',quantity:Number(l.quantity||1),unit_price:Number(l.unit_price||0),
+        line_subtotal:Number(l.line_subtotal||0),tax_rate:Number(l.tax_rate||0),tax_amount:Number(l.tax_amount||0),line_total:Number(l.line_total||0),
+        suggested_account_id:state.accounts.find(a=>a.code===l.account_code)?.id||null,confidence:Number(l.account_confidence||0)
+      }));
+      if(lines.length){const {error:e}=await client().from('accounting_ai_document_lines').insert(lines);if(e)throw e;}
+      window.__pilarkReceiptScan={id:saved.id,path,fileName:file.name,document:d};
+      renderReceiptResult();
+      setReceiptStatus('Scan complete. Review the draft before posting.','success');
+      el('receiptActionBar').hidden=false;
+    }catch(err){
+      console.error(err);setReceiptStatus('Scan failed: '+(err?.message||err),'error');
+      el('receiptResult').innerHTML='<div class="receipt-error">The document could not be scanned. Please check the AI configuration and try again.</div>';
+    }
+  }
+
+  function renderReceiptResult(){
+    const x=window.__pilarkReceiptScan,d=x?.document||{},j=d.journal_suggestion||{};
+    if(!x)return;
+    el('receiptConfidence').textContent=Math.round(Number(d.confidence||0))+'% confidence';
+    el('receiptResult').innerHTML=`
+      <div class="receipt-fields">
+        <label>Vendor<input id="scanVendor" value="${esc(d.vendor_name||'')}"></label>
+        <label>Document No.<input id="scanDocNo" value="${esc(d.document_number||'')}"></label>
+        <label>Date<input id="scanDate" type="date" value="${esc(d.document_date||'')}"></label>
+        <label>Subtotal<input id="scanSubtotal" type="number" step="0.01" value="${Number(d.subtotal||0)}"></label>
+        <label>Tax / PPN<input id="scanTax" type="number" step="0.01" value="${Number(d.tax_amount||0)}"></label>
+        <label>Total<input id="scanTotal" type="number" step="0.01" value="${Number(d.total_amount||0)}"></label>
+      </div>
+      <div class="receipt-journal-head"><b>Suggested Journal</b><span>Edit mapping if necessary before posting.</span></div>
+      <div class="receipt-journal-grid">
+        <label>Journal<select id="scanJournal">${receiptJournalOptions(j.journal_code||'')}</select></label>
+        <label>Debit Account<select id="scanDebit">${receiptAccountOptions(j.debit_account_code||'')}</select></label>
+        <label>Tax Account<select id="scanTaxAccount">${receiptAccountOptions(j.tax_account_code||'',true)}</select></label>
+        <label>Credit Account<select id="scanCredit">${receiptAccountOptions(j.credit_account_code||'')}</select></label>
+      </div>
+      <div class="receipt-lines">
+        <b>Detected line items</b>
+        ${(d.lines||[]).map(l=>`<div><span>${esc(l.description||'—')}</span><strong>${money(l.line_total||0)}</strong></div>`).join('')||'<small>No line items detected.</small>'}
+      </div>
+      <div class="receipt-ai-note">${esc(d.notes||j.reason||'Review the document and journal mapping before posting.')}</div>`;
+  }
+
+  async function postScannedReceipt(){
+    const x=window.__pilarkReceiptScan;if(!x?.id)return;
+    const subtotal=Number(el('scanSubtotal')?.value||0),tax=Number(el('scanTax')?.value||0),total=Number(el('scanTotal')?.value||0);
+    const journalCode=el('scanJournal')?.value||'',debit=el('scanDebit')?.value||'',taxCode=el('scanTaxAccount')?.value||'',credit=el('scanCredit')?.value||'';
+    if(!journalCode||!debit||!credit)return alert('Please select the journal, debit account and credit account.');
+    if(Math.abs((subtotal+tax)-total)>0.02)return alert('Subtotal + tax must equal total before posting.');
+    if(!confirm('Approve this AI draft and post it to the accounting journal?'))return;
+    const js={...(x.document.journal_suggestion||{}),journal_code:journalCode,debit_account_code:debit,tax_account_code:taxCode,credit_account_code:credit,amount:total};
+    const patch={vendor_name:el('scanVendor').value.trim()||null,document_number:el('scanDocNo').value.trim()||null,document_date:el('scanDate').value||null,subtotal,tax_amount:tax,total_amount:total,journal_suggestion:js,status:'reviewed',reviewed_by:window.PILARK_CMS?.user?.id||null,reviewed_at:new Date().toISOString(),updated_at:new Date().toISOString()};
+    const {error}=await client().from('accounting_ai_documents').update(patch).eq('id',x.id);if(error)return alert(error.message);
+    const {data:entryId,error:postError}=await client().rpc('post_ai_accounting_document',{p_ai_document_id:x.id});
+    if(postError)return alert(postError.message);
+    alert('Posted successfully to journal '+(entryId||'')+'.');
+    window.__pilarkReceiptScan=null;el('receiptActionBar').hidden=true;el('receiptResult').innerHTML='<div class="receipt-success"><b>✓ Posted to Accounting</b><span>The AI document has been converted into a posted journal entry.</span></div>';
+    setReceiptStatus('Posted successfully.','success');
+    await load();showTab('entries');
+  }
+
+  async function rejectScannedReceipt(){
+    const x=window.__pilarkReceiptScan;if(!x?.id)return;
+    if(!confirm('Reject this scanned document?'))return;
+    const {error}=await client().from('accounting_ai_documents').update({status:'rejected',reviewed_by:window.PILARK_CMS?.user?.id||null,reviewed_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq('id',x.id);
+    if(error)return alert(error.message);
+    window.__pilarkReceiptScan=null;el('receiptActionBar').hidden=true;el('receiptResult').innerHTML='<div class="receipt-success"><b>Document rejected.</b></div>';setReceiptStatus('Rejected.','success');
+  }
+
   function showTab(tab,updateTitle=true){
     const valid=[...document.querySelectorAll('.accounting-tab-panel')].map(p=>p.dataset.accountingPanel);
     if(!valid.includes(tab)) tab='overview';
@@ -953,6 +1125,6 @@ async function autoMatchReconcile(){const lines=state.entryLines.filter(l=>{cons
   const originalRender=render; // populate after data loads
   const oldLoad=load;
   async function bootLoad(){await oldLoad();populateDynamic();renderDocuments();renderPayments();updateDocumentPreview('customer_invoice');updateDocumentPreview('vendor_bill');}
-  function init(){if(!el('view-accounting'))return;bind();if(ready())bootLoad().catch(err=>console.warn('Accounting init:',err));else setTimeout(()=>bootLoad().catch(err=>console.warn('Accounting init:',err)),800);}
+  function init(){if(!el('view-accounting'))return;ensureReceiptScannerUi();bind();if(ready())bootLoad().catch(err=>console.warn('Accounting init:',err));else setTimeout(()=>bootLoad().catch(err=>console.warn('Accounting init:',err)),800);}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
