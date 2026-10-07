@@ -598,8 +598,16 @@ function showView(name){
           if(name==='research-schedule'){
             await loadResearchSchedule();
           }else{
-            window.dispatchEvent(new CustomEvent('pilark:refresh-view',{detail:{view:name}}));
-            await new Promise(resolve=>window.setTimeout(resolve,450));
+            await new Promise((resolve,reject)=>{
+              let settled=false;
+              const done=(error)=>{
+                if(settled)return;
+                settled=true;
+                error?reject(error):resolve();
+              };
+              window.dispatchEvent(new CustomEvent('pilark:refresh-view',{detail:{view:name,done}}));
+              window.setTimeout(()=>done(new Error('Refresh handler did not respond.')),10000);
+            });
           }
         }catch(err){
           console.warn('Refresh failed:',err);
