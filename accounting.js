@@ -1,5 +1,5 @@
 (() => {
-  const state = { aiMessages: [], accounts: [], partners: [], journals: [], entries: [], entryLines: [], reconLines: [], selectedLedgerAccount: '', selectedReconcileLines: new Set(), accountPickerTarget: '', accountPickerPage: 0, accountPickerQuery: '', invoices: [], bills: [], payments: [], allocations: [], sends: [], periods: [], inventoryBalances: [], tab: 'overview', reportFrom: '', reportTo: '' };
+  const state = { aiMessages: [], accounts: [], partners: [], journals: [], entries: [], entryLines: [], reconLines: [], selectedLedgerAccount: '', selectedReconcileLines: new Set(), accountPickerTarget: '', accountPickerPage: 0, accountPickerQuery: '', invoices: [], bills: [], payments: [], allocations: [], sends: [], periods: [], quotations: [], inventoryBalances: [], tab: 'overview', reportFrom: '', reportTo: '' };
   const el = id => document.getElementById(id);
   const client = () => window.PILARK_CMS?.client;
   const ready = () => !!window.PILARK_CMS?.ready && !!client();
@@ -15,7 +15,7 @@
   async function load() {
     if(!ready()) return;
     const c=client();
-    const [a,p,j,e,i,b,py,al,se,ib,pe,lines,recons] = await Promise.all([
+    const [a,p,j,e,i,b,py,al,se,ib,pe,lines,recons,q] = await Promise.all([
       c.from('accounting_accounts').select('*').order('code'),
       c.from('accounting_partners').select('*').order('name'),
       c.from('accounting_journals').select('*').order('code'),
@@ -28,10 +28,11 @@
       c.from('inventory_balances').select('product_id,location_id,quantity,average_cost,stock_value'),
       c.from('accounting_periods').select('*').order('date_start',{ascending:false}),
       c.from('accounting_lines').select('id,entry_id,account_id,partner_id,description,debit,credit,due_date,reconciled,accounting_accounts(code,name,account_type),accounting_partners(name)').order('created_at'),
-      c.from('accounting_reconciliation_lines').select('line_id,amount,accounting_reconciliations!inner(id,status)').eq('accounting_reconciliations.status','reconciled')
+      c.from('accounting_reconciliation_lines').select('line_id,amount,accounting_reconciliations!inner(id,status)').eq('accounting_reconciliations.status','reconciled'),
+      c.from('sales_quotations').select('*,accounting_partners(name,email,address,phone)').order('quotation_date',{ascending:false}).order('created_at',{ascending:false}).limit(300)
     ]);
     for(const x of [a,p,j,e,i,b,py,al,se,ib,pe,lines,recons]) if(x.error) throw x.error;
-    state.accounts=a.data||[]; state.partners=p.data||[]; state.journals=j.data||[]; state.entries=e.data||[]; state.entryLines=lines.data||[];state.reconLines=recons.data||[]; state.invoices=i.data||[]; state.bills=b.data||[]; state.payments=py.data||[]; state.allocations=al.data||[]; state.sends=se.data||[]; state.inventoryBalances=ib.data||[]; state.periods=pe.data||[];
+    state.accounts=a.data||[]; state.partners=p.data||[]; state.journals=j.data||[]; state.entries=e.data||[]; state.entryLines=lines.data||[];state.reconLines=recons.data||[]; state.invoices=i.data||[]; state.bills=b.data||[]; state.payments=py.data||[]; state.allocations=al.data||[]; state.sends=se.data||[]; state.inventoryBalances=ib.data||[]; state.periods=pe.data||[]; state.quotations=q.data||[];
     render();
   }
 
@@ -1082,7 +1083,76 @@ async function autoMatchReconcile(){const lines=state.entryLines.filter(l=>{cons
     if(tab==='periods')renderPeriods();
     if(tab==='accounts'&&state.selectedLedgerAccount)renderGeneralLedger().catch(console.warn);
   }
-  function render(){renderAccounts();renderPartners();renderEntries();renderDocuments();renderPayments();renderPeriods();renderOverview().catch(console.warn);renderErpOverview().catch(console.warn);renderReports().catch(console.warn);showTab(state.tab,false);}
+  
+  function quotationLineHtml(index){
+    return `<div class="quotation-line document-line" data-q-index="${index}">
+      <input class="q-item-code" placeholder="Item code">
+      <input class="q-item-name" placeholder="Item name" required>
+      <textarea class="q-desc" rows="2" placeholder="Product description"></textarea>
+      <input class="q-qty" type="number" min="0.0001" step="0.0001" value="1">
+      <input class="q-uom" value="PCS">
+      <input class="q-price" type="number" min="0" step="1" value="0">
+      <button type="button" class="line-remove q-remove" aria-label="Remove item">×</button>
+    </div>`;
+  }
+  function bindQuotationLines(){
+    const box=el('quotationLines');if(!box)return;
+    if(!box.children.length)box.innerHTML=quotationLineHtml(0);
+    box.addEventListener('click',e=>{if(e.target.classList.contains('q-remove')){if(box.children.length>1){e.target.closest('.quotation-line').remove();updateQuotationTotals();}}});
+    box.addEventListener('input',updateQuotationTotals);
+    box.addEventListener('change',updateQuotationTotals);
+  }
+  function readQuotationLines(){
+    return [...document.querySelectorAll('#quotationLines .quotation-line')].map((r,i)=>({
+      line_no:i+1,item_code:r.querySelector('.q-item-code')?.value.trim()||null,item_name:r.querySelector('.q-item-name')?.value.trim()||'',
+      description:r.querySelector('.q-desc')?.value.trim()||'',quantity:Number(r.querySelector('.q-qty')?.value||0),uom:r.querySelector('.q-uom')?.value.trim()||'PCS',
+      unit_price:Number(r.querySelector('.q-price')?.value||0),line_total:Math.round(Number(r.querySelector('.q-qty')?.value||0)*Number(r.querySelector('.q-price')?.value||0)*100)/100
+    }));
+  }
+  function updateQuotationTotals(){
+    const lines=readQuotationLines(),sub=lines.reduce((a,l)=>a+l.line_total,0),rate=Number(el('quotationTaxRate')?.value||0),tax=Math.round(sub*rate)/100,total=sub+tax;
+    if(el('quotationSubtotal'))el('quotationSubtotal').textContent=money(sub);
+    if(el('quotationTax'))el('quotationTax').textContent=money(tax);
+    if(el('quotationTotal'))el('quotationTotal').textContent=money(total);
+  }
+  async function prepareQuotationNumber(){
+    const d=el('quotationDate')?.value||today();const {data,error}=await client().rpc('next_sales_quotation_no',{p_date:d});
+    if(!error&&data&&el('quotationNo'))el('quotationNo').value=data;
+  }
+  function renderQuotations(){
+    const body=el('quotationsBody');if(!body)return;
+    const label=s=>({draft:'Draft',sent:'Sent',accepted:'Accepted',rejected:'Rejected',expired:'Expired',cancelled:'Cancelled'}[s]||s);
+    body.innerHTML=state.quotations.map(q=>`<tr>
+      <td><b>${esc(q.quotation_no)}</b></td><td>${dateText(q.quotation_date)}</td><td>${esc(q.accounting_partners?.name||'—')}</td><td>${esc(q.project_name||'—')}</td><td class="num">${money(q.total_amount)}</td>
+      <td><span class="${statusClass(q.status)}">${label(q.status)}</span></td>
+      <td class="accounting-actions">
+        <button type="button" class="accounting-small-btn q-pdf" data-id="${q.id}">Print / PDF</button>
+        <button type="button" class="accounting-small-btn q-status" data-id="${q.id}" data-status="sent">Send</button>
+        <button type="button" class="accounting-small-btn q-status" data-id="${q.id}" data-status="accepted">Accept</button>
+        <button type="button" class="accounting-small-btn q-status" data-id="${q.id}" data-status="rejected">Reject</button>
+      </td>
+    </tr>`).join('')||'<tr><td colspan="7" class="accounting-empty">No quotations yet.</td></tr>';
+    body.querySelectorAll('.q-pdf').forEach(b=>b.onclick=()=>printQuotation(b.dataset.id));
+    body.querySelectorAll('.q-status').forEach(b=>b.onclick=()=>updateQuotationStatus(b.dataset.id,b.dataset.status));
+  }
+  async function createQuotation(e){
+    e.preventDefault();
+    const partner=el('quotationPartner').value,date=el('quotationDate').value,lines=readQuotationLines();
+    if(!partner||!date||!lines.length||lines.some(l=>!l.item_name||l.quantity<=0||l.unit_price<0))return alert('Complete customer, date and all quotation items.');
+    const subtotal=lines.reduce((a,l)=>a+l.line_total,0),taxRate=Number(el('quotationTaxRate').value||0),tax=Math.round(subtotal*taxRate)/100,total=subtotal+tax;
+    const {data:userData}=await client().auth.getUser();
+    const {data:qn,error:ne}=await client().rpc('next_sales_quotation_no',{p_date:date});if(ne)return alert(ne.message);
+    const payload={quotation_no:qn,quotation_date:date,project_name:el('quotationProject').value.trim()||null,partner_id:partner,reference:el('quotationReference').value.trim()||null,currency_code:'IDR',subtotal,tax_rate:taxRate,tax_amount:tax,total_amount:total,status:'draft',delivery_time:el('quotationDeliveryTime').value.trim()||'TBA',offer_period:el('quotationOfferPeriod').value.trim()||null,delivery_term:el('quotationDeliveryTerm').value.trim()||null,warranty:el('quotationWarranty').value.trim()||null,notes:el('quotationNotes').value.trim()||null,terms_conditions:el('quotationTerms').value.trim()||null,salesperson_name:el('quotationSalesperson').value.trim()||'Sales Engineer',created_by:userData?.user?.id||null,updated_by:userData?.user?.id||null};
+    const {data:q,error}=await client().from('sales_quotations').insert(payload).select().single();if(error)return alert(error.message);
+    const {error:le}=await client().from('sales_quotation_lines').insert(lines.map(l=>({...l,quotation_id:q.id})));if(le){await client().from('sales_quotations').delete().eq('id',q.id);return alert(le.message);}
+    e.target.reset();el('quotationDate').value=today();el('quotationTaxRate').value=11;el('quotationDeliveryTime').value='TBA';el('quotationOfferPeriod').value='Price could be changed without any prior notice';el('quotationWarranty').value='1 Year';el('quotationSalesperson').value='Sales Engineer';el('quotationLines').innerHTML=quotationLineHtml(0);await load();showTab('quotations');alert('Quotation '+qn+' saved as Draft.');
+  }
+  async function printQuotation(id){
+    const w=window.open('about:blank','_blank','width=900,height=900');if(!w)return alert('Please allow pop-ups for Print / PDF.');
+    w.document.write('<!doctype html><html><body style="font-family:Arial;padding:40px">Generating quotation PDF…</body></html>');
+    try{const {data,error}=await client().functions.invoke('generate-quotation-pdf',{body:{quotation_id:id}});if(error)throw error;const blob=data instanceof Blob?data:new Blob([data],{type:'application/pdf'});w.location.href=URL.createObjectURL(blob);}catch(err){w.close();alert('Quotation PDF failed: '+(err?.message||'Unknown error'));}}
+  async function updateQuotationStatus(id,status){if(!confirm('Change quotation status to '+status+'?'))return;const {error}=await client().from('sales_quotations').update({status,updated_at:new Date().toISOString(),updated_by:window.PILARK_CMS?.user?.id||null}).eq('id',id);if(error)return alert(error.message);await load();}
+function render(){renderAccounts();renderPartners();renderEntries();renderDocuments();renderQuotations();renderPayments();renderPeriods();renderOverview().catch(console.warn);renderErpOverview().catch(console.warn);renderReports().catch(console.warn);showTab(state.tab,false);}
 
   async function createAccount(e){e.preventDefault();const isGroup=!!el('accountIsGroup')?.checked;const payload={code:el('accountCode').value.trim(),name:el('accountName').value.trim(),account_type:el('accountType').value,parent_id:el('accountParent').value||null,is_group:isGroup,reconcile:isGroup?false:el('accountReconcile').checked};if(!payload.code||!payload.name||!payload.account_type)return alert('Complete Code, Name and Type.');const {error}=await client().from('accounting_accounts').insert(payload);if(error)return alert(error.message);e.target.reset();await load();showTab('accounts');}
   async function createPartner(e){e.preventDefault();const payload={name:el('partnerName').value.trim(),partner_type:el('partnerType').value,email:el('partnerEmail').value.trim()||null,phone:el('partnerPhone').value.trim()||null,tax_id:el('partnerTax').value.trim()||null,address:el('partnerAddress').value.trim()||null};if(!payload.name)return alert('Partner name is required.');const {error}=await client().from('accounting_partners').insert(payload);if(error)return alert(error.message);e.target.reset();await load();showTab('partners');}
@@ -1132,6 +1202,6 @@ async function autoMatchReconcile(){const lines=state.entryLines.filter(l=>{cons
   const originalRender=render; // populate after data loads
   const oldLoad=load;
   async function bootLoad(){await oldLoad();populateDynamic();renderDocuments();renderPayments();updateDocumentPreview('customer_invoice');updateDocumentPreview('vendor_bill');}
-  function init(){if(!el('view-accounting'))return;ensureReceiptScannerUi();bind();if(ready())bootLoad().catch(err=>console.warn('Accounting init:',err));else setTimeout(()=>bootLoad().catch(err=>console.warn('Accounting init:',err)),800);}
+  function init(){if(!el('view-accounting'))return;ensureReceiptScannerUi();bindQuotationLines();bind();if(ready())bootLoad().catch(err=>console.warn('Accounting init:',err));else setTimeout(()=>bootLoad().catch(err=>console.warn('Accounting init:',err)),800);}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
