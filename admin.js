@@ -819,6 +819,7 @@ function showView(name){
   const main=document.querySelector('.admin-main');
   main?.classList.toggle('chat-mode',name==='chat');
   if(name!=='chat')setMobileChatOpen(false);
+  if(name==='general-ledger')window.initGeneralLedger?.();
   document.getElementById('pageTitle').textContent={dashboard:'Website overview',media:'Media Library',products:'Product thumbnails',sections:'Website Content',chat:'Live Chat',sales:'Sales',purchase:'Purchase',inventory:'Inventory',accounting:'Accounting', 'erp-overview':'ERP Overview', settings:'User Access', 'research-schedule':'Schedule', 'odoo-director-dashboard':'Director Dashboard'}[name]||'PILARK Admin';
   // Finance modules use the top-right action slot for data refresh instead of
   // the Preview Website button position. Non-finance pages keep Preview Website.
