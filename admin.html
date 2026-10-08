@@ -392,6 +392,18 @@
           <label class="quotation-reference">Reference<input id="quotationReference" placeholder="Customer RFQ / reference"></label>
         </div>
 
+        <div class="quotation-logo-panel">
+          <div class="quotation-logo-head">
+            <div><strong>Quotation Header Logo</strong><span>Choose the real PILARK Composites logo to appear in the PDF header.</span></div>
+            <label class="quotation-logo-upload">+ Upload Logo
+              <input id="quotationLogoFile" type="file" accept="image/png,image/jpeg,image/jpg" hidden>
+            </label>
+          </div>
+          <div id="quotationLogoLibrary" class="quotation-logo-library">
+            <div class="quotation-logo-empty">Loading logo library…</div>
+          </div>
+        </div>
+
         <div class="quotation-items-section">
           <div class="quotation-section-title"><div><strong>Quotation Items</strong><span>Add products/services and enter the selling price for each item.</span></div><button id="addQuotationLine" type="button" class="accounting-small-btn">+ Add item</button></div>
           <div class="quotation-line-head">
