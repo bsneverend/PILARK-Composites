@@ -47,6 +47,7 @@ const accessMap={
   sections:'cms.content',
   chat:'chat.manage',
   'erp-overview':'erp.overview',
+  'odoo-director-dashboard':'erp.overview',
   sales:'sales.manage',
   purchase:'purchase.manage',
   inventory:'inventory.manage',
@@ -817,12 +818,13 @@ function showView(name){
   const main=document.querySelector('.admin-main');
   main?.classList.toggle('chat-mode',name==='chat');
   if(name!=='chat')setMobileChatOpen(false);
-  document.getElementById('pageTitle').textContent={dashboard:'Website overview',media:'Media Library',products:'Product thumbnails',sections:'Website Content',chat:'Live Chat',sales:'Sales',purchase:'Purchase',inventory:'Inventory',accounting:'Accounting', 'erp-overview':'ERP Overview', settings:'User Access', 'research-schedule':'Schedule'}[name]||'PILARK Admin';
+  document.getElementById('pageTitle').textContent={dashboard:'Website overview',media:'Media Library',products:'Product thumbnails',sections:'Website Content',chat:'Live Chat',sales:'Sales',purchase:'Purchase',inventory:'Inventory',accounting:'Accounting', 'erp-overview':'ERP Overview', settings:'User Access', 'research-schedule':'Schedule', 'odoo-director-dashboard':'Director Dashboard'}[name]||'PILARK Admin';
   // Finance modules use the top-right action slot for data refresh instead of
   // the Preview Website button position. Non-finance pages keep Preview Website.
   const topbarAction=document.getElementById('topbarAction');
   const financeRefreshMap={
     'erp-overview':'erpDashboardRefresh',
+    'odoo-director-dashboard':'odooDirectorRefresh',
     sales:'salesRefresh',
     purchase:'purchaseRefresh',
     inventory:'inventoryRefresh',
@@ -889,6 +891,7 @@ function showView(name){
   if(name==='chat') loadAdminChats();
   if(name==='settings') renderSettingsAccess();
   if(name==='research-schedule') loadResearchSchedule();
+  if(name==='odoo-director-dashboard') window.initOdooDirectorDashboard?.();
   if(name!=='settings' && !hasViewAccess(name)) showView('settings');
 }
 
