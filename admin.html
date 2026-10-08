@@ -627,7 +627,7 @@
         <label>Date<input id="transactionInputDate" type="date" required></label>
       </div>
       <div class="accounting-form-row">
-        <label>Journal<select id="transactionInputJournal" required><option value="">Loading Odoo journals…</option></select></label>
+        <label>Journal (Auto)<select id="transactionInputJournal" required disabled><option value="">Selecting Odoo journal…</option></select><small class="field-help">Automatically selected from the appropriate Odoo journal for manual transaction entries.</small></label>
         <label>Amount (IDR)<input id="transactionInputAmount" type="number" min="0" step="0.01" required value="0"></label>
       </div>
       <div class="accounting-form-row">
