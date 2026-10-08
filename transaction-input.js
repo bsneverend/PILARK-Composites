@@ -69,7 +69,24 @@ function renderPreview(){
  '<div class="transaction-preview-meta">Journal: '+esc(j?((j.code?j.code+' — ':'')+j.name):'Select journal')+'</div>';
 }
 async function loadMasters(){
- const p=await callOdoo('?detail=masters');masters.accounts=p.accounts||[];masters.journals=p.journals||[];fillMasters();renderPreview()
+ try{
+  const p=await callOdoo('?detail=masters');
+  masters.accounts=p.accounts||[];
+  masters.journals=p.journals||[];
+  fillMasters();
+  renderPreview();
+  if(!masters.journals.length){
+   const j=$('transactionInputJournal');
+   if(j){j.innerHTML='<option value="">No Odoo general journal available</option>';j.disabled=true;j.title='Odoo returned no accessible general journal.'}
+   throw new Error('Odoo returned no accessible general journal. Please check the Odoo Accounting Journals configuration and the integration user access.');
+  }
+  status('transactionInputStatus','Odoo masters loaded. Journal selected automatically.',true);
+ }catch(e){
+  const j=$('transactionInputJournal');
+  if(j){j.innerHTML='<option value="">Unable to load Odoo journal</option>';j.disabled=true}
+  status('transactionInputStatus',e?.message||String(e));
+  throw e;
+ }
 }
 async function loadRecent(){
  const body=$('transactionInputBody');if(!body)return;
