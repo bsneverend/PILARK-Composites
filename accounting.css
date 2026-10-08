@@ -297,3 +297,19 @@
   .quotation-line{grid-template-columns:1fr}
   .quotation-financial-row{grid-template-columns:1fr}
 }
+
+/* Quotation logo library */
+.quotation-logo-panel{margin:18px 0;padding:16px;border:1px solid #dce8ee;border-radius:14px;background:#fbfdfe}
+.quotation-logo-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:12px}
+.quotation-logo-head strong{display:block;font-size:13px;color:#203640}
+.quotation-logo-head span{display:block;margin-top:3px;font-size:11px;color:#738892}
+.quotation-logo-upload{display:inline-flex;align-items:center;justify-content:center;padding:9px 13px;border-radius:9px;background:#124d85;color:#fff;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap}
+.quotation-logo-upload:hover{background:#0d3d6a}
+.quotation-logo-library{display:flex;flex-wrap:wrap;gap:10px}
+.quotation-logo-card{position:relative;width:150px;border:1px solid #dce8ee;border-radius:10px;background:#fff;padding:8px;cursor:pointer}
+.quotation-logo-card.selected{border:2px solid #0b5b91;box-shadow:0 0 0 2px rgba(11,91,145,.08)}
+.quotation-logo-card img{display:block;width:100%;height:58px;object-fit:contain;background:#fff;border-radius:6px}
+.quotation-logo-card .quotation-logo-name{display:block;margin-top:7px;font-size:9px;color:#5d7480;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.quotation-logo-card .quotation-logo-selected{position:absolute;right:7px;top:7px;background:#0b5b91;color:#fff;border-radius:999px;padding:2px 6px;font-size:8px;font-weight:800}
+.quotation-logo-empty{font-size:11px;color:#84959d;padding:6px 0}
+@media(max-width:700px){.quotation-logo-head{align-items:flex-start;flex-direction:column}.quotation-logo-card{width:130px}}
