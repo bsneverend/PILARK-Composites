@@ -1120,3 +1120,81 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:1
 .research-row.research-work_package .research-week-cell.active{
   min-height:32px;
 }
+
+
+/* 2026-10-08 mobile navigation correction
+   Keep the mobile sidebar as a compact header. Parent menu groups must not
+   appear in the page until the hamburger is opened. */
+@media (max-width:800px){
+  .sidebar{
+    position:sticky!important;
+    top:0!important;
+    z-index:900!important;
+    display:block!important;
+    width:100%!important;
+    min-width:0!important;
+    min-height:0!important;
+    height:auto!important;
+    max-height:none!important;
+    box-sizing:border-box!important;
+    padding:10px 16px!important;
+    box-shadow:0 8px 24px rgba(0,0,0,.18);
+  }
+
+  .sidebar .admin-logo{
+    display:block!important;
+    width:max-content!important;
+    margin:0!important;
+    padding:4px 0!important;
+  }
+  .sidebar .admin-logo img{
+    width:122px!important;
+    margin:0!important;
+  }
+
+  .mobile-nav-toggle{
+    display:inline-flex!important;
+    position:absolute!important;
+    top:10px!important;
+    right:16px!important;
+    width:42px!important;
+    height:42px!important;
+    margin:0!important;
+  }
+
+  /* Closed state: only logo + hamburger are visible. */
+  .sidebar > .sidebar-menu-group,
+  .sidebar > .sidebar-bottom{
+    display:none!important;
+  }
+
+  /* Open state: reveal the actual navigation below the header. */
+  .sidebar.mobile-open{
+    padding-bottom:14px!important;
+  }
+  .sidebar.mobile-open > .sidebar-menu-group{
+    display:grid!important;
+  }
+  .sidebar.mobile-open > .sidebar-bottom{
+    display:grid!important;
+  }
+
+  .sidebar.mobile-open .sidebar-menu-group{
+    margin-top:5px!important;
+  }
+
+  .sidebar.mobile-open .sidebar-parent{
+    width:100%!important;
+    box-sizing:border-box!important;
+  }
+
+  .sidebar.mobile-open .sidebar-children{
+    width:100%!important;
+    box-sizing:border-box!important;
+  }
+
+  .sidebar.mobile-open .sidebar-bottom{
+    margin-top:8px!important;
+    padding:8px 12px 0!important;
+  }
+}
