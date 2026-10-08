@@ -1137,6 +1137,42 @@ async function autoMatchReconcile(){const lines=state.entryLines.filter(l=>{cons
     body.querySelectorAll('.q-pdf').forEach(b=>b.onclick=()=>printQuotation(b.dataset.id));
     body.querySelectorAll('.q-status').forEach(b=>b.onclick=()=>updateQuotationStatus(b.dataset.id,b.dataset.status));
   }
+  async function loadQuotationLogos(){
+    const box=el('quotationLogoLibrary');if(!box)return;
+    const [{data:files,error:fileError},{data:selected,error:selectedError}]=await Promise.all([
+      client().storage.from('quotation-assets').list('logos',{limit:100,sortBy:{column:'created_at',order:'desc'}}),
+      client().from('quotation_logo_settings').select('storage_path,file_name').eq('id',1).maybeSingle()
+    ]);
+    if(fileError){box.innerHTML='<div class="quotation-logo-empty">Unable to load logo library: '+esc(fileError.message)+'</div>';return;}
+    const selectedPath=selected?.storage_path||'';
+    const logos=(files||[]).filter(f=>f.name).map(f=>({
+      name:f.name,
+      path:'logos/'+f.name,
+      url:client().storage.from('quotation-assets').getPublicUrl('logos/'+f.name).data.publicUrl
+    }));
+    box.innerHTML=logos.length?logos.map(l=>'<div class="quotation-logo-card '+(l.path===selectedPath?'selected':'')+'" data-logo-path="'+esc(l.path)+'" data-logo-name="'+esc(l.name)+'"><img src="'+esc(l.url)+'" alt="'+esc(l.name)+'"><span class="quotation-logo-name">'+esc(l.name)+'</span>'+(l.path===selectedPath?'<span class="quotation-logo-selected">SELECTED</span>':'')+'</div>').join(''):'<div class="quotation-logo-empty">No uploaded logos yet. Upload a PNG or JPG logo to begin.</div>';
+    box.querySelectorAll('.quotation-logo-card').forEach(card=>card.onclick=()=>selectQuotationLogo(card.dataset.logoPath,card.dataset.logoName));
+  }
+
+  async function selectQuotationLogo(path,name){
+    const {data:userData}=await client().auth.getUser();
+    const {error}=await client().from('quotation_logo_settings').upsert({id:1,storage_path:path,file_name:name,updated_at:new Date().toISOString(),updated_by:userData?.user?.id||null});
+    if(error)return alert('Unable to select logo: '+error.message);
+    await loadQuotationLogos();
+  }
+
+  async function uploadQuotationLogo(file){
+    if(!file)return;
+    if(!['image/png','image/jpeg','image/jpg'].includes(file.type))return alert('Please upload PNG or JPG.');
+    if(file.size>2*1024*1024)return alert('Logo must be 2 MB or smaller.');
+    const safe=file.name.toLowerCase().replace(/[^a-z0-9._-]+/g,'-');
+    const path='logos/'+Date.now()+'-'+safe;
+    const {error}=await client().storage.from('quotation-assets').upload(path,file,{contentType:file.type,cacheControl:'3600',upsert:false});
+    if(error)return alert('Logo upload failed: '+error.message);
+    await selectQuotationLogo(path,file.name);
+    alert('Logo uploaded and selected for new quotation PDFs.');
+  }
+
   async function createQuotation(e){
     e.preventDefault();
     const partner=el('quotationPartner').value,date=el('quotationDate').value,lines=readQuotationLines();
@@ -1212,12 +1248,14 @@ function render(){renderAccounts();renderPartners();renderEntries();renderDocume
   function populateDynamic(){el('entryJournal').innerHTML=journalOptions();if(el('entryJournalFilter'))el('entryJournalFilter').innerHTML='<option value="">All journals</option>'+journalOptions();el('entryPartner').innerHTML='<option value="">No partner</option>'+partnerOptions().replace('<option value="">Select partner…</option>','');el('documentPartner').innerHTML=partnerOptions('', 'customer');el('quotationPartner').innerHTML=partnerOptions('', 'customer');el('billPartner').innerHTML=partnerOptions('', 'vendor');el('paymentPartner').innerHTML=partnerOptions('', 'customer');el('paymentJournal').innerHTML=journalOptions('', ['bank','cash']);refreshPaymentDocuments();}
   const originalRender=render; // populate after data loads
   const oldLoad=load;
-  async function bootLoad(){await oldLoad();populateDynamic();renderDocuments();renderPayments();updateDocumentPreview('customer_invoice');updateDocumentPreview('vendor_bill');}
+  async function bootLoad(){await oldLoad();populateDynamic();renderDocuments();renderPayments();updateDocumentPreview('customer_invoice');updateDocumentPreview('vendor_bill');await loadQuotationLogos();}
   function init(){if(!el('view-accounting'))return;ensureReceiptScannerUi();bindQuotationLines();
     el('quotationForm')?.addEventListener('submit',createQuotation);
     el('addQuotationLine')?.addEventListener('click',()=>{const box=el('quotationLines');if(box){box.insertAdjacentHTML('beforeend',quotationLineHtml(box.children.length));updateQuotationTotals();}});
     el('quotationDate')?.addEventListener('change',prepareQuotationNumber);
     el('quotationTaxRate')?.addEventListener('input',updateQuotationTotals);
+    el('quotationLogoFile')?.addEventListener('change',e=>uploadQuotationLogo(e.target.files?.[0]).catch(err=>alert(err.message||'Logo upload failed.')));
+
     if(el('quotationDate'))el('quotationDate').value=today();
     prepareQuotationNumber().catch(()=>{});
     bind();if(ready())bootLoad().catch(err=>console.warn('Accounting init:',err));else setTimeout(()=>bootLoad().catch(err=>console.warn('Accounting init:',err)),800);}
