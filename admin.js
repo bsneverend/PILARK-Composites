@@ -48,6 +48,7 @@ const accessMap={
   chat:'chat.manage',
   'erp-overview':'erp.overview',
   'odoo-director-dashboard':'erp.overview',
+  'general-ledger':'accounting.manage',
   sales:'sales.manage',
   purchase:'purchase.manage',
   inventory:'inventory.manage',
@@ -825,6 +826,7 @@ function showView(name){
   const financeRefreshMap={
     'erp-overview':'erpDashboardRefresh',
     'odoo-director-dashboard':'odooDirectorRefresh',
+    'general-ledger':'generalLedgerRefresh',
     sales:'salesRefresh',
     purchase:'purchaseRefresh',
     inventory:'inventoryRefresh',
