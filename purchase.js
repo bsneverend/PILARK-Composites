@@ -136,7 +136,8 @@
     el('purchaseLines')?.addEventListener('click',e=>{if(e.target.classList.contains('purchase-line-remove')){const rows=el('purchaseLines').querySelectorAll('.purchase-line');if(rows.length>1)e.target.closest('.purchase-line').remove();updatePreview();}});
     el('purchaseLines')?.addEventListener('input',updatePreview);
     el('purchaseLines')?.addEventListener('change',updatePreview);
-    el('purchaseRefresh')?.addEventListener('click',()=>load().catch(e=>alert(e.message)));\n    window.addEventListener('pilark:refresh-view',e=>{if(e.detail?.view==='purchase')load().then(()=>e.detail?.done?.()).catch(err=>e.detail?.done?.(err));});
+    el('purchaseRefresh')?.addEventListener('click',()=>load().catch(e=>alert(e.message)));
+    window.addEventListener('pilark:refresh-view',e=>{if(e.detail?.view==='purchase')load().then(()=>e.detail?.done?.()).catch(err=>e.detail?.done?.(err));});
     if(el('purchaseDate'))el('purchaseDate').value=today();
     if(el('purchaseLines'))el('purchaseLines').innerHTML=lineHtml(0);
     updatePreview();
