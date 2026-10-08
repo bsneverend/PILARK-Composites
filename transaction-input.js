@@ -15,13 +15,39 @@ async function callOdoo(path,options={}){
  const p=await res.json().catch(()=>({}));if(!res.ok||!p.ok)throw new Error(p.error||'Odoo transaction request failed.');return p
 }
 function accountLabel(a){return (a.code||'')+' — '+(a.name||'')}
+function chooseAutomaticJournal(){
+ const type=$('transactionInputType')?.value||'reimbursement';
+ const journals=masters.journals.filter(x=>x.active!==false);
+ if(!journals.length)return null;
+ const scored=journals.map(j=>{
+  const text=((j.name||'')+' '+(j.code||'')).toLowerCase();
+  let score=0;
+  if(j.type==='general')score+=100;
+  if(/misc|miscellaneous/.test(text))score+=40;
+  if(/general|journal entry|journal entries|adjustment/.test(text))score+=30;
+  if(type==='reimbursement'&&/expense|reimburse/.test(text))score+=5;
+  if(type==='payment_request'&&/payable|payment|request/.test(text))score+=5;
+  return {j,score};
+ }).sort((a,b)=>b.score-a.score);
+ return scored[0]?.j||null;
+}
 function fillMasters(){
  const a=$('transactionInputDebitAccount'),c=$('transactionInputCreditAccount'),j=$('transactionInputJournal');
  if(!a||!c||!j)return;
  const opts='<option value="">Select Odoo account…</option>'+masters.accounts.map(x=>'<option value="'+x.id+'">'+esc(accountLabel(x))+'</option>').join('');
  a.innerHTML=opts;c.innerHTML=opts;
- j.innerHTML='<option value="">Select Odoo journal…</option>'+masters.journals.map(x=>'<option value="'+x.id+'">'+esc((x.code?x.code+' — ':'')+x.name)+'</option>').join('');
- const general=masters.journals.find(x=>x.type==='general');if(general)j.value=String(general.id);
+ j.innerHTML='<option value="">Selecting Odoo journal automatically…</option>';
+ const selected=chooseAutomaticJournal();
+ if(selected){
+   j.value=String(selected.id);
+   j.innerHTML='<option value="'+selected.id+'">'+esc((selected.code?selected.code+' — ':'')+selected.name)+'</option>';
+   j.disabled=true;
+   j.title='Journal is selected automatically from the Odoo journal configuration.';
+ }else{
+   j.innerHTML='<option value="">No suitable Odoo journal found</option>';
+   j.disabled=true;
+ }
+ renderPreview();
 }
 function updateRule(){
  const type=$('transactionInputType')?.value||'reimbursement';
@@ -115,7 +141,7 @@ function resetForm(){
 async function init(){
  if(initialized){await loadRecent();return}initialized=true;
  $('transactionInputDate').value=iso(new Date());
- $('transactionInputType').addEventListener('change',updateRule);
+ $('transactionInputType').addEventListener('change',()=>{updateRule();fillMasters()});
  ['transactionInputAmount','transactionInputDebitAccount','transactionInputCreditAccount','transactionInputJournal'].forEach(id=>$(id)?.addEventListener('input',renderPreview));
  $('transactionReceipt').addEventListener('change',e=>{currentReceipt=e.target.files?.[0]||null;$('transactionReceiptName').textContent=currentReceipt?.name||'No file selected'});
  $('transactionScanBtn').addEventListener('click',scanReceipt);
