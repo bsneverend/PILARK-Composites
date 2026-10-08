@@ -247,3 +247,13 @@
 .receipt-action-bar[hidden]{display:none}
 @media(max-width:900px){.receipt-scanner-grid{grid-template-columns:1fr}.receipt-upload-panel,.receipt-result-panel{min-height:auto}}
 @media(max-width:600px){.receipt-fields,.receipt-journal-grid{grid-template-columns:1fr}.receipt-action-bar{flex-direction:column}.receipt-action-bar button{width:100%}}
+
+/* Sales quotations */
+.quotation-line{display:grid;grid-template-columns:90px 130px minmax(180px,1fr) 65px 65px 115px 34px;gap:6px;align-items:start;padding:8px 0;border-bottom:1px solid #e5edf1}
+.quotation-line input,.quotation-line textarea{width:100%;box-sizing:border-box;border:1px solid #d5e2e8;border-radius:7px;padding:8px;font:500 11px Inter,sans-serif;color:#14232c;background:#fff}
+.quotation-line textarea{min-height:48px;resize:vertical}
+.quotation-line:before{content:"";display:none}
+#quotationLines{margin-top:10px}
+#quotationForm textarea{line-height:1.45}
+@media(max-width:1000px){.quotation-line{grid-template-columns:1fr 1fr}.quotation-line .q-desc{grid-column:1/-1}}
+@media(max-width:650px){.quotation-line{grid-template-columns:1fr}.quotation-line .q-desc{grid-column:auto}}
