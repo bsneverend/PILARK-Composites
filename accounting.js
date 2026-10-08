@@ -1152,7 +1152,16 @@ async function autoMatchReconcile(){const lines=state.entryLines.filter(l=>{cons
   async function printQuotation(id){
     const w=window.open('about:blank','_blank','width=900,height=900');if(!w)return alert('Please allow pop-ups for Print / PDF.');
     w.document.write('<!doctype html><html><body style="font-family:Arial;padding:40px">Generating quotation PDF…</body></html>');
-    try{const {data,error}=await client().functions.invoke('generate-quotation-pdf',{body:{quotation_id:id}});if(error)throw error;const blob=data instanceof Blob?data:new Blob([data],{type:'application/pdf'});w.location.href=URL.createObjectURL(blob);}catch(err){w.close();alert('Quotation PDF failed: '+(err?.message||'Unknown error'));}}
+    try{
+      const {data,error}=await client().functions.invoke('generate-quotation-pdf',{body:{quotation_id:id}});
+      if(error)throw error;
+      if(!(data instanceof Blob)) throw new Error('The quotation PDF response was not received as a PDF.');
+      if(data.size<1000) throw new Error('The quotation PDF is empty or invalid.');
+      const blob=new Blob([await data.arrayBuffer()],{type:'application/pdf'});
+      const url=URL.createObjectURL(blob);
+      w.location.href=url;
+      setTimeout(()=>URL.revokeObjectURL(url),60000);
+    }catch(err){w.close();alert('Quotation PDF failed: '+(err?.message||'Unknown error'));}}
   async function updateQuotationStatus(id,status){if(!confirm('Change quotation status to '+status+'?'))return;const {error}=await client().from('sales_quotations').update({status,updated_at:new Date().toISOString(),updated_by:window.PILARK_CMS?.user?.id||null}).eq('id',id);if(error)return alert(error.message);await load();}
 function render(){renderAccounts();renderPartners();renderEntries();renderDocuments();renderQuotations();renderPayments();renderPeriods();renderOverview().catch(console.warn);renderErpOverview().catch(console.warn);renderReports().catch(console.warn);showTab(state.tab,false);}
 
