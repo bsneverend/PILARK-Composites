@@ -102,6 +102,45 @@ async function uploadReceipt(){
  if(error)throw error;return path
 }
 function fileToBase64(file){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result||''));r.onerror=reject;r.readAsDataURL(file)})}
+function norm(s){return String(s||'').toLowerCase().replace(/[^a-z0-9\\s_-]/g,' ')}
+function scoreAccount(a,terms,preferredTypes=[]){
+ const text=norm((a.code||'')+' '+(a.name||'')+' '+(a.account_type||''));
+ let score=0;
+ if(preferredTypes.includes(a.account_type))score+=35;
+ for(const t of terms){if(text.includes(t))score+=10}
+ return score;
+}
+function autoSelectAccountsFromReceipt(d){
+ const type=$('transactionInputType')?.value||'reimbursement';
+ const category=norm(d?.expense_category);
+ const hint=norm(d?.accounting_hint);
+ const description=norm(d?.description);
+ const vendor=norm(d?.vendor_name);
+ const hay=category+' '+hint+' '+description+' '+vendor;
+ const rules=[
+  {keys:['meals_entertainment','meal','food','dining','restaurant','entertainment','catering','lounge','makan','minum','jamuan','konsumsi'],terms:['food','meal','dining','restaurant','entertainment','catering','lounge','makan','minum','jamuan','konsumsi','entertainment'],types:['expense','expense_other']},
+  {keys:['travel','transport','transportation'],terms:['travel','transport','perjalanan','transportasi','taxi','taksi','grab','gojek'],types:['expense','expense_other']},
+  {keys:['hotel_accommodation','hotel','accommodation'],terms:['hotel','accommodation','penginapan','akomodasi'],types:['expense','expense_other']},
+  {keys:['fuel_transport','fuel','petrol','gasoline'],terms:['fuel','petrol','gasoline','bbm','bensin','solar'],types:['expense','expense_other']},
+  {keys:['office_supplies','office','stationery'],terms:['office','supplies','stationery','atk','alat tulis','perlengkapan kantor'],types:['expense','expense_other']},
+  {keys:['utilities'],terms:['utility','utilities','electricity','water','internet','telecom','listrik','air','internet','telepon'],types:['expense','expense_other']},
+  {keys:['professional_services'],terms:['professional','service','consulting','consultant','jasa','konsultan'],types:['expense','expense_other']},
+  {keys:['project_expense'],terms:['project','construction','proyek','konstruksi'],types:['expense','expense_other']},
+  {keys:['equipment'],terms:['equipment','asset','peralatan','mesin'],types:['asset_non_current','expense']}
+ ];
+ const rule=rules.find(r=>r.keys.some(k=>category.includes(k)))||rules.find(r=>r.terms.some(t=>hay.includes(t)));
+ if(rule){
+  const candidates=masters.accounts.map(a=>({a,score:scoreAccount(a,rule.terms,rule.types)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score);
+  if(candidates[0]&&candidates[0].score>=35)$('transactionInputDebitAccount').value=String(candidates[0].a.id);
+ }
+ const creditTerms=type==='reimbursement'
+  ?['employee payable','employee','staff payable','staff','karyawan','pegawai','employee reimbursement','reimbursement payable','payable']
+  :['accounts payable','payable','hutang','utang','vendor payable','supplier payable','clearing','payment'];
+ const creditTypes=type==='reimbursement'?['liability_payable','liability_current']:['liability_payable','liability_current'];
+ const creditCandidates=masters.accounts.map(a=>({a,score:scoreAccount(a,creditTerms,creditTypes)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score);
+ if(creditCandidates[0]&&creditCandidates[0].score>=35)$('transactionInputCreditAccount').value=String(creditCandidates[0].a.id);
+ renderPreview();
+}
 async function scanReceipt(){
  if(!currentReceipt){status('transactionScanStatus','Choose a receipt image first.');return}
  status('transactionScanStatus','Scanning receipt with AI…',true);$('transactionScanBtn').disabled=true;
@@ -115,7 +154,9 @@ async function scanReceipt(){
   if(d.vendor_name)$('transactionInputPartner').value=d.vendor_name;
   if(d.document_number)$('transactionInputReference').value=d.document_number;
   if(d.description)$('transactionInputDescription').value=d.description;
-  status('transactionScanStatus','AI extracted the receipt. Please review the amount, description and accounts before posting.',true);
+  autoSelectAccountsFromReceipt(d);
+  const category=d.expense_category||'other';
+  status('transactionScanStatus','AI extracted the receipt and proposed the accounting accounts ('+category+'). Please review the proposed accounts before posting.',true);
   renderPreview();
  }catch(e){status('transactionScanStatus',e?.message||String(e))}
  finally{$('transactionScanBtn').disabled=false}
