@@ -26,7 +26,7 @@
   async function loadAccounts(){
     const data=await api('?detail=ledger_accounts');
     state.accounts=(data.accounts||[]).filter(a=>!a.deprecated).sort((a,b)=>String(a.code||'').localeCompare(String(b.code||''),undefined,{numeric:true}));
-    $('generalLedgerAccount').innerHTML='<option value="">Select account…</option>'+state.accounts.map(a=>'<option value="'+a.id+'">'+esc(a.code)+' — '+esc(a.name)+'</option>').join('');
+    $('generalLedgerAccount').innerHTML='<option value="">All accounts</option>'+state.accounts.map(a=>'<option value="'+a.id+'">'+esc(a.code)+' — '+esc(a.name)+'</option>').join('');
     if(state.selectedAccount){
       $('generalLedgerAccount').value=state.selectedAccount;
     }
@@ -36,17 +36,12 @@
     if(!window.PILARK_CMS?.client)return;
     setDefaults();
     if(!state.accounts.length)await loadAccounts();
-    const accountId=$('generalLedgerAccount')?.value||state.selectedAccount;
-    if(!accountId){
-      $('generalLedgerBody').innerHTML='<tr><td colspan="9" class="accounting-empty">Select an Odoo account to view its General Ledger.</td></tr>';
-      $('generalLedgerSummary').innerHTML='';
-      $('generalLedgerHeading').textContent='General Ledger — Odoo';
-      $('generalLedgerSubheading').textContent='Data source: Odoo Accounting API';
-      return;
-    }
+    const accountId=$('generalLedgerAccount')?.value||state.selectedAccount||'';
     state.selectedAccount=String(accountId);
     const from=$('generalLedgerFrom')?.value||'',to=$('generalLedgerTo')?.value||'';
-    const q=new URLSearchParams({detail:'ledger',id:String(accountId),start:from,end:to});
+    const params={detail:'ledger',start:from,end:to};
+    if(accountId)params.id=String(accountId);
+    const q=new URLSearchParams(params);
     const data=await api('?'+q.toString());
     state.lastData=data;
     const account=state.accounts.find(a=>String(a.id)===String(accountId));
@@ -61,15 +56,15 @@
     const ending=Number(data.ending_balance||opening);
     const debit=rows.reduce((s,x)=>s+Number(x.debit||0),0);
     const credit=rows.reduce((s,x)=>s+Number(x.credit||0),0);
-    $('generalLedgerHeading').textContent=(account?.code||'')+' — '+(account?.name||'General Ledger');
-    $('generalLedgerSubheading').textContent='Odoo Accounting · Posted transactions · '+dateText(from)+' to '+dateText(to);
+    $('generalLedgerHeading').textContent=accountId?((account?.code||'')+' — '+(account?.name||'General Ledger')):'All Accounts — General Ledger';
+    $('generalLedgerSubheading').textContent='Odoo Accounting · All posted transactions'+(accountId?' for the selected account':' across all accounts')+' · '+dateText(from)+' to '+dateText(to);
     $('generalLedgerSummary').innerHTML=[
       ['Opening Balance',money(opening),'Odoo balance before selected period'],
       ['Total Debit',money(debit),'Selected Odoo lines'],
       ['Total Credit',money(credit),'Selected Odoo lines'],
       ['Ending Balance',money(ending),'Odoo running balance']
     ].map(x=>'<div class="accounting-metric"><span>'+x[0]+'</span><b>'+x[1]+'</b><small>'+x[2]+'</small></div>').join('');
-    $('generalLedgerBody').innerHTML=rows.map(x=>'<tr><td>'+dateText(x.date)+'</td><td><button type="button" class="entry-link general-ledger-entry" data-move-id="'+esc(Array.isArray(x.move_id)?x.move_id[0]:'')+'"><b>'+esc(m2o(x.move_id))+'</b></button></td><td>'+esc(m2o(x.journal_id))+'</td><td>'+esc(x.ref||'—')+'</td><td>'+esc(m2o(x.partner_id)||'—')+'</td><td>'+esc(x.name||'—')+'</td><td class="num">'+(Number(x.debit)?money(x.debit):'—')+'</td><td class="num">'+(Number(x.credit)?money(x.credit):'—')+'</td><td class="num"><b>'+money(x.running_balance)+'</b></td></tr>').join('')||'<tr><td colspan="9" class="accounting-empty">'+(data.rows?.length===0 && data.diagnostics?.account_posted_lines ? `No posted Odoo transactions in this period. This account has ${data.diagnostics.account_posted_lines.toLocaleString("id-ID")} posted line(s) in Odoo. Try a wider date range.` : 'No Odoo posted transactions match the selected filters.')+'</td></tr>';
+    $('generalLedgerBody').innerHTML=rows.map(x=>'<tr><td>'+dateText(x.date)+'</td><td>'+esc(m2o(x.account_id)||'—')+'</td><td><button type="button" class="entry-link general-ledger-entry" data-move-id="'+esc(Array.isArray(x.move_id)?x.move_id[0]:'')+'"><b>'+esc(m2o(x.move_id))+'</b></button></td><td>'+esc(m2o(x.journal_id))+'</td><td>'+esc(x.ref||'—')+'</td><td>'+esc(m2o(x.partner_id)||'—')+'</td><td>'+esc(x.name||'—')+'</td><td class="num">'+(Number(x.debit)?money(x.debit):'—')+'</td><td class="num">'+(Number(x.credit)?money(x.credit):'—')+'</td><td class="num"><b>'+money(x.running_balance)+'</b></td></tr>').join('')||'<tr><td colspan="9" class="accounting-empty">'+(data.rows?.length===0 && data.diagnostics?.account_posted_lines ? `No posted Odoo transactions in this period. This account has ${data.diagnostics.account_posted_lines.toLocaleString("id-ID")} posted line(s) in Odoo. Try a wider date range.` : 'No Odoo posted transactions match the selected filters.')+'</td></tr>';
     document.querySelectorAll('.general-ledger-entry').forEach(b=>b.onclick=()=>showMoveDetail(b.dataset.moveId));
     if(data.diagnostics?.limited)console.warn('Odoo General Ledger reached the 20,000-line API safety limit.',data.diagnostics);
     state.loaded=true;
@@ -89,8 +84,8 @@
 
   function exportCsv(){
     if(!state.rows.length)return alert('No Odoo ledger data to export.');
-    const header=['Date','Journal Entry','Journal','Reference','Partner','Description','Debit','Credit','Running Balance'];
-    const lines=[header,...state.rows.map(x=>[x.date,m2o(x.move_id),m2o(x.journal_id),x.ref||'',m2o(x.partner_id),x.name||'',x.debit||0,x.credit||0,x.running_balance||0])];
+    const header=['Date','Account','Journal Entry','Journal','Reference','Partner','Description','Debit','Credit','Running Balance'];
+    const lines=[header,...state.rows.map(x=>[x.date,m2o(x.account_id),m2o(x.move_id),m2o(x.journal_id),x.ref||'',m2o(x.partner_id),x.name||'',x.debit||0,x.credit||0,x.running_balance||0])];
     const csv=lines.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\n');
     const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='odoo-general-ledger.csv';a.click();URL.revokeObjectURL(url);
   }
