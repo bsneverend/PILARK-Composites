@@ -94,15 +94,18 @@ async function saveDraft(){
 }
 async function postTransaction(){
  const saved=await saveDraft();
- status('transactionInputStatus','Creating draft journal in Odoo…',true);
- const lines=[{name:$('transactionInputDescription').value||'Expense',account_id:Number($('transactionInputDebitAccount').value),debit:Number($('transactionInputAmount').value||0),credit:0},{name:$('transactionInputDescription').value||'Settlement',account_id:Number($('transactionInputCreditAccount').value),debit:0,credit:Number($('transactionInputAmount').value||0)}];
- const created=await callOdoo('',{method:'POST',body:JSON.stringify({action:'create_draft',date:$('transactionInputDate').value,journal_id:Number($('transactionInputJournal').value),reference:$('transactionInputReference').value,description:$('transactionInputDescription').value,lines})});
- const moveId=created.move?.id;if(!moveId)throw new Error('Odoo draft journal was not created.');
- await window.PILARK_CMS.client.from('odoo_transaction_inputs').update({status:'reviewed',odoo_move_id:moveId,odoo_state:created.move?.state||'draft',reviewed_by:(await session()).user.id,approved_at:new Date().toISOString()}).eq('id',currentDraftId);
+ let moveId=Number(saved?.odoo_move_id||0);
+ if(!moveId){
+  status('transactionInputStatus','Creating draft journal in Odoo…',true);
+  const lines=[{name:$('transactionInputDescription').value||'Expense',account_id:Number($('transactionInputDebitAccount').value),debit:Number($('transactionInputAmount').value||0),credit:0},{name:$('transactionInputDescription').value||'Settlement',account_id:Number($('transactionInputCreditAccount').value),debit:0,credit:Number($('transactionInputAmount').value||0)}];
+  const created=await callOdoo('',{method:'POST',body:JSON.stringify({action:'create_draft',date:$('transactionInputDate').value,journal_id:Number($('transactionInputJournal').value),reference:$('transactionInputReference').value,description:$('transactionInputDescription').value,lines})});
+  moveId=Number(created.move?.id||0);if(!moveId)throw new Error('Odoo draft journal was not created.');
+  await window.PILARK_CMS.client.from('odoo_transaction_inputs').update({status:'reviewed',odoo_move_id:moveId,odoo_state:created.move?.state||'draft',reviewed_by:(await session()).user.id,approved_at:new Date().toISOString()}).eq('id',currentDraftId);
+ }
  if(!confirm('The reviewed journal is balanced and ready to post to Odoo. Continue posting?')){status('transactionInputStatus','Odoo draft created. Posting was cancelled.');await loadRecent();return}
  const posted=await callOdoo('',{method:'POST',body:JSON.stringify({action:'post',move_id:moveId})});
  await window.PILARK_CMS.client.from('odoo_transaction_inputs').update({status:'posted',odoo_state:posted.move?.state||'posted',posted_at:new Date().toISOString()}).eq('id',currentDraftId);
- status('transactionInputStatus','Posted successfully to Odoo. Journal ID '+moveId+'.',true);await loadRecent();
+ status('transactionInputStatus','Posted successfully to Odoo. Journal ID '+moveId+'.',true);await loadRecent();setTimeout(resetForm,350);
 }
 function resetForm(){
  $('transactionInputForm').reset();currentReceipt=null;currentDraftId=null;
