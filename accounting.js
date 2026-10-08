@@ -31,7 +31,7 @@
       c.from('accounting_reconciliation_lines').select('line_id,amount,accounting_reconciliations!inner(id,status)').eq('accounting_reconciliations.status','reconciled'),
       c.from('sales_quotations').select('*,accounting_partners(name,email,address,phone)').order('quotation_date',{ascending:false}).order('created_at',{ascending:false}).limit(300)
     ]);
-    for(const x of [a,p,j,e,i,b,py,al,se,ib,pe,lines,recons]) if(x.error) throw x.error;
+    for(const x of [a,p,j,e,i,b,py,al,se,ib,pe,lines,recons,q]) if(x.error) throw x.error;
     state.accounts=a.data||[]; state.partners=p.data||[]; state.journals=j.data||[]; state.entries=e.data||[]; state.entryLines=lines.data||[];state.reconLines=recons.data||[]; state.invoices=i.data||[]; state.bills=b.data||[]; state.payments=py.data||[]; state.allocations=al.data||[]; state.sends=se.data||[]; state.inventoryBalances=ib.data||[]; state.periods=pe.data||[]; state.quotations=q.data||[];
     render();
   }
@@ -1202,6 +1202,13 @@ function render(){renderAccounts();renderPartners();renderEntries();renderDocume
   const originalRender=render; // populate after data loads
   const oldLoad=load;
   async function bootLoad(){await oldLoad();populateDynamic();renderDocuments();renderPayments();updateDocumentPreview('customer_invoice');updateDocumentPreview('vendor_bill');}
-  function init(){if(!el('view-accounting'))return;ensureReceiptScannerUi();bindQuotationLines();bind();if(ready())bootLoad().catch(err=>console.warn('Accounting init:',err));else setTimeout(()=>bootLoad().catch(err=>console.warn('Accounting init:',err)),800);}
+  function init(){if(!el('view-accounting'))return;ensureReceiptScannerUi();bindQuotationLines();
+    el('quotationForm')?.addEventListener('submit',createQuotation);
+    el('addQuotationLine')?.addEventListener('click',()=>{const box=el('quotationLines');if(box){box.insertAdjacentHTML('beforeend',quotationLineHtml(box.children.length));updateQuotationTotals();}});
+    el('quotationDate')?.addEventListener('change',prepareQuotationNumber);
+    el('quotationTaxRate')?.addEventListener('input',updateQuotationTotals);
+    if(el('quotationDate'))el('quotationDate').value=today();
+    prepareQuotationNumber().catch(()=>{});
+    bind();if(ready())bootLoad().catch(err=>console.warn('Accounting init:',err));else setTimeout(()=>bootLoad().catch(err=>console.warn('Accounting init:',err)),800);}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
