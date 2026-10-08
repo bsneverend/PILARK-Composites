@@ -1091,7 +1091,8 @@ async function autoMatchReconcile(){const lines=state.entryLines.filter(l=>{cons
       <textarea class="q-desc" rows="2" placeholder="Product description"></textarea>
       <input class="q-qty" type="number" min="0.0001" step="0.0001" value="1">
       <input class="q-uom" value="PCS">
-      <input class="q-price" type="number" min="0" step="1" value="0">
+      <input class="q-price" type="number" min="0" step="1" value="0" placeholder="0">
+      <input class="q-line-total" type="text" value="Rp 0" readonly aria-label="Line total">
       <button type="button" class="line-remove q-remove" aria-label="Remove item">×</button>
     </div>`;
   }
@@ -1103,11 +1104,12 @@ async function autoMatchReconcile(){const lines=state.entryLines.filter(l=>{cons
     box.addEventListener('change',updateQuotationTotals);
   }
   function readQuotationLines(){
-    return [...document.querySelectorAll('#quotationLines .quotation-line')].map((r,i)=>({
-      line_no:i+1,item_code:r.querySelector('.q-item-code')?.value.trim()||null,item_name:r.querySelector('.q-item-name')?.value.trim()||'',
-      description:r.querySelector('.q-desc')?.value.trim()||'',quantity:Number(r.querySelector('.q-qty')?.value||0),uom:r.querySelector('.q-uom')?.value.trim()||'PCS',
-      unit_price:Number(r.querySelector('.q-price')?.value||0),line_total:Math.round(Number(r.querySelector('.q-qty')?.value||0)*Number(r.querySelector('.q-price')?.value||0)*100)/100
-    }));
+    return [...document.querySelectorAll('#quotationLines .quotation-line')].map((r,i)=>{
+      const qty=Number(r.querySelector('.q-qty')?.value||0),price=Number(r.querySelector('.q-price')?.value||0),total=Math.round(qty*price*100)/100;
+      const totalEl=r.querySelector('.q-line-total');if(totalEl)totalEl.value=money(total);
+      return {line_no:i+1,item_code:r.querySelector('.q-item-code')?.value.trim()||null,item_name:r.querySelector('.q-item-name')?.value.trim()||'',
+      description:r.querySelector('.q-desc')?.value.trim()||'',quantity:qty,uom:r.querySelector('.q-uom')?.value.trim()||'PCS',unit_price:price,line_total:total};
+    });
   }
   function updateQuotationTotals(){
     const lines=readQuotationLines(),sub=lines.reduce((a,l)=>a+l.line_total,0),rate=Number(el('quotationTaxRate')?.value||0),tax=Math.round(sub*rate)/100,total=sub+tax;
