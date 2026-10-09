@@ -824,6 +824,6 @@ async function openContactResearchModal(accountId){
   el('crmSaveContact').onclick=()=>saveCRMContact(a.id);
 }
 
-function init(){if(!el('view-sales'))return;bind();window.addEventListener('pilark:open-sales-tab',e=>{if(e.detail?.tab)showTab(e.detail.tab);});window.addEventListener('pilark:refresh-sales-quotation',()=>{window.dispatchEvent(new CustomEvent('pilark:refresh-accounting-quotation'));});if(client())Promise.all([load(),loadCRM()]).catch(e=>console.warn('Sales init:',e));}
+function init(){if(!el('view-sales'))return;bind();showTab(state.tab||'overview');window.addEventListener('pilark:open-sales-tab',e=>{if(e.detail?.tab)showTab(e.detail.tab);});window.addEventListener('pilark:refresh-sales-quotation',()=>{window.dispatchEvent(new CustomEvent('pilark:refresh-accounting-quotation'));});if(client())Promise.all([load(),loadCRM()]).catch(e=>console.warn('Sales init:',e));}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
