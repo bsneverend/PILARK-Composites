@@ -43,7 +43,12 @@
     const params={detail:'ledger',start:from,end:to,target:targetMoves};
     if(accountId)params.id=String(accountId);
     const q=new URLSearchParams(params);
-    $('generalLedgerSummary').innerHTML='<div class="content-status">Loading Odoo General Ledger…</div>';
+    $('generalLedgerSummary').innerHTML=[
+      ['Opening Balance','------','Odoo balance before selected period'],
+      ['Total Debit','------','Odoo total incl. opening balance'],
+      ['Total Credit','------','Exact Odoo total'],
+      ['Ending Balance','------','Odoo running balance']
+    ].map(x=>'<div class="accounting-metric"><span>'+x[0]+'</span><b>'+x[1]+'</b><small>'+x[2]+'</small></div>').join('');
     const data=await api('?'+q.toString());
     state.lastData=data;
     const account=state.accounts.find(a=>String(a.id)===String(accountId));
