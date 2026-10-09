@@ -37,40 +37,40 @@ function fillPartners(){
  p.innerHTML='<option value="">Select beneficiary / partner…</option>'+masters.partners.map(x=>'<option value="'+x.id+'">'+esc(x.name||('Partner '+x.id))+'</option>').join('');
  if(current && masters.partners.some(x=>String(x.id)===String(current)))p.value=current;
 }
+function fillExpenseMasters(){
+ const e=$('transactionInputEmployee'),p=$('transactionInputProduct');
+ if(e){
+  const current=e.value;
+  e.innerHTML='<option value="">Select Odoo employee…</option>'+masters.employees.map(x=>'<option value="'+x.id+'">'+esc(x.name||('Employee '+x.id))+'</option>').join('');
+  if(current && masters.employees.some(x=>String(x.id)===String(current)))e.value=current;
+ }
+ if(p){
+  const current=p.value;
+  p.innerHTML='<option value="">Select Odoo expense category…</option>'+masters.expense_products.map(x=>'<option value="'+x.id+'">'+esc((x.default_code?x.default_code+' — ':'')+(x.name||('Expense '+x.id)))+'</option>').join('');
+  if(current && masters.expense_products.some(x=>String(x.id)===String(current)))p.value=current;
+ }
+}
 function applyBeneficiaryRule(){
  const type=$('transactionInputType')?.value||'reimbursement';
  const role=$('transactionInputBeneficiaryRole')?.value||'employee';
- let rule=null;
- if(type==='reimbursement'){
-   if(role==='employee') rule=masters.role_accounts?.employee;
-   else if(role==='director') rule=masters.role_accounts?.director;
-   else if(role==='vendor') rule=masters.role_accounts?.vendor;
- }
- if(type==='payment_request' && role==='vendor') rule=masters.role_accounts?.vendor;
- const credit=$('transactionInputCreditAccount');
- if(rule?.id && credit){credit.value=String(rule.id);credit.disabled=true;credit.title='Credit account is controlled by the beneficiary role/accounting rule.'}
- else if(credit){credit.disabled=false;credit.title='Select the credit account manually for this beneficiary role.'}
- updateRule();
+ const title=role==='director'?'Reimbursement — Director Expense':role==='vendor'?'Vendor / Supplier — Odoo Expenses requires an employee':'Reimbursement — Employee Expense';
+ if($('transactionInputRuleTitle'))$('transactionInputRuleTitle').textContent=title;
+ if($('transactionInputRuleText'))$('transactionInputRuleText').textContent=role==='vendor'
+  ?'Odoo Expenses is employee-based. Vendor / supplier payments should use the Purchase / Vendor Bill workflow instead.'
+  :'PILARK CMS sends the expense to Odoo Expenses. Approval, accounting posting and reimbursement remain under the Odoo workflow.';
  renderPreview();
 }
 function fillMasters(){
- const a=$('transactionInputDebitAccount'),c=$('transactionInputCreditAccount'),j=$('transactionInputJournal');
- if(!a||!c||!j)return;
- fillPartners();
- const opts='<option value="">Select Odoo account…</option>'+masters.accounts.map(x=>'<option value="'+x.id+'">'+esc(accountLabel(x))+'</option>').join('');
- a.innerHTML=opts;c.innerHTML=opts;
- j.innerHTML='<option value="">Selecting Odoo journal automatically…</option>';
- const selected=chooseAutomaticJournal();
- if(selected){
-   j.value=String(selected.id);
-   j.innerHTML='<option value="'+selected.id+'">'+esc((selected.code?selected.code+' — ':'')+selected.name)+'</option>';
-   j.disabled=true;
-   j.title='Journal is selected automatically from the Odoo journal configuration.';
- }else{
-   j.innerHTML='<option value="">No suitable Odoo journal found</option>';
-   j.disabled=true;
+ const a=$('transactionInputDebitAccount'),cr=$('transactionInputCreditAccount'),j=$('transactionInputJournal');
+ fillPartners();fillExpenseMasters();
+ if(a&&cr&&j){
+  const opts='<option value="">Select Odoo account…</option>'+masters.accounts.map(x=>'<option value="'+x.id+'">'+esc(accountLabel(x))+'</option>').join('');
+  a.innerHTML=opts;cr.innerHTML=opts;
+  j.innerHTML='<option value="">Selecting Odoo journal automatically…</option>';
+  const selected=chooseAutomaticJournal();
+  if(selected){j.value=String(selected.id);j.innerHTML='<option value="'+selected.id+'">'+esc((selected.code?selected.code+' — ':'')+selected.name)+'</option>';j.disabled=true;}
  }
- renderPreview();
+ applyBeneficiaryRule();renderPreview();
 }
 function updateRule(){
  const type=$('transactionInputType')?.value||'reimbursement';
@@ -89,36 +89,29 @@ function updateRule(){
 }
 function renderPreview(){
  const amount=Number($('transactionInputAmount')?.value||0);
- const da=masters.accounts.find(x=>String(x.id)===$('transactionInputDebitAccount')?.value);
- const ca=masters.accounts.find(x=>String(x.id)===$('transactionInputCreditAccount')?.value);
- const j=masters.journals.find(x=>String(x.id)===$('transactionInputJournal')?.value);
+ const e=masters.employees.find(x=>String(x.id)===$('transactionInputEmployee')?.value);
+ const p=masters.expense_products.find(x=>String(x.id)===$('transactionInputProduct')?.value);
  const box=$('transactionJournalPreview');if(!box)return;
- box.innerHTML='<div class="transaction-preview-head"><span>Draft Journal</span><b>'+money(amount)+'</b></div>'+
- '<div class="transaction-preview-line"><span>DR · '+esc(da?accountLabel(da):'Select debit account')+'</span><b>'+money(amount)+'</b></div>'+
- '<div class="transaction-preview-line"><span>CR · '+esc(ca?accountLabel(ca):'Select credit account')+'</span><b>'+money(amount)+'</b></div>'+
- '<div class="transaction-preview-meta">Journal: '+esc(j?((j.code?j.code+' — ':'')+j.name):'Select journal')+'</div>';
+ box.innerHTML='<div class="transaction-preview-head"><span>Odoo Expense</span><b>'+money(amount)+'</b></div>'+
+ '<div class="transaction-preview-line"><span>Employee</span><b>'+esc(e?.name||'Select employee')+'</b></div>'+
+ '<div class="transaction-preview-line"><span>Category</span><b>'+esc(p?((p.default_code?p.default_code+' — ':'')+p.name):'Select expense category')+'</b></div>'+
+ '<div class="transaction-preview-meta">Status after send: Submitted / Waiting Approval in Odoo (if the Odoo API user has submit permission).</div>';
 }
 async function loadMasters(){
  try{
   const p=await callOdoo('?detail=masters');
-  masters.accounts=p.accounts||[];
-  masters.journals=p.journals||[];
-  masters.partners=p.partners||[];
-  masters.role_accounts=p.role_accounts||{};
-  fillMasters();
-  renderPreview();
-  applyBeneficiaryRule();
-  if(!masters.journals.length){
-   const j=$('transactionInputJournal');
-   if(j){j.innerHTML='<option value="">No Odoo general journal available</option>';j.disabled=true;j.title='Odoo returned no accessible general journal.'}
-   throw new Error('Odoo returned no accessible general journal. Please check the Odoo Accounting Journals configuration and the integration user access.');
-  }
-  status('transactionInputStatus','Odoo masters loaded. Journal selected automatically.',true);
+  const em=await callOdoo('?detail=expense_masters');
+  masters.accounts=p.accounts||[];masters.journals=p.journals||[];masters.partners=p.partners||[];
+  masters.role_accounts=p.role_accounts||{};masters.employees=em.employees||[];masters.expense_products=em.expense_products||[];
+  fillMasters();renderPreview();applyBeneficiaryRule();
+  if(!masters.employees.length)throw new Error('Odoo returned no active employees. Please configure employees in Odoo Expenses.');
+  if(!masters.expense_products.length)throw new Error('Odoo returned no expense categories. Please enable at least one product for Expenses in Odoo.');
+  status('transactionInputStatus','Odoo Expenses employees and categories loaded.',true);
  }catch(e){
-  const j=$('transactionInputJournal');
-  if(j){j.innerHTML='<option value="">Unable to load Odoo journal</option>';j.disabled=true}
-  status('transactionInputStatus',e?.message||String(e));
-  throw e;
+  const p=$('transactionInputProduct'),em=$('transactionInputEmployee');
+  if(p)p.innerHTML='<option value="">Unable to load Odoo expense categories</option>';
+  if(em)em.innerHTML='<option value="">Unable to load Odoo employees</option>';
+  status('transactionInputStatus',e?.message||String(e));throw e;
  }
 }
 async function loadRecent(){
@@ -204,39 +197,32 @@ function scoreAccount(a,terms,preferredTypes=[]){
  return score;
 }
 function autoSelectAccountsFromReceipt(d){
- const type=$('transactionInputType')?.value||'reimbursement';
- const category=norm(d?.expense_category);
- const hint=norm(d?.accounting_hint);
- const description=norm(d?.description);
- const vendor=norm(d?.vendor_name);
+ const category=norm(d?.expense_category),hint=norm(d?.accounting_hint),description=norm(d?.description),vendor=norm(d?.vendor_name);
  const hay=category+' '+hint+' '+description+' '+vendor;
- const rules=[
-  {keys:['meals_entertainment','meal','food','dining','restaurant','entertainment','catering','lounge','makan','minum','jamuan','konsumsi'],terms:['food','meal','dining','restaurant','entertainment','catering','lounge','makan','minum','jamuan','konsumsi','entertainment'],types:['expense','expense_other']},
-  {keys:['travel','transport','transportation'],terms:['travel','transport','perjalanan','transportasi','taxi','taksi','grab','gojek'],types:['expense','expense_other']},
-  {keys:['hotel_accommodation','hotel','accommodation'],terms:['hotel','accommodation','penginapan','akomodasi'],types:['expense','expense_other']},
-  {keys:['fuel_transport','fuel','petrol','gasoline'],terms:['fuel','petrol','gasoline','bbm','bensin','solar'],types:['expense','expense_other']},
-  {keys:['office_supplies','office','stationery'],terms:['office','supplies','stationery','atk','alat tulis','perlengkapan kantor'],types:['expense','expense_other']},
-  {keys:['utilities'],terms:['utility','utilities','electricity','water','internet','telecom','listrik','air','internet','telepon'],types:['expense','expense_other']},
-  {keys:['professional_services'],terms:['professional','service','consulting','consultant','jasa','konsultan'],types:['expense','expense_other']},
-  {keys:['project_expense'],terms:['project','construction','proyek','konstruksi'],types:['expense','expense_other']},
-  {keys:['equipment'],terms:['equipment','asset','peralatan','mesin'],types:['asset_non_current','expense']}
+ const terms=[
+  ['meal','food','dining','restaurant','entertainment','catering','lounge','makan','minum','jamuan','konsumsi'],
+  ['travel','transport','perjalanan','transportasi','taxi','taksi','grab','gojek'],
+  ['hotel','accommodation','penginapan','akomodasi'],
+  ['fuel','petrol','gasoline','bbm','bensin','solar'],
+  ['office','supplies','stationery','atk','alat tulis','perlengkapan kantor'],
+  ['utility','utilities','electricity','water','internet','telecom','listrik','air','telepon'],
+  ['professional','service','consulting','consultant','jasa','konsultan']
  ];
- const rule=rules.find(r=>r.keys.some(k=>category.includes(k)))||rules.find(r=>r.terms.some(t=>hay.includes(t)));
- if(rule){
-  const candidates=masters.accounts.map(a=>({a,score:scoreAccount(a,rule.terms,rule.types)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score);
-  if(candidates[0]&&candidates[0].score>=35)$('transactionInputDebitAccount').value=String(candidates[0].a.id);
+ const hit=masters.expense_products.find(p=>terms.some(group=>group.some(t=>norm(p.name).includes(t))&&group.some(t=>hay.includes(t))));
+ if(hit)$('transactionInputProduct').value=String(hit.id);
+ const vendorName=d?.vendor_name||'';
+ if(vendorName){
+  const partner=masters.partners.find(p=>norm(p.name)===norm(vendorName)||norm(p.name).includes(norm(vendorName))||norm(vendorName).includes(norm(p.name)));
+  if(partner)$('transactionInputPartner').value=String(partner.id);
  }
- const role=$('transactionInputBeneficiaryRole')?.value||'employee';
- const roleAccount=(type==='reimbursement' ? (role==='employee'?masters.role_accounts?.employee:role==='director'?masters.role_accounts?.director:role==='vendor'?masters.role_accounts?.vendor:null) : role==='vendor'?masters.role_accounts?.vendor:null);
- if(roleAccount?.id)$('transactionInputCreditAccount').value=String(roleAccount.id);
- const creditTerms=roleAccount?.id ? [] : (type==='reimbursement'
-  ?['employee liabilities','employee liability','director liability','hutang direksi']
-  :['accounts payable','vendor payable','supplier payable','clearing','payment']);
- const creditTypes=type==='reimbursement'?['liability_payable','liability_current']:['liability_payable','liability_current'];
- const creditCandidates=masters.accounts.map(a=>({a,score:scoreAccount(a,creditTerms,creditTypes)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score);
- if(!roleAccount?.id && creditCandidates[0]&&creditCandidates[0].score>=35)$('transactionInputCreditAccount').value=String(creditCandidates[0].a.id);
- applyBeneficiaryRule();
- renderPreview();
+ syncEmployeeFromPartner();applyBeneficiaryRule();renderPreview();
+}
+function syncEmployeeFromPartner(){
+ const partnerId=$('transactionInputPartner')?.value||'';
+ const partner=masters.partners.find(p=>String(p.id)===String(partnerId));
+ if(!partner)return;
+ const hit=masters.employees.find(e=>norm(e.name)===norm(partner.name)||norm(e.name).includes(norm(partner.name))||norm(partner.name).includes(norm(e.name)));
+ if(hit)$('transactionInputEmployee').value=String(hit.id);
 }
 async function scanReceipt(){
  if(!currentReceipt){status('transactionScanStatus','Choose a receipt image first.');return}
