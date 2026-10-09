@@ -3,7 +3,7 @@
   const $=id=>document.getElementById(id);
   const FUNCTION_URL='https://seelqcgjfuuwurslwtgf.supabase.co/functions/v1/odoo-director-dashboard';
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const money=v=>new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(v||0));
+  const money=v=>new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:2}).format(Number(v||0));
   const dateText=v=>v?new Date(v+'T00:00:00').toLocaleDateString('id-ID'):'—';
   const m2o=v=>Array.isArray(v)?(v[1]||String(v[0]||'')):String(v||'');
   const api=async(path)=>{
@@ -54,19 +54,20 @@
     state.rows=rows;
     const opening=Number(data.opening_balance||0);
     const ending=Number(data.ending_balance||opening);
-    const debit=rows.reduce((s,x)=>s+Number(x.debit||0),0);
-    const credit=rows.reduce((s,x)=>s+Number(x.credit||0),0);
+    const exactTotals=data.period_totals||null;
+    const debit=exactTotals&&(!qtxt&&!recon)?Number(exactTotals.debit||0):rows.reduce((s,x)=>s+Number(x.debit||0),0);
+    const credit=exactTotals&&(!qtxt&&!recon)?Number(exactTotals.credit||0):rows.reduce((s,x)=>s+Number(x.credit||0),0);
     $('generalLedgerHeading').textContent=accountId?((account?.code||'')+' — '+(account?.name||'General Ledger')):'All Accounts — General Ledger';
     $('generalLedgerSubheading').textContent='Odoo Accounting · All posted transactions'+(accountId?' for the selected account':' across all accounts')+' · '+dateText(from)+' to '+dateText(to);
     $('generalLedgerSummary').innerHTML=[
       ['Opening Balance',money(opening),'Odoo balance before selected period'],
-      ['Total Debit',money(debit),'Selected Odoo lines'],
-      ['Total Credit',money(credit),'Selected Odoo lines'],
+      ['Total Debit',money(debit),exactTotals&&(!qtxt&&!recon)?'Exact Odoo total':'Selected Odoo lines'],
+      ['Total Credit',money(credit),exactTotals&&(!qtxt&&!recon)?'Exact Odoo total':'Selected Odoo lines'],
       ['Ending Balance',money(ending),'Odoo running balance']
     ].map(x=>'<div class="accounting-metric"><span>'+x[0]+'</span><b>'+x[1]+'</b><small>'+x[2]+'</small></div>').join('');
     $('generalLedgerBody').innerHTML=rows.map(x=>'<tr><td>'+dateText(x.date)+'</td><td>'+esc(m2o(x.account_id)||'—')+'</td><td><button type="button" class="entry-link general-ledger-entry" data-move-id="'+esc(Array.isArray(x.move_id)?x.move_id[0]:'')+'"><b>'+esc(m2o(x.move_id))+'</b></button></td><td>'+esc(m2o(x.journal_id))+'</td><td>'+esc(x.ref||'—')+'</td><td>'+esc(m2o(x.partner_id)||'—')+'</td><td>'+esc(x.name||'—')+'</td><td class="num">'+(Number(x.debit)?money(x.debit):'—')+'</td><td class="num">'+(Number(x.credit)?money(x.credit):'—')+'</td><td class="num"><b>'+money(x.running_balance)+'</b></td></tr>').join('')||'<tr><td colspan="9" class="accounting-empty">'+(data.rows?.length===0 && data.diagnostics?.account_posted_lines ? `No posted Odoo transactions in this period. This account has ${data.diagnostics.account_posted_lines.toLocaleString("id-ID")} posted line(s) in Odoo. Try a wider date range.` : 'No Odoo posted transactions match the selected filters.')+'</td></tr>';
     document.querySelectorAll('.general-ledger-entry').forEach(b=>b.onclick=()=>showMoveDetail(b.dataset.moveId));
-    if(data.diagnostics?.limited)console.warn('Odoo General Ledger reached the 20,000-line API safety limit.',data.diagnostics);
+    if(data.diagnostics?.limited){console.warn('Odoo General Ledger row display reached the 20,000-line API safety limit; totals remain exact from Odoo aggregation.',data.diagnostics);const n=Number(data.diagnostics.exact_period_line_count||0);const shown=Number(data.diagnostics.period_lines||0);const note=document.createElement('div');note.className='content-status';note.textContent='Showing '+shown.toLocaleString('id-ID')+' of '+n.toLocaleString('id-ID')+' Odoo posted lines. Debit/Credit totals are calculated from the complete Odoo dataset.';const host=$('generalLedgerSummary');host?.parentElement?.insertBefore(note,host.nextSibling);}
     state.loaded=true;
   }
 
