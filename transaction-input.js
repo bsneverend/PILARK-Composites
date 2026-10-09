@@ -1,7 +1,7 @@
 (function(){
 const ODOO_FN='https://seelqcgjfuuwurslwtgf.supabase.co/functions/v1/odoo-transaction-input';
 const SCAN_FN='https://seelqcgjfuuwurslwtgf.supabase.co/functions/v1/odoo-receipt-scan';
-let initialized=false,masters={accounts:[],journals:[]},currentReceipt=null,currentDraftId=null;
+let initialized=false,masters={accounts:[],journals:[],partners:[],role_accounts:{}},currentReceipt=null,currentDraftId=null;
 
 const $=id=>document.getElementById(id);
 const money=n=>new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(n||0));
@@ -31,9 +31,32 @@ function chooseAutomaticJournal(){
  }).sort((a,b)=>b.score-a.score);
  return scored[0]?.j||null;
 }
+function fillPartners(){
+ const p=$('transactionInputPartner'); if(!p)return;
+ const current=p.value;
+ p.innerHTML='<option value="">Select beneficiary / partner…</option>'+masters.partners.map(x=>'<option value="'+x.id+'">'+esc(x.name||('Partner '+x.id))+'</option>').join('');
+ if(current && masters.partners.some(x=>String(x.id)===String(current)))p.value=current;
+}
+function applyBeneficiaryRule(){
+ const type=$('transactionInputType')?.value||'reimbursement';
+ const role=$('transactionInputBeneficiaryRole')?.value||'employee';
+ let rule=null;
+ if(type==='reimbursement'){
+   if(role==='employee') rule=masters.role_accounts?.employee;
+   else if(role==='director') rule=masters.role_accounts?.director;
+   else if(role==='vendor') rule=masters.role_accounts?.vendor;
+ }
+ if(type==='payment_request' && role==='vendor') rule=masters.role_accounts?.vendor;
+ const credit=$('transactionInputCreditAccount');
+ if(rule?.id && credit){credit.value=String(rule.id);credit.disabled=true;credit.title='Credit account is controlled by the beneficiary role/accounting rule.'}
+ else if(credit){credit.disabled=false;credit.title='Select the credit account manually for this beneficiary role.'}
+ updateRule();
+ renderPreview();
+}
 function fillMasters(){
  const a=$('transactionInputDebitAccount'),c=$('transactionInputCreditAccount'),j=$('transactionInputJournal');
  if(!a||!c||!j)return;
+ fillPartners();
  const opts='<option value="">Select Odoo account…</option>'+masters.accounts.map(x=>'<option value="'+x.id+'">'+esc(accountLabel(x))+'</option>').join('');
  a.innerHTML=opts;c.innerHTML=opts;
  j.innerHTML='<option value="">Selecting Odoo journal automatically…</option>';
@@ -51,8 +74,14 @@ function fillMasters(){
 }
 function updateRule(){
  const type=$('transactionInputType')?.value||'reimbursement';
- const title=type==='reimbursement'?'Reimbursement — Expense → Employee Payable':'Payment Request — Expense / Asset → Payable / Clearing';
- const text=type==='reimbursement'?'Debit the approved expense account and credit the employee/payable account.':'Debit the approved expense or asset account and credit the selected payable/clearing account.';
+ const role=$('transactionInputBeneficiaryRole')?.value||'employee';
+ let title='Payment Request — Expense / Asset → Payable / Clearing';
+ let text='Debit the approved expense or asset account and credit the selected payable/clearing account.';
+ if(type==='reimbursement'){
+   const label=role==='director'?'Director Liability':role==='employee'?'Employee Liabilities':role==='vendor'?'Accounts Payable':'Configured Liability';
+   title='Reimbursement — Expense → '+label;
+   text='Debit the approved expense account and credit the liability account defined by the beneficiary role.';
+ }
  if($('transactionInputRuleTitle'))$('transactionInputRuleTitle').textContent=title;
  if($('transactionInputRuleText'))$('transactionInputRuleText').textContent=text;
  renderPreview();
@@ -73,8 +102,11 @@ async function loadMasters(){
   const p=await callOdoo('?detail=masters');
   masters.accounts=p.accounts||[];
   masters.journals=p.journals||[];
+  masters.partners=p.partners||[];
+  masters.role_accounts=p.role_accounts||{};
   fillMasters();
   renderPreview();
+  applyBeneficiaryRule();
   if(!masters.journals.length){
    const j=$('transactionInputJournal');
    if(j){j.innerHTML='<option value="">No Odoo general journal available</option>';j.disabled=true;j.title='Odoo returned no accessible general journal.'}
@@ -133,12 +165,16 @@ function autoSelectAccountsFromReceipt(d){
   const candidates=masters.accounts.map(a=>({a,score:scoreAccount(a,rule.terms,rule.types)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score);
   if(candidates[0]&&candidates[0].score>=35)$('transactionInputDebitAccount').value=String(candidates[0].a.id);
  }
- const creditTerms=type==='reimbursement'
-  ?['employee payable','employee','staff payable','staff','karyawan','pegawai','employee reimbursement','reimbursement payable','payable']
-  :['accounts payable','payable','hutang','utang','vendor payable','supplier payable','clearing','payment'];
+ const role=$('transactionInputBeneficiaryRole')?.value||'employee';
+ const roleAccount=(type==='reimbursement' ? (role==='employee'?masters.role_accounts?.employee:role==='director'?masters.role_accounts?.director:role==='vendor'?masters.role_accounts?.vendor:null) : role==='vendor'?masters.role_accounts?.vendor:null);
+ if(roleAccount?.id)$('transactionInputCreditAccount').value=String(roleAccount.id);
+ const creditTerms=roleAccount?.id ? [] : (type==='reimbursement'
+  ?['employee liabilities','employee liability','director liability','hutang direksi']
+  :['accounts payable','vendor payable','supplier payable','clearing','payment']);
  const creditTypes=type==='reimbursement'?['liability_payable','liability_current']:['liability_payable','liability_current'];
  const creditCandidates=masters.accounts.map(a=>({a,score:scoreAccount(a,creditTerms,creditTypes)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score);
- if(creditCandidates[0]&&creditCandidates[0].score>=35)$('transactionInputCreditAccount').value=String(creditCandidates[0].a.id);
+ if(!roleAccount?.id && creditCandidates[0]&&creditCandidates[0].score>=35)$('transactionInputCreditAccount').value=String(creditCandidates[0].a.id);
+ applyBeneficiaryRule();
  renderPreview();
 }
 async function scanReceipt(){
@@ -151,7 +187,10 @@ async function scanReceipt(){
   const d=p.data||{};
   if(d.document_date&&/^\d{4}-\d{2}-\d{2}$/.test(d.document_date))$('transactionInputDate').value=d.document_date;
   if(d.total_amount!=null)$('transactionInputAmount').value=Number(d.total_amount)||0;
-  if(d.vendor_name)$('transactionInputPartner').value=d.vendor_name;
+  if(d.vendor_name && ($('transactionInputType')?.value==='payment_request' || $('transactionInputBeneficiaryRole')?.value==='vendor')){
+    const hit=masters.partners.find(p=>norm(p.name)===norm(d.vendor_name)||norm(p.name).includes(norm(d.vendor_name))||norm(d.vendor_name).includes(norm(p.name)));
+    if(hit)$('transactionInputPartner').value=String(hit.id);
+  }
   if(d.document_number)$('transactionInputReference').value=d.document_number;
   if(d.description)$('transactionInputDescription').value=d.description;
   autoSelectAccountsFromReceipt(d);
@@ -162,11 +201,13 @@ async function scanReceipt(){
  finally{$('transactionScanBtn').disabled=false}
 }
 async function saveDraft(){
- const type=$('transactionInputType').value,date=$('transactionInputDate').value,journalId=Number($('transactionInputJournal').value),amount=Number($('transactionInputAmount').value||0),debitId=Number($('transactionInputDebitAccount').value),creditId=Number($('transactionInputCreditAccount').value);
+ const type=$('transactionInputType').value,date=$('transactionInputDate').value,journalId=Number($('transactionInputJournal').value),amount=Number($('transactionInputAmount').value||0),debitId=Number($('transactionInputDebitAccount').value),creditId=Number($('transactionInputCreditAccount').value),beneficiaryRole=$('transactionInputBeneficiaryRole').value,beneficiaryPartnerId=Number($('transactionInputPartner').value||0);
  if(!date||!journalId||!amount||!debitId||!creditId)throw new Error('Please complete date, journal, amount, debit account and credit account.');
+ if(!beneficiaryPartnerId)throw new Error('Please select the beneficiary / partner.');
  const receiptPath=currentReceipt?await uploadReceipt():null;
  const s=await session();
- const payload={input_type:type,status:'draft',transaction_date:date,reference:$('transactionInputReference').value||null,description:$('transactionInputDescription').value||null,requester_name:$('transactionInputRequester').value||null,partner_name:$('transactionInputPartner').value||null,amount,currency_code:'IDR',journal_id:journalId,debit_account_id:debitId,credit_account_id:creditId,rule_code:type==='reimbursement'?'REIMBURSEMENT_EXPENSE_PAYABLE':'PAYMENT_REQUEST_EXPENSE_PAYABLE',rule_explanation:$('transactionInputRuleText').textContent,receipt_path:receiptPath,receipt_name:currentReceipt?.name||null,created_by:s.user.id};
+ const partner=masters.partners.find(x=>String(x.id)===String(beneficiaryPartnerId));
+ const payload={input_type:type,status:'draft',transaction_date:date,reference:$('transactionInputReference').value||null,description:$('transactionInputDescription').value||null,requester_name:$('transactionInputRequester').value||null,partner_name:partner?.name||null,amount,currency_code:'IDR',journal_id:journalId,debit_account_id:debitId,credit_account_id:creditId,rule_code:type==='reimbursement'?('REIMBURSEMENT_'+beneficiaryRole.toUpperCase()):('PAYMENT_REQUEST_'+beneficiaryRole.toUpperCase()),rule_explanation:$('transactionInputRuleText').textContent,receipt_path:receiptPath,receipt_name:currentReceipt?.name||null,created_by:s.user.id,submitted_by_name:s.user.user_metadata?.full_name||s.user.user_metadata?.name||s.user.email||null,submitted_by_role:$('transactionInputSubmitterRole').value,beneficiary_role:beneficiaryRole,beneficiary_name:partner?.name||null,beneficiary_partner_id:beneficiaryPartnerId,beneficiary_account_id:creditId};
  let q;
  if(currentDraftId)q=await window.PILARK_CMS.client.from('odoo_transaction_inputs').update(payload).eq('id',currentDraftId).select().single();
  else q=await window.PILARK_CMS.client.from('odoo_transaction_inputs').insert(payload).select().single();
@@ -192,21 +233,23 @@ async function postTransaction(){
  status('transactionInputStatus','Posted successfully to Odoo. Journal ID '+moveId+'.',true);await loadRecent();setTimeout(resetForm,350);
 }
 function resetForm(){
- $('transactionInputForm').reset();currentReceipt=null;currentDraftId=null;
+ $('transactionInputForm').reset();currentReceipt=null;currentDraftId=null; $('transactionInputPartner').innerHTML='<option value="">Select beneficiary / partner…</option>'; $('transactionInputRequester').value='';
  const now=new Date();$('transactionInputDate').value=iso(now);$('transactionReceiptName').textContent='No file selected';
  fillMasters();updateRule();status('transactionScanStatus','');status('transactionInputStatus','');
 }
 async function init(){
  if(initialized){await loadRecent();return}initialized=true;
  $('transactionInputDate').value=iso(new Date());
- $('transactionInputType').addEventListener('change',()=>{updateRule();fillMasters()});
+ $('transactionInputType').addEventListener('change',()=>{updateRule();fillMasters();applyBeneficiaryRule()});
+ $('transactionInputBeneficiaryRole').addEventListener('change',()=>{applyBeneficiaryRule()});
+ $('transactionInputSubmitterRole').addEventListener('change',()=>{updateRule()});
  ['transactionInputAmount','transactionInputDebitAccount','transactionInputCreditAccount','transactionInputJournal'].forEach(id=>$(id)?.addEventListener('input',renderPreview));
  $('transactionReceipt').addEventListener('change',e=>{currentReceipt=e.target.files?.[0]||null;$('transactionReceiptName').textContent=currentReceipt?.name||'No file selected'});
  $('transactionScanBtn').addEventListener('click',scanReceipt);
  $('transactionSaveDraft').addEventListener('click',async()=>{try{await saveDraft();status('transactionInputStatus','Draft saved.',true)}catch(e){status('transactionInputStatus',e?.message||String(e))}});
  $('transactionInputForm').addEventListener('submit',async e=>{e.preventDefault();try{await postTransaction()}catch(err){status('transactionInputStatus',err?.message||String(err));if(currentDraftId)await window.PILARK_CMS.client.from('odoo_transaction_inputs').update({status:'error',error_message:err?.message||String(err)}).eq('id',currentDraftId);await loadRecent()}});
  $('transactionInputRefresh').addEventListener('click',async()=>{await loadMasters();await loadRecent()});
- await loadMasters();await loadRecent();updateRule();
+ const me=await session(); $('transactionInputRequester').value=me.user.user_metadata?.full_name||me.user.user_metadata?.name||me.user.email||''; await loadMasters();await loadRecent();updateRule();applyBeneficiaryRule();
 }
 window.initTransactionInput=init;
 window.transactionInputRefresh=async()=>{await loadMasters();await loadRecent()};
