@@ -19,7 +19,7 @@
 <div class="sales-tabs" role="tablist">
 <button type="button" data-sales-tab="overview" class="active">Overview</button>
 <button type="button" data-sales-tab="execution">Execution Board</button>
-<button type="button" data-sales-tab="accounts">Accounts</button>
+<button type="button" data-sales-tab="accounts">Accounts</button><button type="button" data-sales-tab="contacts">Contacts</button>
 <button type="button" data-sales-tab="activities">Activities</button>
 <button type="button" data-sales-tab="quotations">Quotations</button>
 <button type="button" data-sales-tab="orders">Sales Orders</button>
@@ -128,6 +128,11 @@
     <div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Company</th><th>Target Department</th><th>Email</th><th>Phone</th><th>Mobile / WhatsApp</th><th>LinkedIn</th><th>Best Route</th><th>Contacts</th><th>Priority</th><th>Confidence</th></tr></thead><tbody id="salesAccountsBody"></tbody></table></div>
   </div>
 </div>
+<div class="sales-tab-panel" data-sales-panel="contacts" hidden>
+  <div class="accounting-two-col"><div class="panel"><div class="panel-head"><div><h2>New Customer / Contact</h2><p>Create a customer or business contact for the Sales process. These contacts are also available when creating quotations.</p></div></div><form id="partnerForm" class="accounting-form"><label>Name<input id="partnerName" required placeholder="PT Customer / Vendor"></label><label>Type<select id="partnerType"><option value="customer">Customer</option><option value="vendor">Vendor</option><option value="both">Customer & Vendor</option><option value="other">Other</option></select></label><label>Email<input id="partnerEmail" type="email" placeholder="finance@company.com"></label><label>Phone<input id="partnerPhone" placeholder="+62 …"></label><label>Tax ID / NPWP<input id="partnerTax" placeholder="Optional"></label><label>Address<textarea id="partnerAddress" rows="3" placeholder="Address"></textarea></label><button class="primary-btn" type="submit">Create customer →</button></form></div>
+  <div class="panel"><div class="panel-head"><div><h2>Contacts</h2><p>Customers and business contacts used by Sales and Quotations.</p></div></div><div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Name</th><th>Type</th><th>Email</th><th>Phone</th><th>Tax ID</th></tr></thead><tbody id="salesContactsBody"></tbody></table></div></div></div>
+</div>
+
 <div class="sales-tab-panel" data-sales-panel="activities" hidden>
   <div class="panel"><div class="panel-head"><div><h2>Sales Activities</h2><p>D+0 / D+3 / D+7 / D+14 execution cadence. Mark, reschedule or send activities directly from the CRM.</p></div><button id="crmAddActivity" class="primary-btn" type="button">+ Add Activity</button></div>
     <div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Due</th><th>Account / Opportunity</th><th>Activity</th><th>Status</th><th>Action</th></tr></thead><tbody id="salesActivitiesBody"></tbody></table></div>
@@ -363,7 +368,7 @@
 <button type="button" data-accounting-tab="payments">Payments</button>
 <button type="button" data-accounting-tab="reports">Reports</button>
 <button type="button" data-accounting-tab="accounts">Chart of Accounts</button>
-<button type="button" data-accounting-tab="partners">Contacts</button>
+
 <button type="button" data-accounting-tab="bank">Bank Reconciliation</button><button type="button" data-accounting-tab="entries">Journal Entries</button><button type="button" data-accounting-tab="periods">Accounting Periods</button>
 </div>
 
@@ -517,11 +522,6 @@
     <div id="accountLedgerSummary" class="entry-summary-grid"></div>
     <div class="accounting-table-wrap"><table class="accounting-table account-ledger-table"><thead><tr><th class="reconcile-col"></th><th>Date</th><th>Journal Entry</th><th>Reference</th><th>Partner</th><th>Description</th><th class="num">Debit</th><th class="num">Credit</th><th class="num">Balance</th></tr></thead><tbody id="accountLedgerBody"></tbody></table></div>
   </div>
-</div>
-
-<div class="accounting-tab-panel" data-accounting-panel="partners" hidden>
-  <div class="accounting-two-col"><div class="panel"><div class="panel-head"><div><h2>New contact</h2><p>Create a customer, vendor or other accounting partner.</p></div></div><form id="partnerForm" class="accounting-form"><label>Name<input id="partnerName" required placeholder="PT Customer / Vendor"></label><label>Type<select id="partnerType"><option value="customer">Customer</option><option value="vendor">Vendor</option><option value="both">Customer & Vendor</option><option value="other">Other</option></select></label><label>Email<input id="partnerEmail" type="email" placeholder="finance@company.com"></label><label>Phone<input id="partnerPhone" placeholder="+62 …"></label><label>Tax ID / NPWP<input id="partnerTax" placeholder="Optional"></label><label>Address<textarea id="partnerAddress" rows="3" placeholder="Address"></textarea></label><button class="primary-btn" type="submit">Create contact →</button></form></div>
-  <div class="panel"><div class="panel-head"><div><h2>Contacts</h2><p>Customers, vendors and other accounting partners.</p></div></div><div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Name</th><th>Type</th><th>Email</th><th>Phone</th><th>Tax ID</th></tr></thead><tbody id="accountingPartnersBody"></tbody></table></div></div></div>
 </div>
 
 <div class="accounting-tab-panel" data-accounting-panel="bank" hidden>
@@ -799,4 +799,4 @@
     </form>
   </div>
 </div>
-</main></div><script src="admin.js?v=20261009-expense-center-v1"></script><script src="accounting.js?v=20261009-sales-quotation-v1"></script><script src="sales.js?v=20261009-sales-quotation-v1"></script><script src="purchase.js?v=20261006-stable-pre-floating"></script><script src="inventory.js?v=20261006-stable-pre-floating"></script><script src="bank-reconciliation.js?v=20261006-stable-pre-floating"></script><script src="general-ledger.js?v=20261009-odoo-gl-v10"></script><script src="transaction-input.js?v=20261009-live-odoo-status-v3"></script></body></html>
+</main></div><script src="admin.js?v=20261009-expense-center-v1"></script><script src="accounting.js?v=20261009-sales-quotation-v1"></script><script src="sales.js?v=20261009-sales-contacts-v1"></script><script src="purchase.js?v=20261006-stable-pre-floating"></script><script src="inventory.js?v=20261006-stable-pre-floating"></script><script src="bank-reconciliation.js?v=20261006-stable-pre-floating"></script><script src="general-ledger.js?v=20261009-odoo-gl-v10"></script><script src="transaction-input.js?v=20261009-live-odoo-status-v3"></script></body></html>
