@@ -172,6 +172,7 @@ async function syncExpenseStatuses(){
  }catch(e){
   console.warn('Live Odoo expense status sync failed:',e?.message||e);
   return false;
+ }
 }
 async function loadRecent(skipSync=false){
  const body=$('transactionInputBody');if(!body)return;
