@@ -152,7 +152,7 @@ async function editTransaction(id){
   $('transactionInputCreditAccount').disabled=false;
   $('transactionInputCreditAccount').value=String(data.credit_account_id||'');
   applyBeneficiaryRule();
-  $('transactionInputCreditAccount').value=String(data.credit_account_id||masters.role_accounts?.[data.beneficiary_role]?.id||'');
+  // Keep the credit account selected by the beneficiary-role rule.
   $('transactionInputForm').scrollIntoView({behavior:'smooth',block:'start'});
   $('transactionInputForm').classList.add('transaction-edit-mode');
   $('transactionSaveDraft').textContent='Cancel Edit';
@@ -316,7 +316,7 @@ async function init(){
  $('transactionReceipt').addEventListener('change',e=>{currentReceipt=e.target.files?.[0]||null;$('transactionReceiptName').textContent=currentReceipt?.name||'No file selected'});
  $('transactionScanBtn').addEventListener('click',scanReceipt);
  $('transactionSaveDraft').addEventListener('click',async()=>{if(editingTransaction){resetForm();status('transactionInputStatus','Edit cancelled. No changes were made.',true);await loadRecent();return}try{await saveDraft();status('transactionInputStatus','Draft saved.',true)}catch(e){status('transactionInputStatus',e?.message||String(e))}});
- $('transactionInputForm').addEventListener('submit',async e=>{e.preventDefault();try{await postTransaction()}catch(err){status('transactionInputStatus',err?.message||String(err));if(currentDraftId)await window.PILARK_CMS.client.from('odoo_transaction_inputs').update({status:'error',error_message:err?.message||String(err)}).eq('id',currentDraftId);await loadRecent()}});
+ $('transactionInputForm').addEventListener('submit',async e=>{e.preventDefault();try{await postTransaction()}catch(err){status('transactionInputStatus',err?.message||String(err));if(currentDraftId&&!editingTransaction)await window.PILARK_CMS.client.from('odoo_transaction_inputs').update({status:'error',error_message:err?.message||String(err)}).eq('id',currentDraftId);else if(editingTransaction&&/may now be in Draft|not posted/i.test(err?.message||String(err)))await window.PILARK_CMS.client.from('odoo_transaction_inputs').update({status:'error',odoo_state:'draft',error_message:err?.message||String(err)}).eq('id',currentDraftId);await loadRecent()}});
  $('transactionInputRefresh').addEventListener('click',async()=>{await loadMasters();await loadRecent()});
  const me=await session(); $('transactionInputRequester').value=me.user.user_metadata?.full_name||me.user.user_metadata?.name||me.user.email||''; await loadMasters();await loadRecent();updateRule();applyBeneficiaryRule();
 }
