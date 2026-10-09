@@ -39,7 +39,7 @@
     const accountId=$('generalLedgerAccount')?.value||state.selectedAccount||'';
     state.selectedAccount=String(accountId);
     const from=$('generalLedgerFrom')?.value||'',to=$('generalLedgerTo')?.value||'';
-    const targetMoves=$('generalLedgerTargetMoves')?.value||'posted';
+    const targetMoves='all';
     const params={detail:'ledger',start:from,end:to,target:targetMoves};
     if(accountId)params.id=String(accountId);
     const q=new URLSearchParams(params);
@@ -60,7 +60,7 @@
     const debit=exactTotals&&(!qtxt&&!recon)?Number(exactTotals.debit||0)+Number(openingTotals?.debit||0):rows.reduce((s,x)=>s+Number(x.debit||0),0);
     const credit=exactTotals&&(!qtxt&&!recon)?Number(exactTotals.credit||0)+Number(openingTotals?.credit||0):rows.reduce((s,x)=>s+Number(x.credit||0),0);
     $('generalLedgerHeading').textContent=accountId?((account?.code||'')+' — '+(account?.name||'General Ledger')):'All Accounts — General Ledger';
-    $('generalLedgerSubheading').textContent='Odoo Accounting · '+(targetMoves==='all'?'All entries':'Posted entries')+(accountId?' for the selected account':' across all accounts')+' · '+dateText(from)+' to '+dateText(to);
+    $('generalLedgerSubheading').textContent='Odoo Accounting · All entries+(accountId?' for the selected account':' across all accounts')+' · '+dateText(from)+' to '+dateText(to);
     $('generalLedgerSummary').innerHTML=[
       ['Opening Balance',money(opening),'Odoo balance before selected period'],
       ['Total Debit',money(debit),exactTotals&&(!qtxt&&!recon)?'Odoo total incl. opening balance':'Selected Odoo lines'],
@@ -101,7 +101,7 @@
     $('generalLedgerRefresh')?.addEventListener('click',()=>load().catch(e=>alert(e.message)));
     $('generalLedgerAccount')?.addEventListener('change',()=>{state.selectedAccount=$('generalLedgerAccount').value;load().catch(e=>alert(e.message))});
     $('generalLedgerExport')?.addEventListener('click',exportCsv);
-    ['generalLedgerFrom','generalLedgerTo','generalLedgerSearch','generalLedgerRecon','generalLedgerTargetMoves'].forEach(id=>$(id)?.addEventListener('change',()=>load().catch(e=>console.warn(e))));
+    ['generalLedgerFrom','generalLedgerTo','generalLedgerSearch','generalLedgerRecon'].forEach(id=>$(id)?.addEventListener('change',()=>load().catch(e=>console.warn(e))));
     $('generalLedgerSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter')load().catch(err=>alert(err.message))});
     load().catch(e=>console.warn('Odoo General Ledger:',e));
   }
