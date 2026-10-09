@@ -35,7 +35,7 @@
   async function load(){
     if(!window.PILARK_CMS?.client)return;
     setDefaults();
-    if(!state.accounts.length)await loadAccounts();
+    if(!state.accounts.length){try{await loadAccounts()}catch(e){console.warn('Odoo General Ledger accounts:',e);$('generalLedgerAccount').innerHTML='<option value="">All accounts</option>';}}
     const accountId=$('generalLedgerAccount')?.value||state.selectedAccount||'';
     state.selectedAccount=String(accountId);
     const from=$('generalLedgerFrom')?.value||'',to=$('generalLedgerTo')?.value||'';
@@ -103,8 +103,9 @@
     $('generalLedgerExport')?.addEventListener('click',exportCsv);
     ['generalLedgerFrom','generalLedgerTo','generalLedgerSearch','generalLedgerRecon'].forEach(id=>$(id)?.addEventListener('change',()=>load().catch(e=>console.warn(e))));
     $('generalLedgerSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter')load().catch(err=>alert(err.message))});
-    load().catch(e=>console.warn('Odoo General Ledger:',e));
+    load().catch(e=>{console.warn('Odoo General Ledger:',e);$('generalLedgerSummary').innerHTML='<div class="content-status">'+esc(e.message)+'</div>';});
   }
+  setDefaults();
   window.initGeneralLedger=init;
   window.addEventListener('pilark:refresh-view',e=>{if(e.detail?.view==='general-ledger'){load().then(()=>e.detail?.done?.()).catch(err=>e.detail?.done?.(err))}});
 })();
