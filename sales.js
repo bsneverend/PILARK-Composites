@@ -6,16 +6,17 @@
   const money=v=>'Rp'+Number(v||0).toLocaleString('id-ID',{maximumFractionDigits:2});
   const moneyCompact=v=>{const n=Number(v||0);if(!n)return 'Rp0';if(n>=1e12)return 'Rp'+(n/1e12).toLocaleString('id-ID',{maximumFractionDigits:2})+' T';if(n>=1e9)return 'Rp'+(n/1e9).toLocaleString('id-ID',{maximumFractionDigits:2})+' B';if(n>=1e6)return 'Rp'+(n/1e6).toLocaleString('id-ID',{maximumFractionDigits:2})+' Jt';if(n>=1e3)return 'Rp'+(n/1e3).toLocaleString('id-ID',{maximumFractionDigits:1})+' Rb';return money(n);};
   const esc=v=>String(v??'').replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[m]));
-  let state={orders:[],partners:[],products:[],tab:'overview',crm:{accounts:[],projects:[],opportunities:[],activities:[]}};
+  let state={orders:[],quotations:[],partners:[],products:[],tab:'overview',crm:{accounts:[],projects:[],opportunities:[],activities:[]}};
   async function load(){
     if(!client())return;
-    const [o,p,pr]=await Promise.all([
+    const [o,q,p,pr]=await Promise.all([
       client().from('sales_orders').select('*,accounting_partners(name,email)').order('quotation_date',{ascending:false}).limit(500),
+      client().from('sales_quotations').select('*,accounting_partners(name,email)').order('quotation_date',{ascending:false}).limit(500),
       client().from('accounting_partners').select('*').eq('is_active',true).order('name'),
       client().from('inventory_products').select('id,product_code,name,unit,is_active').eq('is_active',true).order('product_code')
     ]);
-    if(o.error)throw o.error;if(p.error)throw p.error;
-    state.orders=o.data||[];state.partners=p.data||[];state.products=pr.data||[];render();populatePartners();
+    if(o.error)throw o.error;if(q.error)throw q.error;if(p.error)throw p.error;
+    state.orders=o.data||[];state.quotations=q.data||[];state.partners=p.data||[];state.products=pr.data||[];render();populatePartners();
   }
   function populatePartners(){const s=el('salesPartner');if(!s)return;s.innerHTML='<option value="">Select customer…</option>'+state.partners.filter(p=>['customer','both'].includes(p.partner_type)).map(p=>'<option value="'+p.id+'">'+esc(p.name)+'</option>').join('');}
   function productOptions(){return '<option value="">Non-inventory / service</option>'+state.products.map(p=>'<option value="'+p.id+'">'+esc(p.product_code)+' — '+esc(p.name)+'</option>').join('');}
@@ -36,7 +37,31 @@
   async function cancelOrder(id){if(!confirm('Cancel this quotation?'))return;const {error}=await client().from('sales_orders').update({status:'cancelled'}).eq('id',id).in('status',['quotation','sent']);if(error)return alert(error.message);await load();}
   function statusClass(s){return 'sales-status sales-status-'+s.replace('_','-');}
   function row(o){const actions=o.status==='sales_order'?'<button class="accounting-small-btn sales-invoice-btn" data-id="'+o.id+'">Create Invoice</button>':'<button class="accounting-small-btn sales-confirm-btn" data-id="'+o.id+'">Confirm</button><button class="accounting-small-btn sales-cancel-btn" data-id="'+o.id+'">Cancel</button>';return '<tr><td><b>'+esc(o.order_no)+'</b></td><td>'+esc(o.accounting_partners?.name||'—')+'</td><td>'+String(o.quotation_date||'—')+'</td><td>'+String(o.validity_date||'—')+'</td><td class="num">'+money(o.total_amount)+'</td><td><span class="'+statusClass(o.status)+'">'+esc(o.status.replace('_',' '))+'</span></td><td>'+actions+'</td></tr>';}
-  function render(){const q=state.orders.filter(o=>['quotation','sent'].includes(o.status)),so=state.orders.filter(o=>o.status==='sales_order');el('salesMetricQuotations').textContent=q.length;el('salesMetricOrders').textContent=so.length;el('salesMetricValue').textContent=money(state.orders.reduce((n,o)=>n+Number(o.total_amount||0),0));el('salesMetricOpen').textContent=money(so.reduce((n,o)=>n+Number(o.total_amount||0),0));if(el('salesQuotationsBody'))el('salesQuotationsBody').innerHTML=q.map(row).join('')||'<tr><td colspan="7" class="accounting-empty">No quotations yet.</td></tr>';if(el('salesOrdersBody'))el('salesOrdersBody').innerHTML=so.map(row).join('')||'<tr><td colspan="7" class="accounting-empty">No sales orders yet.</td></tr>';document.querySelectorAll('.sales-confirm-btn').forEach(b=>b.onclick=()=>confirmOrder(b.dataset.id));document.querySelectorAll('.sales-invoice-btn').forEach(b=>b.onclick=()=>createInvoice(b.dataset.id));document.querySelectorAll('.sales-cancel-btn').forEach(b=>b.onclick=()=>cancelOrder(b.dataset.id));}
+  function quotationStatusLabel(s){return ({draft:'Draft',sent:'Sent',accepted:'Accepted',rejected:'Rejected',expired:'Expired',cancelled:'Cancelled'}[s]||s||'Draft');}
+  function renderSalesQuotations(){
+    const body=el('quotationsBody');if(!body)return;
+    body.innerHTML=state.quotations.map(q=>'<tr><td><b>'+esc(q.quotation_no)+'</b></td><td>'+String(q.quotation_date||'—')+'</td><td>'+esc(q.accounting_partners?.name||'—')+'</td><td>'+esc(q.project_name||'—')+'</td><td class="num">'+money(q.total_amount)+'</td><td><span class="sales-status sales-status-'+String(q.status||'draft').replace('_','-')+'">'+quotationStatusLabel(q.status)+'</span></td><td class="accounting-actions"><button type="button" class="accounting-small-btn sales-q-status" data-id="'+q.id+'" data-status="sent">Send</button><button type="button" class="accounting-small-btn sales-q-status" data-id="'+q.id+'" data-status="accepted">Accept</button><button type="button" class="accounting-small-btn sales-q-status" data-id="'+q.id+'" data-status="rejected">Reject</button></td></tr>').join('')||'<tr><td colspan="7" class="accounting-empty">No quotations yet.</td></tr>';
+    body.querySelectorAll('.sales-q-status').forEach(b=>b.onclick=()=>updateSalesQuotationStatus(b.dataset.id,b.dataset.status));
+  }
+  async function updateSalesQuotationStatus(id,status){
+    if(!confirm('Change quotation status to '+quotationStatusLabel(status)+'?'))return;
+    const {error}=await client().from('sales_quotations').update({status,updated_at:new Date().toISOString(),updated_by:window.PILARK_CMS?.user?.id||null}).eq('id',id);
+    if(error)return alert(error.message);
+    await load();
+  }
+  function render(){
+    const q=state.orders.filter(o=>['quotation','sent'].includes(o.status)),so=state.orders.filter(o=>o.status==='sales_order');
+    el('salesMetricQuotations').textContent=q.length+state.quotations.filter(x=>['draft','sent'].includes(x.status)).length;
+    el('salesMetricOrders').textContent=so.length;
+    el('salesMetricValue').textContent=money(state.orders.reduce((n,o)=>n+Number(o.total_amount||0),0)+state.quotations.reduce((n,o)=>n+Number(o.total_amount||0),0));
+    el('salesMetricOpen').textContent=money(so.reduce((n,o)=>n+Number(o.total_amount||0),0));
+    renderSalesQuotations();
+    if(el('salesQuotationsBody'))el('salesQuotationsBody').innerHTML=q.map(row).join('')||'<tr><td colspan="7" class="accounting-empty">No sales-order quotations yet.</td></tr>';
+    if(el('salesOrdersBody'))el('salesOrdersBody').innerHTML=so.map(row).join('')||'<tr><td colspan="7" class="accounting-empty">No sales orders yet.</td></tr>';
+    document.querySelectorAll('.sales-confirm-btn').forEach(b=>b.onclick=()=>confirmOrder(b.dataset.id));
+    document.querySelectorAll('.sales-invoice-btn').forEach(b=>b.onclick=()=>createInvoice(b.dataset.id));
+    document.querySelectorAll('.sales-cancel-btn').forEach(b=>b.onclick=()=>cancelOrder(b.dataset.id));
+  }
   function showTab(tab){state.tab=tab;document.querySelectorAll('[data-sales-tab]').forEach(b=>b.classList.toggle('active',b.dataset.salesTab===tab));document.querySelectorAll('[data-sales-panel]').forEach(p=>{
       const active=p.dataset.salesPanel===tab;
       if(active){p.hidden=false;p.removeAttribute('hidden');p.style.setProperty('display','block','important');}
