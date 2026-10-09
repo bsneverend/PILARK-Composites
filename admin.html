@@ -668,6 +668,11 @@
         <b id="transactionInputRuleTitle">Send to Odoo Expenses</b>
         <span id="transactionInputRuleText">PILARK CMS sends the expense to Odoo Expenses. Approval, posting and reimbursement remain under the Odoo Finance / Manager workflow.</span>
       </div>
+      <div hidden aria-hidden="true">
+        <select id="transactionInputJournal"><option value=""></option></select>
+        <select id="transactionInputDebitAccount"><option value=""></option></select>
+        <select id="transactionInputCreditAccount"><option value=""></option></select>
+      </div>
       <div class="transaction-receipt-box">
         <div><div><b>Receipt / Supporting Document</b><span id="transactionReceiptName">No file selected</span></div><label class="accounting-small-btn transaction-file-btn">Choose Image<input id="transactionReceipt" type="file" accept="image/*" hidden></label></div>
         <button id="transactionScanBtn" class="primary-btn" type="button">✦ Scan Receipt with AI</button>
