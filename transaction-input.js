@@ -84,20 +84,37 @@ function renderPreview(){
  '<div class="transaction-preview-meta">Status after send: Submitted / Waiting Approval in Odoo (if the Odoo API user has submit permission).</div>';
 }
 async function loadMasters(){
+ let expenseLoaded=false;
  try{
-  const p=await callOdoo('?detail=masters');
+  // Expense masters are the critical data for the new workflow.
+  // Load them independently so a legacy accounting-master permission/error
+  // cannot make the Employee and Expense Category fields appear broken.
   const em=await callOdoo('',{method:'POST',body:JSON.stringify({action:'expense_masters'})});
-  masters.accounts=p.accounts||[];masters.journals=p.journals||[];masters.partners=p.partners||[];
-  masters.role_accounts=p.role_accounts||{};masters.employees=em.employees||[];masters.expense_products=em.expense_products||[];
-  fillMasters();renderPreview();applyBeneficiaryRule();
+  masters.employees=em.employees||[];
+  masters.expense_products=em.expense_products||[];
+  fillExpenseMasters();
+  renderPreview();
   if(!masters.employees.length)throw new Error('Odoo returned no active employees. Please configure employees in Odoo Expenses.');
   if(!masters.expense_products.length)throw new Error('Odoo returned no expense categories. Please enable at least one product for Expenses in Odoo.');
+  expenseLoaded=true;
   status('transactionInputStatus','Odoo Expenses employees and categories loaded.',true);
  }catch(e){
   const p=$('transactionInputProduct'),em=$('transactionInputEmployee');
   if(p)p.innerHTML='<option value="">Unable to load Odoo expense categories</option>';
   if(em)em.innerHTML='<option value="">Unable to load Odoo employees</option>';
-  status('transactionInputStatus',e?.message||String(e));throw e;
+  status('transactionInputStatus',e?.message||String(e));
+ }
+ // Legacy masters are only needed for historical journal correction.
+ // Do not let them block the new Odoo Expenses workflow.
+ try{
+  const p=await callOdoo('?detail=masters');
+  masters.accounts=p.accounts||[];masters.journals=p.journals||[];masters.partners=p.partners||[];
+  masters.role_accounts=p.role_accounts||{};
+  fillPartners();
+  if(expenseLoaded)fillExpenseMasters();
+  applyBeneficiaryRule();renderPreview();
+ }catch(e){
+  if(expenseLoaded)status('transactionInputStatus','Odoo Expenses employees and categories loaded. Legacy journal masters are unavailable; historical journal correction may be unavailable until permissions are fixed.',true);
  }
 }
 async function loadRecent(){
