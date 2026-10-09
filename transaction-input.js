@@ -86,7 +86,7 @@ function renderPreview(){
 async function loadMasters(){
  try{
   const p=await callOdoo('?detail=masters');
-  const em=await callOdoo('?detail=expense_masters');
+  const em=await callOdoo('',{method:'POST',body:JSON.stringify({action:'expense_masters'})});
   masters.accounts=p.accounts||[];masters.journals=p.journals||[];masters.partners=p.partners||[];
   masters.role_accounts=p.role_accounts||{};masters.employees=em.employees||[];masters.expense_products=em.expense_products||[];
   fillMasters();renderPreview();applyBeneficiaryRule();
