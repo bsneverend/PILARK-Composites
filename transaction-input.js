@@ -119,9 +119,9 @@ async function loadRecent(){
  const {data,error}=await window.PILARK_CMS.client.from('odoo_transaction_inputs').select('*').order('created_at',{ascending:false}).limit(20);
  if(error){body.innerHTML='<tr><td colspan="8">Unable to load transaction inputs.</td></tr>';return}
  body.innerHTML=(data||[]).map(x=>{
-  const canEdit=String(x.status||'').toLowerCase()==='posted'&&Number(x.odoo_move_id)>0;
-  const action=canEdit?'<button type="button" class="accounting-small-btn transaction-edit-btn" data-edit-transaction="'+esc(x.id)+'">Edit & Correct</button>':'—';
-  return '<tr><td>'+esc(x.transaction_date||'')+'</td><td>'+esc(x.input_type==='reimbursement'?'Reimbursement':'Payment Request')+'</td><td>'+esc(x.reference||'—')+'</td><td>'+esc(x.description||'—')+'</td><td class="num">'+money(x.amount)+'</td><td><span class="accounting-status-badge '+esc(x.status)+'">'+esc(x.status)+'</span></td><td>'+(x.odoo_move_id?esc(String(x.odoo_move_id)):'—')+'</td><td>'+action+'</td></tr>'
+  const canEdit=String(x.status||'').toLowerCase()==='posted'&&Number(x.odoo_move_id)>0&&!Number(x.odoo_expense_id);
+  const action=canEdit?'<button type="button" class="accounting-small-btn transaction-edit-btn" data-edit-transaction="'+esc(x.id)+'">Edit & Correct</button>':Number(x.odoo_expense_id)?'<span class="field-help">Managed in Odoo</span>':'—';
+  return '<tr><td>'+esc(x.transaction_date||'')+'</td><td>'+esc(x.input_type==='reimbursement'?'Reimbursement':'Payment Request')+'</td><td>'+esc(x.reference||'—')+'</td><td>'+esc(x.description||'—')+'</td><td class="num">'+money(x.amount)+'</td><td><span class="accounting-status-badge '+esc(x.status)+'">'+esc(x.status)+'</span></td><td>'+(x.odoo_expense_id?'Expense #'+esc(String(x.odoo_expense_id)):(x.odoo_move_id?'Journal #'+esc(String(x.odoo_move_id)):'—'))+'</td><td>'+action+'</td></tr>'
  }).join('')||'<tr><td colspan="8">No transaction inputs yet.</td></tr>';
  body.querySelectorAll('[data-edit-transaction]').forEach(btn=>btn.addEventListener('click',()=>editTransaction(btn.dataset.editTransaction)));
 }
@@ -248,47 +248,71 @@ async function scanReceipt(){
  finally{$('transactionScanBtn').disabled=false}
 }
 async function saveDraft(){
- const type=$('transactionInputType').value,date=$('transactionInputDate').value,journalId=Number($('transactionInputJournal').value),amount=Number($('transactionInputAmount').value||0),debitId=Number($('transactionInputDebitAccount').value),creditId=Number($('transactionInputCreditAccount').value),beneficiaryRole=$('transactionInputBeneficiaryRole').value,beneficiaryPartnerId=Number($('transactionInputPartner').value||0);
- if(!date||!journalId||!amount||!debitId||!creditId)throw new Error('Please complete date, journal, amount, debit account and credit account.');
+ const type=$('transactionInputType').value,date=$('transactionInputDate').value,amount=Number($('transactionInputAmount').value||0),beneficiaryRole=$('transactionInputBeneficiaryRole').value,beneficiaryPartnerId=Number($('transactionInputPartner').value||0),employeeId=Number($('transactionInputEmployee').value||0),productId=Number($('transactionInputProduct').value||0);
+ if(!date||!amount||!employeeId||!productId)throw new Error('Please complete date, Odoo employee, expense category and amount.');
  if(!beneficiaryPartnerId)throw new Error('Please select the beneficiary / partner.');
+ if(beneficiaryRole==='vendor')throw new Error('Vendor / supplier payments should be handled through Odoo Purchase / Vendor Bills, not Expenses.');
  const receiptPath=currentReceipt?await uploadReceipt():null;
- const s=await session();
- const partner=masters.partners.find(x=>String(x.id)===String(beneficiaryPartnerId));
- const payload={input_type:type,status:'draft',transaction_date:date,reference:$('transactionInputReference').value||null,description:$('transactionInputDescription').value||null,requester_name:$('transactionInputRequester').value||null,partner_name:partner?.name||null,amount,currency_code:'IDR',journal_id:journalId,debit_account_id:debitId,credit_account_id:creditId,rule_code:type==='reimbursement'?('REIMBURSEMENT_'+beneficiaryRole.toUpperCase()):('PAYMENT_REQUEST_'+beneficiaryRole.toUpperCase()),rule_explanation:$('transactionInputRuleText').textContent,receipt_path:receiptPath,receipt_name:currentReceipt?.name||null,created_by:s.user.id,submitted_by_name:s.user.user_metadata?.full_name||s.user.user_metadata?.name||s.user.email||null,submitted_by_role:$('transactionInputSubmitterRole').value,beneficiary_role:beneficiaryRole,beneficiary_name:partner?.name||null,beneficiary_partner_id:beneficiaryPartnerId,beneficiary_account_id:creditId};
+ const s=await session(),partner=masters.partners.find(x=>String(x.id)===String(beneficiaryPartnerId)),employee=masters.employees.find(x=>String(x.id)===String(employeeId));
+ const payload={input_type:type,status:'draft',transaction_date:date,reference:$('transactionInputReference').value||null,description:$('transactionInputDescription').value||null,requester_name:$('transactionInputRequester').value||null,partner_name:partner?.name||null,partner_id:beneficiaryPartnerId,amount,currency_code:'IDR',journal_id:null,debit_account_id:null,credit_account_id:null,rule_code:'ODOO_EXPENSE_'+beneficiaryRole.toUpperCase(),rule_explanation:$('transactionInputRuleText').textContent,receipt_path:receiptPath,receipt_name:currentReceipt?.name||null,created_by:s.user.id,submitted_by_name:s.user.user_metadata?.full_name||s.user.user_metadata?.name||s.user.email||null,submitted_by_role:$('transactionInputSubmitterRole').value,beneficiary_role:beneficiaryRole,beneficiary_name:partner?.name||null,beneficiary_partner_id:beneficiaryPartnerId,beneficiary_account_id:null,expense_product_id:productId,expense_employee_id:employeeId};
  let q;
  if(currentDraftId)q=await window.PILARK_CMS.client.from('odoo_transaction_inputs').update(payload).eq('id',currentDraftId).select().single();
  else q=await window.PILARK_CMS.client.from('odoo_transaction_inputs').insert(payload).select().single();
  if(q.error)throw q.error;currentDraftId=q.data.id;
- await window.PILARK_CMS.client.from('odoo_transaction_input_lines').delete().eq('transaction_id',currentDraftId);
- const lines=[{transaction_id:currentDraftId,line_no:1,description:$('transactionInputDescription').value||'Expense',account_id:debitId,debit:amount,credit:0,partner_id:beneficiaryPartnerId},{transaction_id:currentDraftId,line_no:2,description:$('transactionInputDescription').value||'Settlement',account_id:creditId,debit:0,credit:amount,partner_id:beneficiaryPartnerId}];
- const l=await window.PILARK_CMS.client.from('odoo_transaction_input_lines').insert(lines);if(l.error)throw l.error;
  await loadRecent();return q.data
 }
 async function postTransaction(){
  if(editingTransaction){await savePostedCorrection();return}
  const saved=await saveDraft();
- let moveId=Number(saved?.odoo_move_id||0);
- if(!moveId){
-  status('transactionInputStatus','Creating draft journal in Odoo…',true);
-  const lines=[{name:$('transactionInputDescription').value||'Expense',account_id:Number($('transactionInputDebitAccount').value),debit:Number($('transactionInputAmount').value||0),credit:0,partner_id:Number($('transactionInputPartner').value||0)},{name:$('transactionInputDescription').value||'Settlement',account_id:Number($('transactionInputCreditAccount').value),debit:0,credit:Number($('transactionInputAmount').value||0),partner_id:Number($('transactionInputPartner').value||0)}];
-  const created=await callOdoo('',{method:'POST',body:JSON.stringify({action:'create_draft',date:$('transactionInputDate').value,journal_id:Number($('transactionInputJournal').value),reference:$('transactionInputReference').value,description:$('transactionInputDescription').value,lines})});
-  moveId=Number(created.move?.id||0);if(!moveId)throw new Error('Odoo draft journal was not created.');
-  await window.PILARK_CMS.client.from('odoo_transaction_inputs').update({status:'reviewed',odoo_move_id:moveId,odoo_state:created.move?.state||'draft',reviewed_by:(await session()).user.id,approved_at:new Date().toISOString()}).eq('id',currentDraftId);
- }
- if(!confirm('The reviewed journal is balanced and ready to post to Odoo. Continue posting?')){status('transactionInputStatus','Odoo draft created. Posting was cancelled.');await loadRecent();return}
- const posted=await callOdoo('',{method:'POST',body:JSON.stringify({action:'post',move_id:moveId})});
- await window.PILARK_CMS.client.from('odoo_transaction_inputs').update({status:'posted',odoo_state:posted.move?.state||'posted',posted_at:new Date().toISOString()}).eq('id',currentDraftId);
- status('transactionInputStatus','Posted successfully to Odoo. Journal ID '+moveId+'.',true);await loadRecent();setTimeout(resetForm,350);
+ const employeeId=Number($('transactionInputEmployee').value||0),productId=Number($('transactionInputProduct').value||0),amount=Number($('transactionInputAmount').value||0);
+ if(!employeeId||!productId||amount<=0)throw new Error('Please select an Odoo employee, expense category and valid amount.');
+ status('transactionInputStatus','Sending expense to Odoo Expenses…',true);
+ $('transactionPost').disabled=true;$('transactionSaveDraft').disabled=true;
+ try{
+  const attachment=currentReceipt?await fileToBase64(currentReceipt):null;
+  const created=await callOdoo('',{method:'POST',body:JSON.stringify({
+   action:'create_expense',
+   date:$('transactionInputDate').value,
+   employee_id:employeeId,
+   product_id:productId,
+   amount,
+   reference:$('transactionInputReference').value,
+   name:$('transactionInputDescription').value||'Expense',
+   description:$('transactionInputDescription').value,
+   attachment_base64:attachment,
+   attachment_name:currentReceipt?.name||'Receipt',
+   attachment_mime:currentReceipt?.type||'application/octet-stream'
+  })});
+  const submitted=!!created.submitted,expense=created.expense||{};
+  const upd=await window.PILARK_CMS.client.from('odoo_transaction_inputs').update({
+   status:submitted?'submitted':'draft',
+   odoo_expense_id:Number(expense.id||0)||null,
+   odoo_expense_state:expense.state||null,
+   odoo_state:expense.state||null,
+   error_message:created.warning||null,
+   posted_at:null
+  }).eq('id',currentDraftId);
+  if(upd.error)throw new Error('Odoo Expense was created, but the CMS record update failed: '+upd.error.message);
+  if(submitted){
+   status('transactionInputStatus','Sent to Odoo Expenses successfully. Expense '+(expense.id||'')+' is now in '+(expense.state||'Submitted')+' status. Approval, posting and reimbursement continue in Odoo.',true);
+  }else{
+   status('transactionInputStatus','Expense was created in Odoo as Draft. Odoo could not submit it automatically: '+(created.warning||'Please submit it from Expenses.' ));
+  }
+  await loadRecent();setTimeout(resetForm,700);
+ }finally{$('transactionPost').disabled=false;$('transactionSaveDraft').disabled=false}
 }
 function resetForm(){
  $('transactionInputForm').reset();currentReceipt=null;currentDraftId=null;editingTransaction=null;
- $('transactionInputForm').classList.remove('transaction-edit-mode');$('transactionSaveDraft').textContent='Save Draft';$('transactionPost').textContent='Post to Odoo →';$('transactionScanBtn').disabled=false; $('transactionInputPartner').innerHTML='<option value="">Select beneficiary / partner…</option>'; $('transactionInputRequester').value='';
+ $('transactionInputForm').classList.remove('transaction-edit-mode');$('transactionSaveDraft').textContent='Save Draft';$('transactionPost').textContent='Send to Odoo Expenses →';$('transactionScanBtn').disabled=false; $('transactionInputPartner').innerHTML='<option value="">Select beneficiary / partner…</option>'; $('transactionInputRequester').value='';
  const now=new Date();$('transactionInputDate').value=iso(now);$('transactionReceiptName').textContent='No file selected';
  fillMasters();updateRule();status('transactionScanStatus','');status('transactionInputStatus','');
 }
 async function init(){
  if(initialized){await loadRecent();return}initialized=true;
  $('transactionInputDate').value=iso(new Date());
+ $('transactionInputPartner').addEventListener('change',()=>{syncEmployeeFromPartner();renderPreview()});
+ $('transactionInputEmployee').addEventListener('change',()=>{renderPreview()});
+ $('transactionInputProduct').addEventListener('change',()=>{renderPreview()});
  $('transactionInputType').addEventListener('change',()=>{
    const role=$('transactionInputBeneficiaryRole');
    if(role){
@@ -299,7 +323,7 @@ async function init(){
  });
  $('transactionInputBeneficiaryRole').addEventListener('change',()=>{applyBeneficiaryRule()});
  $('transactionInputSubmitterRole').addEventListener('change',()=>{updateRule()});
- ['transactionInputAmount','transactionInputDebitAccount','transactionInputCreditAccount','transactionInputJournal'].forEach(id=>$(id)?.addEventListener('input',renderPreview));
+ ['transactionInputAmount','transactionInputReference','transactionInputDescription'].forEach(id=>$(id)?.addEventListener('input',renderPreview));
  $('transactionReceipt').addEventListener('change',e=>{currentReceipt=e.target.files?.[0]||null;$('transactionReceiptName').textContent=currentReceipt?.name||'No file selected'});
  $('transactionScanBtn').addEventListener('click',scanReceipt);
  $('transactionSaveDraft').addEventListener('click',async()=>{if(editingTransaction){resetForm();status('transactionInputStatus','Edit cancelled. No changes were made.',true);await loadRecent();return}try{await saveDraft();status('transactionInputStatus','Draft saved.',true)}catch(e){status('transactionInputStatus',e?.message||String(e))}});
