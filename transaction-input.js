@@ -86,26 +86,34 @@ function renderPreview(){
 async function loadMasters(){
  let expenseLoaded=false;
  try{
-  // Expense masters are the critical data for the new workflow.
-  // Load them independently so a legacy accounting-master permission/error
-  // cannot make the Employee and Expense Category fields appear broken.
   const em=await callOdoo('',{method:'POST',body:JSON.stringify({action:'expense_masters'})});
-  masters.employees=em.employees||[];
-  masters.expense_products=em.expense_products||[];
+  masters.employees=Array.isArray(em.employees)?em.employees:[];
+  masters.expense_products=Array.isArray(em.expense_products)?em.expense_products:[];
   fillExpenseMasters();
   renderPreview();
-  if(!masters.employees.length)throw new Error('Odoo returned no active employees. Please configure employees in Odoo Expenses.');
-  if(!masters.expense_products.length)throw new Error('Odoo returned no expense categories. Please enable at least one product for Expenses in Odoo.');
-  expenseLoaded=true;
-  status('transactionInputStatus','Odoo Expenses employees and categories loaded.',true);
+  const ec=Number(em.diagnostics?.employee_count ?? masters.employees.length);
+  const pc=Number(em.diagnostics?.expense_product_count ?? masters.expense_products.length);
+  if(!masters.employees.length){
+   const msg=em.diagnostics?.employee_error||'Odoo returned no readable employees. The Odoo API user needs access to Employees and at least one active employee must exist.';
+   const el=$('transactionInputEmployee'); if(el)el.innerHTML='<option value="">No Odoo employees available</option>';
+   status('transactionInputStatus','Odoo Employees: 0 records. '+msg);
+  }
+  if(!masters.expense_products.length){
+   const msg=em.diagnostics?.expense_product_error||em.diagnostics?.expense_template_error||'Odoo returned no expense categories. Configure at least one product under Expenses → Configuration → Expense Categories.';
+   const el=$('transactionInputProduct'); if(el)el.innerHTML='<option value="">No Odoo expense categories available</option>';
+   status('transactionInputStatus','Odoo Expense Categories: 0 records. '+msg);
+  }
+  if(masters.employees.length&&masters.expense_products.length){
+   expenseLoaded=true;
+   status('transactionInputStatus','Odoo Expenses loaded: '+ec+' employee(s), '+pc+' expense categor'+(pc===1?'y':'ies')+'.',true);
+  }
  }catch(e){
+  const msg=e?.message||String(e);
   const p=$('transactionInputProduct'),em=$('transactionInputEmployee');
   if(p)p.innerHTML='<option value="">Unable to load Odoo expense categories</option>';
   if(em)em.innerHTML='<option value="">Unable to load Odoo employees</option>';
-  status('transactionInputStatus',e?.message||String(e));
+  status('transactionInputStatus','Odoo Expenses API error: '+msg);
  }
- // Legacy masters are only needed for historical journal correction.
- // Do not let them block the new Odoo Expenses workflow.
  try{
   const p=await callOdoo('?detail=masters');
   masters.accounts=p.accounts||[];masters.journals=p.journals||[];masters.partners=p.partners||[];
@@ -114,7 +122,7 @@ async function loadMasters(){
   if(expenseLoaded)fillExpenseMasters();
   applyBeneficiaryRule();renderPreview();
  }catch(e){
-  if(expenseLoaded)status('transactionInputStatus','Odoo Expenses employees and categories loaded. Legacy journal masters are unavailable; historical journal correction may be unavailable until permissions are fixed.',true);
+  if(expenseLoaded)status('transactionInputStatus','Odoo Expenses loaded. Legacy journal masters are unavailable; historical journal correction may be unavailable.',true);
  }
 }
 async function loadRecent(){
