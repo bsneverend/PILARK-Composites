@@ -100,8 +100,8 @@
     $('generalLedgerRefresh')?.addEventListener('click',()=>load().catch(e=>alert(e.message)));
     $('generalLedgerAccount')?.addEventListener('change',()=>{state.selectedAccount=$('generalLedgerAccount').value;load().catch(e=>alert(e.message))});
     $('generalLedgerExport')?.addEventListener('click',exportCsv);
-    ['generalLedgerFrom','generalLedgerTo','generalLedgerSearch','generalLedgerRecon','generalLedgerTargetMoves'].forEach(id=>$(id)?.addEventListener('change',()=>{if(state.selectedAccount)load().catch(e=>console.warn(e))}));
-    $('generalLedgerSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter'&&state.selectedAccount)load().catch(err=>alert(err.message))});
+    ['generalLedgerFrom','generalLedgerTo','generalLedgerSearch','generalLedgerRecon','generalLedgerTargetMoves'].forEach(id=>$(id)?.addEventListener('change',()=>load().catch(e=>console.warn(e))));
+    $('generalLedgerSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter')load().catch(err=>alert(err.message))});
     load().catch(e=>console.warn('Odoo General Ledger:',e));
   }
   window.initGeneralLedger=init;
