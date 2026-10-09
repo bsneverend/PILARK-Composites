@@ -39,7 +39,7 @@
     const accountId=$('generalLedgerAccount')?.value||state.selectedAccount||'';
     state.selectedAccount=String(accountId);
     const from=$('generalLedgerFrom')?.value||'',to=$('generalLedgerTo')?.value||'';
-    const params={detail:'ledger',start:from,end:to};
+    const params={detail:'ledger',start:from,end:to,target:'posted'};
     if(accountId)params.id=String(accountId);
     const q=new URLSearchParams(params);
     const data=await api('?'+q.toString());
