@@ -306,7 +306,13 @@ async function postTransaction(){
    posted_at:null
   }).eq('id',currentDraftId);
   if(upd.error)throw new Error('Odoo Expense was created, but the CMS record update failed: '+upd.error.message);
-  status('transactionInputStatus','Sent to Odoo Expenses successfully. Expense '+(expense.id||'')+' is now Draft / Akan Diajukan. Submit, approve, post and reimburse it from Odoo.',true);
+  if(created.attachment_error){
+   status('transactionInputStatus','Expense '+(expense.id||'')+' was created in Odoo Draft, but the receipt could not be attached: '+created.attachment_error+'. The expense ID has been saved so this transaction will not be duplicated. Please report this message to the administrator.',false);
+  }else if(currentReceipt && created.attachment_id){
+   status('transactionInputStatus','Sent to Odoo successfully. Expense '+(expense.id||'')+' is Draft / Akan Diajukan, and receipt “'+(currentReceipt.name||'Receipt')+'” is attached and verified in Odoo. Submit, approve, post and reimburse from Odoo.',true);
+  }else{
+   status('transactionInputStatus','Sent to Odoo Expenses successfully. Expense '+(expense.id||'')+' is now Draft / Akan Diajukan. Submit, approve, post and reimburse it from Odoo.',true);
+  }
   await loadRecent();setTimeout(resetForm,700);
  }finally{$('transactionPost').disabled=false;$('transactionSaveDraft').disabled=false}
 }
