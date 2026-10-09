@@ -35,7 +35,7 @@
   async function load(){
     if(!window.PILARK_CMS?.client)return;
     setDefaults();
-    if(!state.accounts.length){try{await loadAccounts()}catch(e){console.warn('Odoo General Ledger accounts:',e);$('generalLedgerAccount').innerHTML='<option value="">All accounts</option>';}}
+    const accountPromise=!state.accounts.length?loadAccounts().catch(e=>{console.warn('Odoo General Ledger accounts:',e);$('generalLedgerAccount').innerHTML='<option value="">All accounts</option>'}):Promise.resolve();
     const accountId=$('generalLedgerAccount')?.value||state.selectedAccount||'';
     state.selectedAccount=String(accountId);
     const from=$('generalLedgerFrom')?.value||'',to=$('generalLedgerTo')?.value||'';
@@ -43,8 +43,10 @@
     const params={detail:'ledger',start:from,end:to,target:targetMoves};
     if(accountId)params.id=String(accountId);
     const q=new URLSearchParams(params);
+    $('generalLedgerSummary').innerHTML='<div class="content-status">Loading Odoo General Ledger…</div>';
     const data=await api('?'+q.toString());
     state.lastData=data;
+    await accountPromise;
     const account=state.accounts.find(a=>String(a.id)===String(accountId));
     const qtxt=($('generalLedgerSearch')?.value||'').trim().toLowerCase();
     const recon=$('generalLedgerRecon')?.value||'';
@@ -105,7 +107,6 @@
     $('generalLedgerSearch')?.addEventListener('keydown',e=>{if(e.key==='Enter')load().catch(err=>alert(err.message))});
     load().catch(e=>{console.warn('Odoo General Ledger:',e);$('generalLedgerSummary').innerHTML='<div class="content-status">'+esc(e.message)+'</div>';});
   }
-  setDefaults();
   window.initGeneralLedger=init;
   window.addEventListener('pilark:refresh-view',e=>{if(e.detail?.view==='general-ledger'){load().then(()=>e.detail?.done?.()).catch(err=>e.detail?.done?.(err))}});
 })();
