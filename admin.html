@@ -631,8 +631,31 @@
         <label>Amount (IDR)<input id="transactionInputAmount" type="number" min="0" step="0.01" required value="0"></label>
       </div>
       <div class="accounting-form-row">
-        <label>Requester / Employee<input id="transactionInputRequester" placeholder="Name"></label>
-        <label>Partner / Vendor<input id="transactionInputPartner" placeholder="Vendor / employee"></label>
+        <label>Submitted By<input id="transactionInputRequester" placeholder="Logged-in CMS user" readonly></label>
+        <label>Input Role
+          <select id="transactionInputSubmitterRole">
+            <option value="employee">Employee / Staff</option>
+            <option value="finance">Finance / Accounting</option>
+            <option value="manager">Manager</option>
+            <option value="director">Director</option>
+          </select>
+        </label>
+      </div>
+      <div class="accounting-form-row">
+        <label>Beneficiary Role
+          <select id="transactionInputBeneficiaryRole">
+            <option value="employee">Employee / Staff</option>
+            <option value="director">Director</option>
+            <option value="vendor">Vendor / Supplier</option>
+            <option value="other">Other</option>
+          </select>
+          <small class="field-help">Determines the liability account for reimbursement/payment.</small>
+        </label>
+        <label>Beneficiary / Partner
+          <select id="transactionInputPartner" required>
+            <option value="">Select beneficiary / partner…</option>
+          </select>
+        </label>
       </div>
       <label>Reference<input id="transactionInputReference" placeholder="PR / reimbursement reference"></label>
       <label>Description<textarea id="transactionInputDescription" rows="3" placeholder="Purpose / expense description"></textarea></label>
