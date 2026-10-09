@@ -61,7 +61,7 @@
     const debit=exactTotals&&(!qtxt&&!recon)?Number(exactTotals.debit||0)+Number(openingTotals?.debit||0):rows.reduce((s,x)=>s+Number(x.debit||0),0);
     const credit=exactTotals&&(!qtxt&&!recon)?Number(exactTotals.credit||0)+Number(openingTotals?.credit||0):rows.reduce((s,x)=>s+Number(x.credit||0),0);
     $('generalLedgerHeading').textContent=accountId?((account?.code||'')+' — '+(account?.name||'General Ledger')):'All Accounts — General Ledger';
-    $('generalLedgerSubheading').textContent='Odoo Accounting · All entries+(accountId?' for the selected account':' across all accounts')+' · '+dateText(from)+' to '+dateText(to);
+    $('generalLedgerSubheading').textContent='Odoo Accounting · All entries'+(accountId?' for the selected account':' across all accounts')+' · '+dateText(from)+' to '+dateText(to);
     $('generalLedgerSummary').innerHTML=[
       ['Opening Balance',money(opening),'Odoo balance before selected period'],
       ['Total Debit',money(debit),exactTotals&&(!qtxt&&!recon)?'Odoo total incl. opening balance':'Selected Odoo lines'],
