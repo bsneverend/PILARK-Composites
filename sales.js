@@ -38,6 +38,23 @@
   function statusClass(s){return 'sales-status sales-status-'+s.replace('_','-');}
   function row(o){const actions=o.status==='sales_order'?'<button class="accounting-small-btn sales-invoice-btn" data-id="'+o.id+'">Create Invoice</button>':'<button class="accounting-small-btn sales-confirm-btn" data-id="'+o.id+'">Confirm</button><button class="accounting-small-btn sales-cancel-btn" data-id="'+o.id+'">Cancel</button>';return '<tr><td><b>'+esc(o.order_no)+'</b></td><td>'+esc(o.accounting_partners?.name||'—')+'</td><td>'+String(o.quotation_date||'—')+'</td><td>'+String(o.validity_date||'—')+'</td><td class="num">'+money(o.total_amount)+'</td><td><span class="'+statusClass(o.status)+'">'+esc(o.status.replace('_',' '))+'</span></td><td>'+actions+'</td></tr>';}
   function quotationStatusLabel(s){return ({draft:'Draft',sent:'Sent',accepted:'Accepted',rejected:'Rejected',expired:'Expired',cancelled:'Cancelled'}[s]||s||'Draft');}
+  function renderSalesContacts(){
+    const body=el('salesContactsBody');if(!body)return;
+    body.innerHTML=state.partners.map(p=>'<tr><td><b>'+esc(p.name)+'</b></td><td>'+esc(p.partner_type||'—')+'</td><td>'+esc(p.email||'—')+'</td><td>'+esc(p.phone||'—')+'</td><td>'+esc(p.tax_id||'—')+'</td></tr>').join('')||'<tr><td colspan="5" class="accounting-empty">No customers or contacts yet.</td></tr>';
+  }
+  async function createSalesContact(e){
+    e.preventDefault();
+    const v=id=>el(id)?.value?.trim()||null;
+    const payload={name:v('partnerName'),partner_type:el('partnerType')?.value||'customer',email:v('partnerEmail'),phone:v('partnerPhone'),tax_id:v('partnerTax'),address:v('partnerAddress')};
+    if(!payload.name)return alert('Name is required.');
+    const {data:userData}=await client().auth.getUser();
+    payload.created_by=userData?.user?.id||null;
+    const {error}=await client().from('accounting_partners').insert(payload);
+    if(error)return alert(error.message);
+    e.target.reset();
+    await load();
+    showTab('contacts');
+  }
   function renderSalesQuotations(){
     const body=el('quotationsBody');if(!body)return;
     body.innerHTML=state.quotations.map(q=>'<tr><td><b>'+esc(q.quotation_no)+'</b></td><td>'+String(q.quotation_date||'—')+'</td><td>'+esc(q.accounting_partners?.name||'—')+'</td><td>'+esc(q.project_name||'—')+'</td><td class="num">'+money(q.total_amount)+'</td><td><span class="sales-status sales-status-'+String(q.status||'draft').replace('_','-')+'">'+quotationStatusLabel(q.status)+'</span></td><td class="accounting-actions"><button type="button" class="accounting-small-btn sales-q-status" data-id="'+q.id+'" data-status="sent">Send</button><button type="button" class="accounting-small-btn sales-q-status" data-id="'+q.id+'" data-status="accepted">Accept</button><button type="button" class="accounting-small-btn sales-q-status" data-id="'+q.id+'" data-status="rejected">Reject</button></td></tr>').join('')||'<tr><td colspan="7" class="accounting-empty">No quotations yet.</td></tr>';
@@ -55,6 +72,7 @@
     el('salesMetricOrders').textContent=so.length;
     el('salesMetricValue').textContent=money(state.orders.reduce((n,o)=>n+Number(o.total_amount||0),0)+state.quotations.reduce((n,o)=>n+Number(o.total_amount||0),0));
     el('salesMetricOpen').textContent=money(so.reduce((n,o)=>n+Number(o.total_amount||0),0));
+    renderSalesContacts();
     renderSalesQuotations();
     if(el('salesQuotationsBody'))el('salesQuotationsBody').innerHTML=q.map(row).join('')||'<tr><td colspan="7" class="accounting-empty">No sales-order quotations yet.</td></tr>';
     if(el('salesOrdersBody'))el('salesOrdersBody').innerHTML=so.map(row).join('')||'<tr><td colspan="7" class="accounting-empty">No sales orders yet.</td></tr>';
@@ -450,7 +468,7 @@ function renderOpportunityDetail(id){
     if(remaining?.[0]?.due_date)await client().from('sales_opportunities').update({next_follow_up:remaining[0].due_date}).eq('id',id);
     await loadCRM();
   }
-  function bind(){document.querySelectorAll('[data-sales-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.salesTab));el('salesForm')?.addEventListener('submit',createQuotation);el('addSalesLine')?.addEventListener('click',()=>{el('salesLines').insertAdjacentHTML('beforeend',lineHtml(el('salesLines').children.length));updatePreview();});el('salesLines')?.addEventListener('click',e=>{if(e.target.classList.contains('sales-line-remove')){const rows=el('salesLines').querySelectorAll('.sales-line');if(rows.length>1)e.target.closest('.sales-line').remove();updatePreview();}});el('salesLines')?.addEventListener('input',updatePreview);el('salesRefresh')?.addEventListener('click',()=>Promise.all([load(),loadCRM()]).catch(e=>alert(e.message)));
+  function bind(){document.querySelectorAll('[data-sales-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.salesTab));el('partnerForm')?.addEventListener('submit',createSalesContact);el('salesForm')?.addEventListener('submit',createQuotation);el('addSalesLine')?.addEventListener('click',()=>{el('salesLines').insertAdjacentHTML('beforeend',lineHtml(el('salesLines').children.length));updatePreview();});el('salesLines')?.addEventListener('click',e=>{if(e.target.classList.contains('sales-line-remove')){const rows=el('salesLines').querySelectorAll('.sales-line');if(rows.length>1)e.target.closest('.sales-line').remove();updatePreview();}});el('salesLines')?.addEventListener('input',updatePreview);el('salesRefresh')?.addEventListener('click',()=>Promise.all([load(),loadCRM()]).catch(e=>alert(e.message)));
     window.addEventListener('pilark:refresh-view',e=>{if(e.detail?.view==='sales')Promise.all([load(),loadCRM()]).then(()=>e.detail?.done?.()).catch(err=>e.detail?.done?.(err));});
     el('salesCrmRefresh')?.addEventListener('click',()=>loadCRM().catch(e=>alert(e.message)));
     el('salesAddProspect')?.addEventListener('click',openSalesProspectModal);
