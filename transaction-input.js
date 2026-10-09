@@ -1,7 +1,7 @@
 (function(){
 const ODOO_FN='https://seelqcgjfuuwurslwtgf.supabase.co/functions/v1/odoo-transaction-input';
 const SCAN_FN='https://seelqcgjfuuwurslwtgf.supabase.co/functions/v1/odoo-receipt-scan';
-let initialized=false,masters={accounts:[],journals:[],partners:[],role_accounts:{}},currentReceipt=null,currentDraftId=null,editingTransaction=null;
+let initialized=false,masters={accounts:[],journals:[],partners:[],employees:[],expense_products:[],role_accounts:{}},currentReceipt=null,currentDraftId=null,editingTransaction=null;
 
 const $=id=>document.getElementById(id);
 const money=n=>new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(n||0));
@@ -228,7 +228,7 @@ async function scanReceipt(){
   if(d.description)$('transactionInputDescription').value=d.description;
   autoSelectAccountsFromReceipt(d);
   const category=d.expense_category||'other';
-  status('transactionScanStatus','AI extracted the receipt and proposed the accounting accounts ('+category+'). Please review the proposed accounts before posting.',true);
+  status('transactionScanStatus','AI extracted the receipt and proposed the Odoo expense category ('+category+'). Please review the expense details before sending to Odoo.',true);
   renderPreview();
  }catch(e){status('transactionScanStatus',e?.message||String(e))}
  finally{$('transactionScanBtn').disabled=false}
