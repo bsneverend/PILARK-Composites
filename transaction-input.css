@@ -6,3 +6,5 @@
 .transaction-file-btn{flex:0 0 auto;white-space:nowrap}
 .transaction-receipt-box>#transactionScanBtn{flex:0 0 auto;white-space:nowrap}
 @media(max-width:700px){.transaction-receipt-box>#transactionScanBtn{width:100%}.transaction-receipt-box>div:first-child{width:100%}}
+
+.transaction-edit-btn{white-space:nowrap;font-size:11px;padding:7px 10px;border-radius:8px;border:1px solid #bfdbfe;background:#eff6ff;color:#1d4ed8;cursor:pointer}.transaction-edit-btn:hover{background:#dbeafe}.transaction-edit-mode{border-left:3px solid #2563eb;padding-left:12px}.transaction-edit-mode:before{content:'EDITING POSTED ODOO JOURNAL — review the role and accounting lines before saving';display:block;margin:0 0 12px;padding:10px 12px;border-radius:8px;background:#eff6ff;color:#1d4ed8;font-size:12px;font-weight:700;line-height:1.5}
