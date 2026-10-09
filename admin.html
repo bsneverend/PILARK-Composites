@@ -627,7 +627,7 @@
         <label>Date<input id="transactionInputDate" type="date" required></label>
       </div>
       <div class="accounting-form-row">
-        <label>Journal (Auto)<select id="transactionInputJournal" required disabled><option value="">Selecting Odoo journal…</option></select><small class="field-help">Automatically selected from the appropriate Odoo journal for manual transaction entries.</small></label>
+        <label>Odoo Expense Category<select id="transactionInputProduct" required><option value="">Loading Odoo expense categories…</option></select><small class="field-help">Uses the Expense categories configured in Odoo.</small></label>
         <label>Amount (IDR)<input id="transactionInputAmount" type="number" min="0" step="0.01" required value="0"></label>
       </div>
       <div class="accounting-form-row">
@@ -655,18 +655,18 @@
           <select id="transactionInputPartner" required>
             <option value="">Select beneficiary / partner…</option>
           </select>
+          <small class="field-help">For Expenses, this must match an Odoo employee.</small>
         </label>
       </div>
-      <label>Reference<input id="transactionInputReference" placeholder="PR / reimbursement reference"></label>
+      <div class="accounting-form-row">
+        <label>Odoo Employee<select id="transactionInputEmployee" required><option value="">Select Odoo employee…</option></select><small class="field-help">The expense will be created under this employee in Odoo.</small></label>
+        <label>Reference<input id="transactionInputReference" placeholder="Receipt / expense reference"></label>
+      </div>
       <label>Description<textarea id="transactionInputDescription" rows="3" placeholder="Purpose / expense description"></textarea></label>
       <div class="transaction-rule-card">
-        <div class="eyebrow">Accounting Rule</div>
-        <b id="transactionInputRuleTitle">Reimbursement</b>
-        <span id="transactionInputRuleText">Debit an expense account and credit an employee/payable account.</span>
-      </div>
-      <div class="accounting-form-row">
-        <label>Debit Account<select id="transactionInputDebitAccount" required><option value="">Select Odoo account…</option></select></label>
-        <label>Credit Account<select id="transactionInputCreditAccount" required><option value="">Select Odoo account…</option></select></label>
+        <div class="eyebrow">Odoo Expense Workflow</div>
+        <b id="transactionInputRuleTitle">Send to Odoo Expenses</b>
+        <span id="transactionInputRuleText">PILARK CMS sends the expense to Odoo Expenses. Approval, posting and reimbursement remain under the Odoo Finance / Manager workflow.</span>
       </div>
       <div class="transaction-receipt-box">
         <div><div><b>Receipt / Supporting Document</b><span id="transactionReceiptName">No file selected</span></div><label class="accounting-small-btn transaction-file-btn">Choose Image<input id="transactionReceipt" type="file" accept="image/*" hidden></label></div>
@@ -676,14 +676,14 @@
       <div id="transactionInputStatus" class="content-status"></div>
       <div class="transaction-form-actions">
         <button id="transactionSaveDraft" class="accounting-small-btn" type="button">Save Draft</button>
-        <button id="transactionPost" class="primary-btn" type="submit">Post to Odoo →</button>
+        <button id="transactionPost" class="primary-btn" type="submit">Send to Odoo Expenses →</button>
       </div>
     </form>
   </div>
   <div class="panel">
-    <div class="panel-head"><div><h2>Journal Preview</h2><p>The entry must balance before Odoo can post it.</p></div></div>
+    <div class="panel-head"><div><h2>Odoo Expense Preview</h2><p>This panel shows what will be sent to the Odoo Expenses app. No accounting journal is posted by PILARK CMS.</p></div></div>
     <div id="transactionJournalPreview" class="transaction-journal-preview"></div>
-    <div class="transaction-safety-note">AI never posts automatically. Receipt extraction is only a proposal; the account rule and journal are reviewed before posting.</div>
+    <div class="transaction-safety-note">PILARK CMS does not post an accounting journal. The expense is sent to Odoo Expenses for the normal approval, posting and reimbursement process.</div>
   </div>
 </div>
 <div class="panel">
