@@ -145,35 +145,50 @@ function expenseStatusClass(state){
 }
 async function syncExpenseStatuses(){
  try{
-  const {data,error}=await window.PILARK_CMS.client.from('odoo_transaction_inputs').select('id,odoo_expense_id,status,odoo_expense_state').not('odoo_expense_id','is',null).order('created_at',{ascending:false}).limit(100);
+  const {data,error}=await window.PILARK_CMS.client.from('odoo_transaction_inputs')
+   .select('id,odoo_expense_id,status,odoo_expense_state')
+   .not('odoo_expense_id','is',null)
+   .order('created_at',{ascending:false})
+   .limit(100);
   if(error||!data?.length)return false;
   const ids=data.map(x=>Number(x.odoo_expense_id)).filter(Number.isFinite);
   if(!ids.length)return false;
-  const result=await callOdoo('',{method:'POST',body:JSON.stringify({action:'sync_expense_status',expense_ids:ids})});
-  const byId=new Map((result.expenses||[]).map(x=>[Number(x.id),x]));
-  let changed=false;
+
+  // Odoo is the source of truth. The Edge Function reads Odoo and persists
+  // the result server-side. Do not depend on browser RLS UPDATE permission.
+  const result=await callOdoo('',{
+   method:'POST',
+   body:JSON.stringify({action:'sync_expense_status',expense_ids:ids})
+  });
+
+  const expenses=Array.isArray(result.expenses)?result.expenses:[];
+  if(!expenses.length)return false;
+
+  // Optional browser-side update for immediate local state. This is only an
+  // optimization; the server-side Edge Function persistence is authoritative.
+  const byId=new Map(expenses.map(x=>[Number(x.id),x]));
   for(const row of data){
    const expense=byId.get(Number(row.odoo_expense_id));
    if(!expense)continue;
-   const state=String(expense.state||'draft').toLowerCase();
-   const nextStatus=state;
-   if(String(row.odoo_expense_state||'').toLowerCase()!==state||String(row.status||'').toLowerCase()!==nextStatus){
-    const upd=await window.PILARK_CMS.client.from('odoo_transaction_inputs').update({
-      status:nextStatus,
-      odoo_expense_state:state,
-      odoo_state:state,
-      error_message:null,
-      posted_at:['posted','paid','done'].includes(state)?new Date().toISOString():null
+   const state=String(expense.state||expense.expense_state||'draft').toLowerCase();
+   if(String(row.odoo_expense_state||'').toLowerCase()!==state||String(row.status||'').toLowerCase()!==state){
+    await window.PILARK_CMS.client.from('odoo_transaction_inputs').update({
+     status:state==='refused'?'rejected':state,
+     odoo_expense_state:state,
+     odoo_state:state,
+     error_message:null,
+     posted_at:['posted','paid','done'].includes(state)?new Date().toISOString():null
     }).eq('id',row.id);
-    if(!upd.error)changed=true;
    }
   }
-  return changed;
+
+  // Force the table to reread Supabase after every successful Odoo sync.
+  // This makes the 10-second live polling independent of client UPDATE RLS.
+  return true;
  }catch(e){
   console.warn('Live Odoo expense status sync failed:',e?.message||e);
   return false;
- }
-}
+ }}
 async function loadRecent(skipSync=false){
  const body=$('transactionInputBody');if(!body)return;
  if(!skipSync)await syncExpenseStatuses();
