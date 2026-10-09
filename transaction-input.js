@@ -78,7 +78,8 @@ function updateRule(){
  let title='Payment Request — Expense / Asset → Payable / Clearing';
  let text='Debit the approved expense or asset account and credit the selected payable/clearing account.';
  if(type==='reimbursement'){
-   const label=role==='director'?'Director Liability':role==='employee'?'Employee Liabilities':role==='vendor'?'Accounts Payable':'Configured Liability';
+   const configured=role==='director'?masters.role_accounts?.director:role==='employee'?masters.role_accounts?.employee:role==='vendor'?masters.role_accounts?.vendor:null;
+   const label=configured?accountLabel(configured):(role==='director'?'Hutang Direksi':role==='employee'?'Employee Liabilities':role==='vendor'?'Accounts Payable':'Configured Liability');
    title='Reimbursement — Expense → '+label;
    text='Debit the approved expense account and credit the liability account defined by the beneficiary role.';
  }
@@ -240,7 +241,14 @@ function resetForm(){
 async function init(){
  if(initialized){await loadRecent();return}initialized=true;
  $('transactionInputDate').value=iso(new Date());
- $('transactionInputType').addEventListener('change',()=>{updateRule();fillMasters();applyBeneficiaryRule()});
+ $('transactionInputType').addEventListener('change',()=>{
+   const role=$('transactionInputBeneficiaryRole');
+   if(role){
+     if($('transactionInputType').value==='payment_request' && role.value!=='vendor')role.value='vendor';
+     if($('transactionInputType').value==='reimbursement' && role.value==='vendor')role.value='employee';
+   }
+   updateRule();fillMasters();applyBeneficiaryRule()
+ });
  $('transactionInputBeneficiaryRole').addEventListener('change',()=>{applyBeneficiaryRule()});
  $('transactionInputSubmitterRole').addEventListener('change',()=>{updateRule()});
  ['transactionInputAmount','transactionInputDebitAccount','transactionInputCreditAccount','transactionInputJournal'].forEach(id=>$(id)?.addEventListener('input',renderPreview));
