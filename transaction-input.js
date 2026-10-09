@@ -1,5 +1,6 @@
 (function(){
 const ODOO_FN='https://seelqcgjfuuwurslwtgf.supabase.co/functions/v1/odoo-transaction-input';
+const EXPENSE_SYNC_FN='https://seelqcgjfuuwurslwtgf.supabase.co/functions/v1/odoo-expense-sync';
 const SCAN_FN='https://seelqcgjfuuwurslwtgf.supabase.co/functions/v1/odoo-receipt-scan';
 let initialized=false,masters={accounts:[],journals:[],partners:[],employees:[],expense_products:[],role_accounts:{}},currentReceipt=null,currentDraftId=null,editingTransaction=null,expenseSyncTimer=null;
 
@@ -13,6 +14,11 @@ async function callOdoo(path,options={}){
  const s=await session();
  const res=await fetch(ODOO_FN+path,{...options,headers:{...(options.headers||{}),Authorization:'Bearer '+s.access_token,apikey:window.PILARK_SUPABASE_CONFIG?.anonKey||'','Content-Type':'application/json'}});
  const p=await res.json().catch(()=>({}));if(!res.ok||!p.ok)throw new Error(p.error||'Odoo transaction request failed.');return p
+}
+async function callExpenseSync(expenseIds){
+ const s=await session();
+ const res=await fetch(EXPENSE_SYNC_FN,{method:'POST',headers:{Authorization:'Bearer '+s.access_token,apikey:window.PILARK_SUPABASE_CONFIG?.anonKey||'','Content-Type':'application/json'},body:JSON.stringify({expense_ids:expenseIds})});
+ const p=await res.json().catch(()=>({}));if(!res.ok||!p.ok)throw new Error(p.error||'Odoo expense status synchronization failed.');return p
 }
 function accountLabel(a){return (a.code||'')+' — '+(a.name||'')}
 function chooseAutomaticJournal(){
@@ -156,10 +162,7 @@ async function syncExpenseStatuses(){
 
   // Odoo is the source of truth. The Edge Function reads Odoo and persists
   // the result server-side. Do not depend on browser RLS UPDATE permission.
-  const result=await callOdoo('',{
-   method:'POST',
-   body:JSON.stringify({action:'sync_expense_status',expense_ids:ids})
-  });
+  const result=await callExpenseSync(ids);
 
   const expenses=Array.isArray(result.expenses)?result.expenses:[];
   if(!expenses.length)return false;
