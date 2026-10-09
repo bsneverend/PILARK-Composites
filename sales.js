@@ -444,7 +444,7 @@ function renderOpportunityDetail(id){
     el('crmActivityClose')?.addEventListener('click',closeCRMActivityModal);
     el('crmActivityCancel')?.addEventListener('click',closeCRMActivityModal);
     document.querySelectorAll('[data-crm-activity-close]').forEach(b=>b.addEventListener('click',closeCRMActivityModal));
-    el('crmActivityOpportunity')?.addEventListener('change',()=>{const o=(state.crm.opportunities||[]).find(x=>x.id===el('crmActivityOpportunity').value);if(o)el('crmActivityTo').value=o.sales_accounts?.public_email||'';});el('salesDate').value=today();el('salesLines').innerHTML=lineHtml(0);updatePreview();document.querySelector('.side-link[data-view="sales"]')?.addEventListener('click',()=>setTimeout(()=>Promise.all([load(),loadCRM()]).catch(console.warn),50));}
+    el('crmActivityOpportunity')?.addEventListener('change',()=>{const o=(state.crm.opportunities||[]).find(x=>x.id===el('crmActivityOpportunity').value);if(o)el('crmActivityTo').value=o.sales_accounts?.public_email||'';});el('salesDate').value=today();el('salesLines').innerHTML=lineHtml(0);updatePreview();document.querySelector('.side-link[data-view="sales"]')?.addEventListener('click',()=>setTimeout(()=>{window.dispatchEvent(new CustomEvent('pilark:refresh-sales-quotation'));Promise.all([load(),loadCRM()]).catch(console.warn);},50));}
   function openSalesProspectModal(){el('salesProspectModal')?.removeAttribute('hidden');el('prospectCompanyName')?.focus();}
   function closeSalesProspectModal(){el('salesProspectModal')?.setAttribute('hidden','');}
   async function createManualProspect(e){
@@ -824,6 +824,6 @@ async function openContactResearchModal(accountId){
   el('crmSaveContact').onclick=()=>saveCRMContact(a.id);
 }
 
-function init(){if(!el('view-sales'))return;bind();if(client())Promise.all([load(),loadCRM()]).catch(e=>console.warn('Sales init:',e));}
+function init(){if(!el('view-sales'))return;bind();window.addEventListener('pilark:open-sales-tab',e=>{if(e.detail?.tab)showTab(e.detail.tab);});window.addEventListener('pilark:refresh-sales-quotation',()=>{window.dispatchEvent(new CustomEvent('pilark:refresh-accounting-quotation'));});if(client())Promise.all([load(),loadCRM()]).catch(e=>console.warn('Sales init:',e));}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
