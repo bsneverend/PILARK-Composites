@@ -134,25 +134,66 @@
   </div>
 </div>
 <div class="accounting-tab-panel" data-sales-panel="quotations" hidden>
-  <div class="sales-form-grid">
-    <div class="panel"><div class="panel-head"><div><h2>New quotation</h2><p>Create a customer quotation before committing the sale.</p></div></div>
-      <form id="salesForm" class="accounting-form">
-        <label>Customer<select id="salesPartner" required></select></label>
-        <div class="accounting-form-row"><label>Quotation date<input id="salesDate" type="date" required></label><label>Valid until<input id="salesValidity" type="date"></label></div>
-        <label>Customer reference<input id="salesReference" placeholder="Customer RFQ / reference"></label>
-        <div class="sales-line-head"><span>Inventory product</span><span>Description</span><span>Qty</span><span>Unit price</span><span>Discount %</span><span>Tax %</span><span></span></div>
-        <div id="salesLines" class="sales-lines"></div>
-        <button id="addSalesLine" type="button" class="accounting-small-btn">+ Add line</button>
-        <div class="sales-totals"><span>Subtotal <b id="salesSubtotal">Rp0</b></span><span>Tax <b id="salesTax">Rp0</b></span><strong>Total <b id="salesTotal">Rp0</b></strong></div>
-        <label>Notes<textarea id="salesNotes" rows="3" placeholder="Commercial notes / terms"></textarea></label>
-        <button class="primary-btn" type="submit">Create Quotation →</button>
+  <div class="quotation-workspace">
+    <div class="panel quotation-editor-panel">
+      <div class="panel-head"><div><h2>New Quotation</h2><p>Create and edit the complete quotation in one full-width workspace. No accounting entry is posted until it is converted to an invoice.</p></div></div>
+      <form id="quotationForm" class="accounting-form">
+        <div class="quotation-header-grid">
+          <label>Customer<select id="quotationPartner" required></select></label>
+          <label>Quotation Date<input id="quotationDate" type="date" required></label>
+          <label>Quotation Number<input id="quotationNo" readonly placeholder="Auto-generated"></label>
+          <label>Project<input id="quotationProject" placeholder="Project name / reference"></label>
+          <label class="quotation-reference">Reference<input id="quotationReference" placeholder="Customer RFQ / reference"></label>
+        </div>
+
+        <div class="quotation-logo-panel">
+          <div class="quotation-logo-head">
+            <div><strong>Quotation Header Logo</strong><span>Choose the real PILARK Composites logo to appear in the PDF header.</span></div>
+            <label class="quotation-logo-upload">+ Upload Logo
+              <input id="quotationLogoFile" type="file" accept="image/png,image/jpeg,image/jpg" hidden>
+            </label>
+          </div>
+          <div id="quotationLogoLibrary" class="quotation-logo-library">
+            <div class="quotation-logo-empty">Loading logo library…</div>
+          </div>
+        </div>
+
+        <div class="quotation-items-section">
+          <div class="quotation-section-title"><div><strong>Quotation Items</strong><span>Add products/services and enter the selling price for each item.</span></div><button id="addQuotationLine" type="button" class="accounting-small-btn">+ Add item</button></div>
+          <div class="quotation-line-head">
+            <span>Item Code</span><span>Item Name</span><span>Product Description</span><span>Qty</span><span>UOM</span><span>Unit Price</span><span>Total</span><span></span>
+          </div>
+          <div id="quotationLines" class="document-lines quotation-lines"></div>
+        </div>
+
+        <div class="quotation-financial-row">
+          <div class="document-total-box quotation-total-box"><span>Subtotal <b id="quotationSubtotal">Rp 0</b></span><span>VAT <b id="quotationTax">Rp 0</b></span><strong>Total <b id="quotationTotal">Rp 0</b></strong></div>
+          <label>VAT %<input id="quotationTaxRate" type="number" min="0" step="0.01" value="11"></label>
+        </div>
+
+        <div class="quotation-terms-grid">
+          <label>Time of Delivery<input id="quotationDeliveryTime" value="TBA"></label>
+          <label>Offer Period<input id="quotationOfferPeriod" value="Price could be changed without any prior notice"></label>
+          <label>Delivery Term<input id="quotationDeliveryTerm"></label>
+          <label>Warranty<input id="quotationWarranty" value="1 Year"></label>
+          <label class="quotation-wide">Notes<textarea id="quotationNotes" rows="3"></textarea></label>
+          <label class="quotation-wide">Terms &amp; Conditions<textarea id="quotationTerms" rows="7">1. Above costs are includes the Loading cost at PT. Panca Integra Laguna Reksa Warehouse.
+2. Every event of late payment will incur 0.1% / day and maximum pinalty of 10% of the total Purchase Order.
+3. Any disputes arising from the implementation of the activities referred to in this Proposal Offer, all parties involved will resolve by deliberation to reach consensus. If the process of deliberation and consensus does not occur, all parties involved agree to resolve it by choosing legal common law in Central Jakarta District Court. The laws governing this agreement is the Law of the Republic of Indonesia.
+4. PT. Panca Integra Laguna Reksa will not be responsible for problems resulting from external causes such as accident, abuse, misuse, mishandling, negligence, fire, water damage, theft, vandalism, riot, explosion, natural disaster, or other external causes unrelated to product performance.</textarea></label>
+          <label>Salesperson / Signatory<input id="quotationSalesperson" value="Sales Engineer"></label>
+        </div>
+        <div class="quotation-save-row"><button class="primary-btn" type="submit">Save Quotation →</button></div>
       </form>
     </div>
-    <div class="panel"><div class="panel-head"><div><h2>Quotations</h2><p>Confirm an accepted quotation to turn it into a Sales Order.</p></div></div>
-      <div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Number</th><th>Customer</th><th>Date</th><th>Valid Until</th><th class="num">Total</th><th>Status</th><th>Action</th></tr></thead><tbody id="salesQuotationsBody"></tbody></table></div>
+
+    <div class="panel quotation-history-panel">
+      <div class="panel-head"><div><h2>Quotation History</h2><p>All saved quotations and their current status. Print, send, accept or reject from here.</p></div></div>
+      <div class="accounting-table-wrap"><table class="accounting-table quotation-history-table"><thead><tr><th>Number</th><th>Date</th><th>Customer</th><th>Project</th><th class="num">Total</th><th>Status</th><th>Actions</th></tr></thead><tbody id="quotationsBody"></tbody></table></div>
     </div>
   </div>
 </div>
+
 <div class="accounting-tab-panel" data-sales-panel="orders" hidden>
   <div class="panel"><div class="panel-head"><div><h2>Sales Orders</h2><p>Confirmed orders ready to be invoiced.</p></div></div>
     <div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Number</th><th>Customer</th><th>Quote Date</th><th>Valid Until</th><th class="num">Total</th><th>Status</th><th>Action</th></tr></thead><tbody id="salesOrdersBody"></tbody></table></div>
@@ -318,7 +359,6 @@
 <div class="accounting-tabs" role="tablist" aria-label="Accounting sections">
 <button type="button" data-accounting-tab="overview" class="active">Overview</button>
 <button type="button" data-accounting-tab="invoices">Customer Invoices</button>
-<button type="button" data-accounting-tab="quotations">Quotations</button>
 <button type="button" data-accounting-tab="bills">Vendor Bills</button>
 <button type="button" data-accounting-tab="payments">Payments</button>
 <button type="button" data-accounting-tab="reports">Reports</button>
