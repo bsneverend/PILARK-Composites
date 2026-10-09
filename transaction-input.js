@@ -147,7 +147,8 @@ async function editTransaction(id){
   $('transactionInputSubmitterRole').value=data.submitted_by_role||'employee';
   $('transactionInputBeneficiaryRole').value=data.beneficiary_role||'employee';
   fillMasters();
-  $('transactionInputPartner').value=String(data.beneficiary_partner_id||data.partner_id||'');
+  const savedPartnerId=data.beneficiary_partner_id||data.partner_id||'';const savedPartnerName=data.beneficiary_name||data.partner_name||'';const matchedPartner=masters.partners.find(p=>savedPartnerId&&String(p.id)===String(savedPartnerId))||masters.partners.find(p=>norm(p.name)===norm(savedPartnerName))||masters.partners.find(p=>savedPartnerName&&(norm(p.name).includes(norm(savedPartnerName))||norm(savedPartnerName).includes(norm(p.name))));
+  $('transactionInputPartner').value=matchedPartner?String(matchedPartner.id):'';
   $('transactionInputDebitAccount').value=String(data.debit_account_id||'');
   $('transactionInputCreditAccount').disabled=false;
   $('transactionInputCreditAccount').value=String(data.credit_account_id||'');
