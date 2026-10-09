@@ -46,7 +46,6 @@
     $('generalLedgerSummary').innerHTML='<div class="content-status">Loading Odoo General Ledger…</div>';
     const data=await api('?'+q.toString());
     state.lastData=data;
-    await accountPromise;
     const account=state.accounts.find(a=>String(a.id)===String(accountId));
     const qtxt=($('generalLedgerSearch')?.value||'').trim().toLowerCase();
     const recon=$('generalLedgerRecon')?.value||'';
