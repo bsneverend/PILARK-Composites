@@ -1,7 +1,7 @@
 (function(){
 const ODOO_FN='https://seelqcgjfuuwurslwtgf.supabase.co/functions/v1/odoo-transaction-input';
 const SCAN_FN='https://seelqcgjfuuwurslwtgf.supabase.co/functions/v1/odoo-receipt-scan';
-let initialized=false,masters={accounts:[],journals:[],partners:[],employees:[],expense_products:[],role_accounts:{}},currentReceipt=null,currentDraftId=null,editingTransaction=null;
+let initialized=false,masters={accounts:[],journals:[],partners:[],employees:[],expense_products:[],role_accounts:{}},currentReceipt=null,currentDraftId=null,editingTransaction=null,expenseSyncTimer=null;
 
 const $=id=>document.getElementById(id);
 const money=n=>new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(Number(n||0));
@@ -125,14 +125,64 @@ async function loadMasters(){
   if(expenseLoaded)status('transactionInputStatus','Odoo Expenses loaded. Legacy journal masters are unavailable; historical journal correction may be unavailable.',true);
  }
 }
-async function loadRecent(){
+function expenseStatusLabel(state){
+ const key=String(state||'').toLowerCase();
+ const labels={
+  draft:'Draft / Akan Diajukan',
+  submitted:'Submitted / Menunggu Persetujuan',
+  approved:'Approved / Disetujui',
+  refused:'Refused / Ditolak',
+  posted:'Posted / Diposting',
+  in_payment:'In Payment / Dalam Pembayaran',
+  paid:'Paid / Lunas',
+  done:'Paid / Lunas'
+ };
+ return labels[key]||state||'Unknown';
+}
+function expenseStatusClass(state){
+ const key=String(state||'').toLowerCase().replace(/[^a-z_]/g,'');
+ return key||'draft';
+}
+async function syncExpenseStatuses(){
+ try{
+  const {data,error}=await window.PILARK_CMS.client.from('odoo_transaction_inputs').select('id,odoo_expense_id,status,odoo_expense_state').not('odoo_expense_id','is',null).order('created_at',{ascending:false}).limit(100);
+  if(error||!data?.length)return false;
+  const ids=data.map(x=>Number(x.odoo_expense_id)).filter(Number.isFinite);
+  if(!ids.length)return false;
+  const result=await callOdoo('',{method:'POST',body:JSON.stringify({action:'sync_expense_status',expense_ids:ids})});
+  const byId=new Map((result.expenses||[]).map(x=>[Number(x.id),x]));
+  let changed=false;
+  for(const row of data){
+   const expense=byId.get(Number(row.odoo_expense_id));
+   if(!expense)continue;
+   const state=String(expense.state||'draft').toLowerCase();
+   const nextStatus=state;
+   if(String(row.odoo_expense_state||'').toLowerCase()!==state||String(row.status||'').toLowerCase()!==nextStatus){
+    const upd=await window.PILARK_CMS.client.from('odoo_transaction_inputs').update({
+      status:nextStatus,
+      odoo_expense_state:state,
+      odoo_state:state,
+      error_message:null,
+      posted_at:['posted','paid','done'].includes(state)?new Date().toISOString():null
+    }).eq('id',row.id);
+    if(!upd.error)changed=true;
+   }
+  }
+  return changed;
+ }catch(e){
+  console.warn('Live Odoo expense status sync failed:',e?.message||e);
+  return false;
+}
+async function loadRecent(skipSync=false){
  const body=$('transactionInputBody');if(!body)return;
+ if(!skipSync)await syncExpenseStatuses();
  const {data,error}=await window.PILARK_CMS.client.from('odoo_transaction_inputs').select('*').order('created_at',{ascending:false}).limit(20);
  if(error){body.innerHTML='<tr><td colspan="8">Unable to load transaction inputs.</td></tr>';return}
  body.innerHTML=(data||[]).map(x=>{
+  const odooState=x.odoo_expense_state||x.status;
   const canEdit=String(x.status||'').toLowerCase()==='posted'&&Number(x.odoo_move_id)>0&&!Number(x.odoo_expense_id);
   const action=canEdit?'<button type="button" class="accounting-small-btn transaction-edit-btn" data-edit-transaction="'+esc(x.id)+'">Edit & Correct</button>':Number(x.odoo_expense_id)?'<span class="field-help">Managed in Odoo</span>':'—';
-  return '<tr><td>'+esc(x.transaction_date||'')+'</td><td>'+esc(x.input_type==='reimbursement'?'Reimbursement':'Payment Request')+'</td><td>'+esc(x.reference||'—')+'</td><td>'+esc(x.description||'—')+'</td><td class="num">'+money(x.amount)+'</td><td><span class="accounting-status-badge '+esc(x.status)+'">'+esc(x.status)+'</span></td><td>'+(x.odoo_expense_id?'Expense #'+esc(String(x.odoo_expense_id)):(x.odoo_move_id?'Journal #'+esc(String(x.odoo_move_id)):'—'))+'</td><td>'+action+'</td></tr>'
+  return '<tr><td>'+esc(x.transaction_date||'')+'</td><td>'+esc(x.input_type==='reimbursement'?'Reimbursement':'Payment Request')+'</td><td>'+esc(x.reference||'—')+'</td><td>'+esc(x.description||'—')+'</td><td class="num">'+money(x.amount)+'</td><td><span class="accounting-status-badge '+expenseStatusClass(odooState)+'">'+esc(Number(x.odoo_expense_id)?expenseStatusLabel(odooState):x.status)+'</span></td><td>'+(x.odoo_expense_id?'Expense #'+esc(String(x.odoo_expense_id)):(x.odoo_move_id?'Journal #'+esc(String(x.odoo_move_id)):'—'))+'</td><td>'+action+'</td></tr>'
  }).join('')||'<tr><td colspan="8">No transaction inputs yet.</td></tr>';
  body.querySelectorAll('[data-edit-transaction]').forEach(btn=>btn.addEventListener('click',()=>editTransaction(btn.dataset.editTransaction)));
 }
@@ -345,6 +395,11 @@ async function init(){
  $('transactionInputForm').addEventListener('submit',async e=>{e.preventDefault();try{await postTransaction()}catch(err){status('transactionInputStatus',err?.message||String(err));if(currentDraftId&&!editingTransaction)await window.PILARK_CMS.client.from('odoo_transaction_inputs').update({status:'error',error_message:err?.message||String(err)}).eq('id',currentDraftId);else if(editingTransaction&&/may now be in Draft|not posted/i.test(err?.message||String(err)))await window.PILARK_CMS.client.from('odoo_transaction_inputs').update({status:'error',odoo_state:'draft',error_message:err?.message||String(err)}).eq('id',currentDraftId);await loadRecent()}});
  $('transactionInputRefresh').addEventListener('click',async()=>{await loadMasters();await loadRecent()});
  const me=await session(); $('transactionInputRequester').value=me.user.user_metadata?.full_name||me.user.user_metadata?.name||me.user.email||''; await loadMasters();await loadRecent();updateRule();applyBeneficiaryRule();
+ if(expenseSyncTimer)clearInterval(expenseSyncTimer);
+ expenseSyncTimer=setInterval(async()=>{
+   const changed=await syncExpenseStatuses();
+   if(changed)await loadRecent(true);
+ },10000);
 }
 window.initTransactionInput=init;
 window.transactionInputRefresh=async()=>{await loadMasters();await loadRecent()};
