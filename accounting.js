@@ -1183,7 +1183,7 @@ async function autoMatchReconcile(){const lines=state.entryLines.filter(l=>{cons
     const payload={quotation_no:qn,quotation_date:date,project_name:el('quotationProject').value.trim()||null,partner_id:partner,reference:el('quotationReference').value.trim()||null,currency_code:'IDR',subtotal,tax_rate:taxRate,tax_amount:tax,total_amount:total,status:'draft',delivery_time:el('quotationDeliveryTime').value.trim()||'TBA',offer_period:el('quotationOfferPeriod').value.trim()||null,delivery_term:el('quotationDeliveryTerm').value.trim()||null,warranty:el('quotationWarranty').value.trim()||null,notes:el('quotationNotes').value.trim()||null,terms_conditions:el('quotationTerms').value.trim()||null,salesperson_name:el('quotationSalesperson').value.trim()||'Sales Engineer',created_by:userData?.user?.id||null,updated_by:userData?.user?.id||null};
     const {data:q,error}=await client().from('sales_quotations').insert(payload).select().single();if(error)return alert(error.message);
     const {error:le}=await client().from('sales_quotation_lines').insert(lines.map(l=>({...l,quotation_id:q.id})));if(le){await client().from('sales_quotations').delete().eq('id',q.id);return alert(le.message);}
-    e.target.reset();el('quotationDate').value=today();el('quotationTaxRate').value=11;el('quotationDeliveryTime').value='TBA';el('quotationOfferPeriod').value='Price could be changed without any prior notice';el('quotationWarranty').value='1 Year';el('quotationSalesperson').value='Sales Engineer';el('quotationLines').innerHTML=quotationLineHtml(0);await load();window.dispatchEvent(new CustomEvent('pilark:open-sales-tab',{detail:{tab:'quotations'}}));alert('Quotation '+qn+' saved as Draft.');
+    e.target.reset();el('quotationDate').value=today();el('quotationTaxRate').value=11;el('quotationDeliveryTime').value='TBA';el('quotationOfferPeriod').value='Price could be changed without any prior notice';el('quotationWarranty').value='1 Year';el('quotationSalesperson').value='Sales Engineer';el('quotationLines').innerHTML=quotationLineHtml(0);window.dispatchEvent(new CustomEvent('pilark:quotation-saved',{detail:{id:q.id,quotation_no:qn}}));window.dispatchEvent(new CustomEvent('pilark:open-sales-tab',{detail:{tab:'quotations'}}));alert('Quotation '+qn+' saved as Draft.');
   }
   async function printQuotation(id){
     const w=window.open('about:blank','_blank','width=900,height=900');if(!w)return alert('Please allow pop-ups for Print / PDF.');
@@ -1249,15 +1249,21 @@ function render(){renderAccounts();renderPartners();renderEntries();renderDocume
   const originalRender=render; // populate after data loads
   const oldLoad=load;
   async function bootLoad(){await oldLoad();populateDynamic();renderDocuments();renderPayments();updateDocumentPreview('customer_invoice');updateDocumentPreview('vendor_bill');await loadQuotationLogos();}
-  function init(){if(!el('view-accounting'))return;ensureReceiptScannerUi();bindQuotationLines();
+  let quotationUiInitialized=false;
+  function initQuotationUi(){
+    if(quotationUiInitialized||!el('quotationForm'))return;
+    quotationUiInitialized=true;
+    bindQuotationLines();
     el('quotationForm')?.addEventListener('submit',createQuotation);
     el('addQuotationLine')?.addEventListener('click',()=>{const box=el('quotationLines');if(box){box.insertAdjacentHTML('beforeend',quotationLineHtml(box.children.length));updateQuotationTotals();}});
     el('quotationDate')?.addEventListener('change',prepareQuotationNumber);
     el('quotationTaxRate')?.addEventListener('input',updateQuotationTotals);
     el('quotationLogoFile')?.addEventListener('change',e=>uploadQuotationLogo(e.target.files?.[0]).catch(err=>alert(err.message||'Logo upload failed.')));
-
-    if(el('quotationDate'))el('quotationDate').value=today();
+    if(el('quotationDate')&&!el('quotationDate').value)el('quotationDate').value=today();
     prepareQuotationNumber().catch(()=>{});
-    bind();if(ready())bootLoad().catch(err=>console.warn('Accounting init:',err));else setTimeout(()=>bootLoad().catch(err=>console.warn('Accounting init:',err)),800);}
+    if(ready())loadQuotationLogos().catch(err=>console.warn('Quotation logo library:',err));
+  }
+  window.PILARK_INIT_QUOTATION_UI=initQuotationUi;
+  function init(){if(!el('view-accounting'))return;ensureReceiptScannerUi();initQuotationUi();bind();if(ready())bootLoad().catch(err=>console.warn('Accounting init:',err));else setTimeout(()=>bootLoad().catch(err=>console.warn('Accounting init:',err)),800);}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
