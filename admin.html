@@ -419,67 +419,6 @@
 </div>
 
 <div id="accountingDocumentDetail" class="document-detail" hidden></div>
-<div class="accounting-tab-panel" data-accounting-panel="quotations" hidden>
-  <div class="quotation-workspace">
-    <div class="panel quotation-editor-panel">
-      <div class="panel-head"><div><h2>New Quotation</h2><p>Create and edit the complete quotation in one full-width workspace. No accounting entry is posted until it is converted to an invoice.</p></div></div>
-      <form id="quotationForm" class="accounting-form">
-        <div class="quotation-header-grid">
-          <label>Customer<select id="quotationPartner" required></select></label>
-          <label>Quotation Date<input id="quotationDate" type="date" required></label>
-          <label>Quotation Number<input id="quotationNo" readonly placeholder="Auto-generated"></label>
-          <label>Project<input id="quotationProject" placeholder="Project name / reference"></label>
-          <label class="quotation-reference">Reference<input id="quotationReference" placeholder="Customer RFQ / reference"></label>
-        </div>
-
-        <div class="quotation-logo-panel">
-          <div class="quotation-logo-head">
-            <div><strong>Quotation Header Logo</strong><span>Choose the real PILARK Composites logo to appear in the PDF header.</span></div>
-            <label class="quotation-logo-upload">+ Upload Logo
-              <input id="quotationLogoFile" type="file" accept="image/png,image/jpeg,image/jpg" hidden>
-            </label>
-          </div>
-          <div id="quotationLogoLibrary" class="quotation-logo-library">
-            <div class="quotation-logo-empty">Loading logo library…</div>
-          </div>
-        </div>
-
-        <div class="quotation-items-section">
-          <div class="quotation-section-title"><div><strong>Quotation Items</strong><span>Add products/services and enter the selling price for each item.</span></div><button id="addQuotationLine" type="button" class="accounting-small-btn">+ Add item</button></div>
-          <div class="quotation-line-head">
-            <span>Item Code</span><span>Item Name</span><span>Product Description</span><span>Qty</span><span>UOM</span><span>Unit Price</span><span>Total</span><span></span>
-          </div>
-          <div id="quotationLines" class="document-lines quotation-lines"></div>
-        </div>
-
-        <div class="quotation-financial-row">
-          <div class="document-total-box quotation-total-box"><span>Subtotal <b id="quotationSubtotal">Rp 0</b></span><span>VAT <b id="quotationTax">Rp 0</b></span><strong>Total <b id="quotationTotal">Rp 0</b></strong></div>
-          <label>VAT %<input id="quotationTaxRate" type="number" min="0" step="0.01" value="11"></label>
-        </div>
-
-        <div class="quotation-terms-grid">
-          <label>Time of Delivery<input id="quotationDeliveryTime" value="TBA"></label>
-          <label>Offer Period<input id="quotationOfferPeriod" value="Price could be changed without any prior notice"></label>
-          <label>Delivery Term<input id="quotationDeliveryTerm"></label>
-          <label>Warranty<input id="quotationWarranty" value="1 Year"></label>
-          <label class="quotation-wide">Notes<textarea id="quotationNotes" rows="3"></textarea></label>
-          <label class="quotation-wide">Terms &amp; Conditions<textarea id="quotationTerms" rows="7">1. Above costs are includes the Loading cost at PT. Panca Integra Laguna Reksa Warehouse.
-2. Every event of late payment will incur 0.1% / day and maximum pinalty of 10% of the total Purchase Order.
-3. Any disputes arising from the implementation of the activities referred to in this Proposal Offer, all parties involved will resolve by deliberation to reach consensus. If the process of deliberation and consensus does not occur, all parties involved agree to resolve it by choosing legal common law in Central Jakarta District Court. The laws governing this agreement is the Law of the Republic of Indonesia.
-4. PT. Panca Integra Laguna Reksa will not be responsible for problems resulting from external causes such as accident, abuse, misuse, mishandling, negligence, fire, water damage, theft, vandalism, riot, explosion, natural disaster, or other external causes unrelated to product performance.</textarea></label>
-          <label>Salesperson / Signatory<input id="quotationSalesperson" value="Sales Engineer"></label>
-        </div>
-        <div class="quotation-save-row"><button class="primary-btn" type="submit">Save Quotation →</button></div>
-      </form>
-    </div>
-
-    <div class="panel quotation-history-panel">
-      <div class="panel-head"><div><h2>Quotation History</h2><p>All saved quotations and their current status. Print, send, accept or reject from here.</p></div></div>
-      <div class="accounting-table-wrap"><table class="accounting-table quotation-history-table"><thead><tr><th>Number</th><th>Date</th><th>Customer</th><th>Project</th><th class="num">Total</th><th>Status</th><th>Actions</th></tr></thead><tbody id="quotationsBody"></tbody></table></div>
-    </div>
-  </div>
-</div>
-
 <div class="accounting-tab-panel" data-accounting-panel="bills" hidden>
   <div class="accounting-two-col accounting-document-layout">
     <div class="panel"><div class="panel-head"><div><h2>New vendor bill</h2><p>Record supplier costs and input tax as a posted payable.</p></div></div>
