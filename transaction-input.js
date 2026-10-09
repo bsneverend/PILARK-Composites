@@ -72,21 +72,7 @@ function fillMasters(){
  }
  applyBeneficiaryRule();renderPreview();
 }
-function updateRule(){
- const type=$('transactionInputType')?.value||'reimbursement';
- const role=$('transactionInputBeneficiaryRole')?.value||'employee';
- let title='Payment Request — Expense / Asset → Payable / Clearing';
- let text='Debit the approved expense or asset account and credit the selected payable/clearing account.';
- if(type==='reimbursement'){
-   const configured=role==='director'?masters.role_accounts?.director:role==='employee'?masters.role_accounts?.employee:role==='vendor'?masters.role_accounts?.vendor:null;
-   const label=configured?accountLabel(configured):(role==='director'?'Hutang Direksi':role==='employee'?'Employee Liabilities':role==='vendor'?'Accounts Payable':'Configured Liability');
-   title='Reimbursement — Expense → '+label;
-   text='Debit the approved expense account and credit the liability account defined by the beneficiary role.';
- }
- if($('transactionInputRuleTitle'))$('transactionInputRuleTitle').textContent=title;
- if($('transactionInputRuleText'))$('transactionInputRuleText').textContent=text;
- renderPreview();
-}
+function updateRule(){applyBeneficiaryRule()}
 function renderPreview(){
  const amount=Number($('transactionInputAmount')?.value||0);
  const e=masters.employees.find(x=>String(x.id)===$('transactionInputEmployee')?.value);
