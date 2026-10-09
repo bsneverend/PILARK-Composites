@@ -81,7 +81,7 @@ function renderPreview(){
  box.innerHTML='<div class="transaction-preview-head"><span>Odoo Expense</span><b>'+money(amount)+'</b></div>'+
  '<div class="transaction-preview-line"><span>Employee</span><b>'+esc(e?.name||'Select employee')+'</b></div>'+
  '<div class="transaction-preview-line"><span>Category</span><b>'+esc(p?((p.default_code?p.default_code+' — ':'')+p.name):'Select expense category')+'</b></div>'+
- '<div class="transaction-preview-meta">Status after send: Submitted / Waiting Approval in Odoo (if the Odoo API user has submit permission).</div>';
+ '<div class="transaction-preview-meta">Status after send: Draft / To Submit in Odoo. Finance/Manager will submit, approve, post and reimburse in Odoo.</div>';
 }
 async function loadMasters(){
  let expenseLoaded=false;
@@ -294,21 +294,19 @@ async function postTransaction(){
    attachment_name:currentReceipt?.name||'Receipt',
    attachment_mime:currentReceipt?.type||'application/octet-stream'
   })});
-  const submitted=!!created.submitted,expense=created.expense||{};
+  const expense=created.expense||{};
+  const expenseState=String(expense.state||'draft').toLowerCase();
+  if(expenseState!=='draft')throw new Error('Odoo Expense was created, but it did not remain in Draft. Odoo returned status: '+(expense.state||'unknown')+'. No accounting posting was requested by PILARK CMS.');
   const upd=await window.PILARK_CMS.client.from('odoo_transaction_inputs').update({
-   status:submitted?'submitted':'draft',
+   status:'draft',
    odoo_expense_id:Number(expense.id||0)||null,
-   odoo_expense_state:expense.state||null,
-   odoo_state:expense.state||null,
-   error_message:created.warning||null,
+   odoo_expense_state:expense.state||'draft',
+   odoo_state:expense.state||'draft',
+   error_message:null,
    posted_at:null
   }).eq('id',currentDraftId);
   if(upd.error)throw new Error('Odoo Expense was created, but the CMS record update failed: '+upd.error.message);
-  if(submitted){
-   status('transactionInputStatus','Sent to Odoo Expenses successfully. Expense '+(expense.id||'')+' is now in '+(expense.state||'Submitted')+' status. Approval, posting and reimbursement continue in Odoo.',true);
-  }else{
-   status('transactionInputStatus','Expense was created in Odoo as Draft. Odoo could not submit it automatically: '+(created.warning||'Please submit it from Expenses.' ));
-  }
+  status('transactionInputStatus','Sent to Odoo Expenses successfully. Expense '+(expense.id||'')+' is now Draft / Akan Diajukan. Submit, approve, post and reimburse it from Odoo.',true);
   await loadRecent();setTimeout(resetForm,700);
  }finally{$('transactionPost').disabled=false;$('transactionSaveDraft').disabled=false}
 }
