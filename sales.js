@@ -55,10 +55,131 @@
     await load();
     showTab('contacts');
   }
+
+  // Quotation workspace is owned by Sales. It intentionally has no Accounting dependency.
+  function quotationLineHtml(index){
+    return `<div class="quotation-line document-line" data-q-index="${index}">
+      <input class="q-item-code" placeholder="Item code">
+      <input class="q-item-name" placeholder="Item name" required>
+      <textarea class="q-desc" rows="2" placeholder="Product description"></textarea>
+      <input class="q-qty" type="number" min="0.0001" step="0.0001" value="1">
+      <input class="q-uom" value="PCS">
+      <input class="q-price" type="number" min="0" step="1" value="0" placeholder="0">
+      <input class="q-line-total" type="text" value="Rp 0" readonly aria-label="Line total">
+      <button type="button" class="line-remove q-remove" aria-label="Remove item">×</button>
+    </div>`;
+  }
+  function bindQuotationLines(){
+    const box=el('quotationLines');if(!box)return;
+    if(!box.children.length)box.innerHTML=quotationLineHtml(0);
+    if(box.dataset.quotationBound==='1')return;
+    box.dataset.quotationBound='1';
+    box.addEventListener('click',e=>{if(e.target.classList.contains('q-remove')){if(box.children.length>1){e.target.closest('.quotation-line').remove();updateQuotationTotals();}}});
+    box.addEventListener('input',updateQuotationTotals);
+    box.addEventListener('change',updateQuotationTotals);
+  }
+  function readQuotationLines(){
+    return [...document.querySelectorAll('#quotationLines .quotation-line')].map((r,i)=>{
+      const qty=Number(r.querySelector('.q-qty')?.value||0),price=Number(r.querySelector('.q-price')?.value||0),total=Math.round(qty*price*100)/100;
+      const totalEl=r.querySelector('.q-line-total');if(totalEl)totalEl.value=money(total);
+      return {line_no:i+1,item_code:r.querySelector('.q-item-code')?.value.trim()||null,item_name:r.querySelector('.q-item-name')?.value.trim()||'',
+      description:r.querySelector('.q-desc')?.value.trim()||'',quantity:qty,uom:r.querySelector('.q-uom')?.value.trim()||'PCS',unit_price:price,line_total:total};
+    });
+  }
+  function updateQuotationTotals(){
+    const lines=readQuotationLines(),sub=lines.reduce((a,l)=>a+l.line_total,0),rate=Number(el('quotationTaxRate')?.value||0),tax=Math.round(sub*rate)/100,total=sub+tax;
+    if(el('quotationSubtotal'))el('quotationSubtotal').textContent=money(sub);
+    if(el('quotationTax'))el('quotationTax').textContent=money(tax);
+    if(el('quotationTotal'))el('quotationTotal').textContent=money(total);
+  }
+  async function prepareQuotationNumber(){
+    const d=el('quotationDate')?.value||today();const {data,error}=await client().rpc('next_sales_quotation_no',{p_date:d});
+    if(!error&&data&&el('quotationNo'))el('quotationNo').value=data;
+  }
+  async function loadQuotationLogos(){
+    const box=el('quotationLogoLibrary');if(!box)return;
+    box.innerHTML='<div class="quotation-logo-empty">Loading logo library…</div>';
+    const [{data:files,error:fileError},{data:selected,error:selectedError}]=await Promise.all([
+      client().storage.from('quotation-assets').list('logos',{limit:100,sortBy:{column:'created_at',order:'desc'}}),
+      client().from('quotation_logo_settings').select('storage_path,file_name').eq('id',1).maybeSingle()
+    ]);
+    if(fileError){box.innerHTML='<div class="quotation-logo-empty">Unable to load logo library: '+esc(fileError.message)+'</div>';return;}
+    const selectedPath=selected?.storage_path||'';
+    const logos=(files||[]).filter(f=>f.name).map(f=>({
+      name:f.name,path:'logos/'+f.name,
+      url:client().storage.from('quotation-assets').getPublicUrl('logos/'+f.name).data.publicUrl
+    }));
+    box.innerHTML=logos.length?logos.map(l=>'<div class="quotation-logo-card '+(l.path===selectedPath?'selected':'')+'" data-logo-path="'+esc(l.path)+'" data-logo-name="'+esc(l.name)+'"><img src="'+esc(l.url)+'" alt="'+esc(l.name)+'"><span class="quotation-logo-name">'+esc(l.name)+'</span>'+(l.path===selectedPath?'<span class="quotation-logo-selected">SELECTED</span>':'')+'</div>').join(''):'<div class="quotation-logo-empty">No uploaded logos yet. Upload a PNG or JPG logo to begin.</div>';
+    box.querySelectorAll('.quotation-logo-card').forEach(card=>card.onclick=()=>selectQuotationLogo(card.dataset.logoPath,card.dataset.logoName));
+  }
+  async function selectQuotationLogo(path,name){
+    const {data:userData}=await client().auth.getUser();
+    const {error}=await client().from('quotation_logo_settings').upsert({id:1,storage_path:path,file_name:name,updated_at:new Date().toISOString(),updated_by:userData?.user?.id||null});
+    if(error)return alert('Unable to select logo: '+error.message);
+    await loadQuotationLogos();
+  }
+  async function uploadQuotationLogo(file){
+    if(!file)return;
+    if(!['image/png','image/jpeg','image/jpg'].includes(file.type))return alert('Please upload PNG or JPG.');
+    if(file.size>2*1024*1024)return alert('Logo must be 2 MB or smaller.');
+    const safe=file.name.toLowerCase().replace(/[^a-z0-9._-]+/g,'-');
+    const path='logos/'+Date.now()+'-'+safe;
+    const {error}=await client().storage.from('quotation-assets').upload(path,file,{contentType:file.type,cacheControl:'3600',upsert:false});
+    if(error)return alert('Logo upload failed: '+error.message);
+    await selectQuotationLogo(path,file.name);
+    alert('Logo uploaded and selected for new quotation PDFs.');
+  }
+  async function createSalesQuotationDocument(e){
+    e.preventDefault();
+    const partner=el('quotationPartner')?.value,date=el('quotationDate')?.value,lines=readQuotationLines();
+    if(!partner||!date||!lines.length||lines.some(l=>!l.item_name||l.quantity<=0||l.unit_price<0))return alert('Complete customer, date and all quotation items.');
+    const subtotal=lines.reduce((a,l)=>a+l.line_total,0),taxRate=Number(el('quotationTaxRate')?.value||0),tax=Math.round(subtotal*taxRate)/100,total=subtotal+tax;
+    const {data:userData}=await client().auth.getUser();
+    const {data:qn,error:ne}=await client().rpc('next_sales_quotation_no',{p_date:date});if(ne)return alert(ne.message);
+    const payload={quotation_no:qn,quotation_date:date,project_name:el('quotationProject')?.value.trim()||null,partner_id:partner,reference:el('quotationReference')?.value.trim()||null,currency_code:'IDR',subtotal,tax_rate:taxRate,tax_amount:tax,total_amount:total,status:'draft',delivery_time:el('quotationDeliveryTime')?.value.trim()||'TBA',offer_period:el('quotationOfferPeriod')?.value.trim()||null,delivery_term:el('quotationDeliveryTerm')?.value.trim()||null,warranty:el('quotationWarranty')?.value.trim()||null,notes:el('quotationNotes')?.value.trim()||null,terms_conditions:el('quotationTerms')?.value.trim()||null,salesperson_name:el('quotationSalesperson')?.value.trim()||'Sales Engineer',created_by:userData?.user?.id||null,updated_by:userData?.user?.id||null};
+    const {data:q,error}=await client().from('sales_quotations').insert(payload).select().single();if(error)return alert(error.message);
+    const {error:le}=await client().from('sales_quotation_lines').insert(lines.map(l=>({...l,quotation_id:q.id})));if(le){await client().from('sales_quotations').delete().eq('id',q.id);return alert(le.message);}
+    e.target.reset();el('quotationDate').value=today();el('quotationTaxRate').value=11;el('quotationDeliveryTime').value='TBA';el('quotationOfferPeriod').value='Price could be changed without any prior notice';el('quotationWarranty').value='1 Year';el('quotationSalesperson').value='Sales Engineer';el('quotationLines').innerHTML=quotationLineHtml(0);updateQuotationTotals();await load();showTab('quotations');alert('Quotation '+qn+' saved as Draft.');
+  }
+  async function printQuotation(id){
+    const w=window.open('about:blank','_blank','width=900,height=900');if(!w)return alert('Please allow pop-ups for Print / PDF.');
+    w.document.write('<!doctype html><html><body style="font-family:Arial;padding:40px">Generating quotation PDF…</body></html>');
+    try{
+      const {data,error}=await client().functions.invoke('generate-quotation-pdf',{body:{quotation_id:id}});
+      if(error)throw error;
+      if(!(data instanceof Blob))throw new Error('The quotation PDF response was not received as a PDF.');
+      if(data.size<1000)throw new Error('The quotation PDF is empty or invalid.');
+      const blob=new Blob([await data.arrayBuffer()],{type:'application/pdf'}),url=URL.createObjectURL(blob);
+      w.location.href=url;setTimeout(()=>URL.revokeObjectURL(url),60000);
+    }catch(err){w.close();alert('Quotation PDF failed: '+(err?.message||'Unknown error'));}
+  }
+  async function updateSalesQuotationStatus(id,status){
+    if(!confirm('Change quotation status to '+quotationStatusLabel(status)+'?'))return;
+    const {error}=await client().from('sales_quotations').update({status,updated_at:new Date().toISOString(),updated_by:window.PILARK_CMS?.user?.id||null}).eq('id',id);
+    if(error)return alert(error.message);
+    await load();
+  }
+  function initQuotationUi(){
+    const form=el('quotationForm');if(!form)return;
+    if(form.dataset.quotationBound!=='1'){
+      form.dataset.quotationBound='1';
+      form.addEventListener('submit',createSalesQuotationDocument);
+      el('addQuotationLine')?.addEventListener('click',()=>{const box=el('quotationLines');if(box){box.insertAdjacentHTML('beforeend',quotationLineHtml(box.children.length));updateQuotationTotals();}});
+      el('quotationDate')?.addEventListener('change',prepareQuotationNumber);
+      el('quotationTaxRate')?.addEventListener('input',updateQuotationTotals);
+      el('quotationLogoFile')?.addEventListener('change',e=>uploadQuotationLogo(e.target.files?.[0]).catch(err=>alert(err.message||'Logo upload failed.')));
+    }
+    if(el('quotationDate')&&!el('quotationDate').value)el('quotationDate').value=today();
+    bindQuotationLines();
+    updateQuotationTotals();
+    prepareQuotationNumber().catch(()=>{});
+    loadQuotationLogos().catch(err=>console.warn('Quotation logo library:',err));
+  }
+
   function renderSalesQuotations(){
     const body=el('quotationsBody');if(!body)return;
-    body.innerHTML=state.quotations.map(q=>'<tr><td><b>'+esc(q.quotation_no)+'</b></td><td>'+String(q.quotation_date||'—')+'</td><td>'+esc(q.accounting_partners?.name||'—')+'</td><td>'+esc(q.project_name||'—')+'</td><td class="num">'+money(q.total_amount)+'</td><td><span class="sales-status sales-status-'+String(q.status||'draft').replace('_','-')+'">'+quotationStatusLabel(q.status)+'</span></td><td class="accounting-actions"><button type="button" class="accounting-small-btn sales-q-status" data-id="'+q.id+'" data-status="sent">Send</button><button type="button" class="accounting-small-btn sales-q-status" data-id="'+q.id+'" data-status="accepted">Accept</button><button type="button" class="accounting-small-btn sales-q-status" data-id="'+q.id+'" data-status="rejected">Reject</button></td></tr>').join('')||'<tr><td colspan="7" class="accounting-empty">No quotations yet.</td></tr>';
-    body.querySelectorAll('.sales-q-status').forEach(b=>b.onclick=()=>updateSalesQuotationStatus(b.dataset.id,b.dataset.status));
+    body.innerHTML=state.quotations.map(q=>'<tr><td><b>'+esc(q.quotation_no)+'</b></td><td>'+String(q.quotation_date||'—')+'</td><td>'+esc(q.accounting_partners?.name||'—')+'</td><td>'+esc(q.project_name||'—')+'</td><td class="num">'+money(q.total_amount)+'</td><td><span class="sales-status sales-status-'+String(q.status||'draft').replace('_','-')+'">'+quotationStatusLabel(q.status)+'</span></td><td class="accounting-actions"><button type="button" class="accounting-small-btn sales-q-pdf" data-id="'+q.id+'">Print / PDF</button><button type="button" class="accounting-small-btn sales-q-status" data-id="'+q.id+'" data-status="sent">Send</button><button type="button" class="accounting-small-btn sales-q-status" data-id="'+q.id+'" data-status="accepted">Accept</button><button type="button" class="accounting-small-btn sales-q-status" data-id="'+q.id+'" data-status="rejected">Reject</button></td></tr>').join('')||'<tr><td colspan="7" class="accounting-empty">No quotations yet.</td></tr>';
+    body.querySelectorAll('.sales-q-pdf').forEach(b=>b.onclick=()=>printQuotation(b.dataset.id));body.querySelectorAll('.sales-q-status').forEach(b=>b.onclick=()=>updateSalesQuotationStatus(b.dataset.id,b.dataset.status));
   }
   async function updateSalesQuotationStatus(id,status){
     if(!confirm('Change quotation status to '+quotationStatusLabel(status)+'?'))return;
@@ -867,6 +988,6 @@ async function openContactResearchModal(accountId){
   el('crmSaveContact').onclick=()=>saveCRMContact(a.id);
 }
 
-function init(){if(!el('view-sales'))return;bind();showTab(state.tab||'overview');window.addEventListener('pilark:open-sales-tab',e=>{if(e.detail?.tab)showTab(e.detail.tab);});window.addEventListener('pilark:refresh-sales-quotation',()=>{window.dispatchEvent(new CustomEvent('pilark:refresh-accounting-quotation'));});if(client())Promise.all([load(),loadCRM()]).then(()=>window.PILARK_INIT_QUOTATION_UI?.()).catch(e=>console.warn('Sales init:',e));window.addEventListener('pilark:quotation-saved',()=>load().catch(console.warn));}
+function init(){if(!el('view-sales'))return;bind();showTab(state.tab||'overview');window.addEventListener('pilark:open-sales-tab',e=>{if(e.detail?.tab)showTab(e.detail.tab);});window.addEventListener('pilark:refresh-sales-quotation',()=>{load().then(()=>initQuotationUi()).catch(console.warn);});if(client())Promise.all([load(),loadCRM()]).then(()=>initQuotationUi()).catch(e=>console.warn('Sales init:',e));window.addEventListener('pilark:quotation-saved',()=>load().catch(console.warn));}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
