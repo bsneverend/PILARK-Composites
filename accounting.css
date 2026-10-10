@@ -696,3 +696,17 @@
     grid-row:auto;
   }
 }
+
+
+/* 2026-10-10 Fixed quotation VAT — no manual rate entry */
+.quotation-financial-row{
+  width:min(100%,540px)!important;
+  grid-template-columns:minmax(330px,1fr)!important;
+  justify-content:end!important;
+}
+.quotation-financial-row>.quotation-total-box{
+  grid-column:1;
+  width:100%;
+  box-sizing:border-box;
+  margin:0!important;
+}
