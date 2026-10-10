@@ -597,3 +597,33 @@
     grid-column:auto;
   }
 }
+
+
+/* 2026-10-10 VAT field alignment — center with quotation totals */
+.quotation-financial-row{
+  align-items:center!important;
+}
+.quotation-financial-row>label{
+  align-self:center!important;
+  justify-self:stretch;
+  display:grid!important;
+  grid-template-rows:auto 48px;
+  gap:7px!important;
+  margin:0!important;
+  color:#506672;
+  font-size:12px;
+  font-weight:700;
+}
+.quotation-financial-row>label input{
+  height:48px!important;
+  min-height:48px!important;
+  margin:0!important;
+}
+@media(max-width:700px){
+  .quotation-financial-row{
+    align-items:stretch!important;
+  }
+  .quotation-financial-row>label{
+    width:100%;
+  }
+}
