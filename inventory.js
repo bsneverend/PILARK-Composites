@@ -147,7 +147,7 @@
     el('inventoryOdooSync')?.addEventListener('click',()=>syncToOdoo().then(payload=>{
       const synced=payload.synced?.length||0,unmatched=payload.unmatched?.length||0,errors=payload.errors||[];
       const first=errors[0];
-      alert('Odoo inventory sync finished.\\nSynced: '+synced+'\\nUnmatched: '+unmatched+'\\nErrors: '+errors.length+(first?'\\nFirst error ('+first.product_code+'): '+first.error:''));
+      alert('Odoo inventory sync finished.\nSynced: '+synced+'\nUnmatched: '+unmatched+'\nErrors: '+errors.length+(first?'\nFirst error ('+first.product_code+'): '+first.error:''));
     }).catch(e=>{const s=el('inventoryOdooStatus');if(s){s.textContent='Odoo: Sync failed';s.className='inventory-odoo-status error';}alert('Odoo inventory sync failed: '+e.message);}));
     window.addEventListener('pilark:refresh-view',e=>{if(e.detail?.view==='inventory')load().then(()=>e.detail?.done?.()).catch(err=>e.detail?.done?.(err));});
     document.querySelectorAll('[data-inventory-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.inventoryTab));
