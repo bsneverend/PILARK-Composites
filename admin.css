@@ -1283,3 +1283,19 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:1
     display:none!important;
   }
 }
+
+/* 2026-10-10 Mobile Research Gantt: slimmer code column */
+@media(max-width:800px){
+  #view-research-schedule .research-fixed-code,
+  #view-research-schedule .research-code{
+    width:42px!important;
+    min-width:42px!important;
+    max-width:42px!important;
+    padding-left:5px!important;
+    padding-right:4px!important;
+  }
+  #view-research-schedule .research-fixed-name,
+  #view-research-schedule .research-name{
+    left:42px!important;
+  }
+}
