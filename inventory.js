@@ -52,7 +52,7 @@
       const q=bs.reduce((n,b)=>n+Number(b.quantity||0),0), v=bs.reduce((n,b)=>n+Number(b.stock_value||0),0);
       const avg=q>0?v/q:0;
       return '<tr data-inventory-product-row="'+esc(p.id)+'"><td><b>'+esc(p.product_code)+'</b></td><td>'+esc(p.name)+'</td><td>'+esc(p.unit)+'</td><td class="num">'+qty(q)+'</td><td class="num">'+money(v)+'</td><td class="num">'+money(avg)+'</td><td><input class="inventory-price-input" data-price-field="selling_price" type="number" min="0" step="0.01" placeholder="Not set" value="'+(p.selling_price==null?'':esc(p.selling_price))+'" aria-label="Sales price for '+esc(p.name)+'"></td><td><input class="inventory-price-input" data-price-field="standard_cost" type="number" min="0" step="0.01" value="'+esc(p.standard_cost??0)+'" aria-label="Cost for '+esc(p.name)+'"></td><td><button class="accounting-small-btn inventory-save-prices" type="button" data-id="'+esc(p.id)+'">Save</button></td></tr>';
-    }).join('')||'<tr><td colspan="6" class="accounting-empty">No inventory products.</td></tr>';
+    }).join('')||'<tr><td colspan="9" class="accounting-empty">No inventory products.</td></tr>';
 
     el('inventoryReceipts').innerHTML=state.purchaseOrders.map(o=>'<div class="inventory-order-row"><div><b>'+esc(o.order_no)+'</b><span>'+esc(o.accounting_partners?.name||'—')+'</span></div><button class="accounting-small-btn inventory-receive-btn" data-id="'+o.id+'">Receive Stock</button></div>').join('')||'<div class="accounting-empty">No confirmed Purchase Orders awaiting receipt.</div>';
     el('inventoryDeliveries').innerHTML=state.salesOrders.map(o=>'<div class="inventory-order-row"><div><b>'+esc(o.order_no)+'</b><span>'+esc(o.accounting_partners?.name||'—')+'</span></div><button class="accounting-small-btn inventory-deliver-btn" data-id="'+o.id+'">Deliver Stock</button></div>').join('')||'<div class="accounting-empty">No confirmed Sales Orders awaiting delivery.</div>';
@@ -145,9 +145,10 @@
   function bind(){
     el('inventoryRefresh')?.addEventListener('click',()=>load().catch(e=>alert(e.message)));
     el('inventoryOdooSync')?.addEventListener('click',()=>syncToOdoo().then(payload=>{
-      const synced=payload.synced?.length||0,unmatched=payload.unmatched?.length||0,errors=payload.errors||[];
+      const syncedItems=payload.synced||[],synced=syncedItems.length,unmatched=payload.unmatched?.length||0,errors=payload.errors||[];
+      const salesPrices=syncedItems.filter(x=>x.sales_price_updated).length,costs=syncedItems.filter(x=>x.cost_updated).length;
       const first=errors[0];
-      alert('Odoo inventory sync finished.\nSynced: '+synced+'\nUnmatched: '+unmatched+'\nErrors: '+errors.length+(first?'\nFirst error ('+first.product_code+'): '+first.error:''));
+      alert('Odoo inventory sync finished.\\nSynced products: '+synced+'\\nSales prices updated: '+salesPrices+'\\nCosts updated: '+costs+'\\nUnmatched: '+unmatched+'\\nErrors: '+errors.length+(first?'\\nFirst error ('+first.product_code+'): '+first.error:''));
     }).catch(e=>{const s=el('inventoryOdooStatus');if(s){s.textContent='Odoo: Sync failed';s.className='inventory-odoo-status error';}alert('Odoo inventory sync failed: '+e.message);}));
     window.addEventListener('pilark:refresh-view',e=>{if(e.detail?.view==='inventory')load().then(()=>e.detail?.done?.()).catch(err=>e.detail?.done?.(err));});
     document.querySelectorAll('[data-inventory-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.inventoryTab));
