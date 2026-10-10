@@ -76,7 +76,12 @@
     if(status){status.textContent='Odoo: Syncing…';status.className='inventory-odoo-status syncing';}
     const res=await fetch('https://seelqcgjfuuwurslwtgf.supabase.co/functions/v1/odoo-director-dashboard?detail=inventory_sync',{method:'POST',headers:{Authorization:'Bearer '+data.session.access_token,apikey:window.PILARK_SUPABASE_CONFIG?.anonKey||'','Content-Type':'application/json'},body:JSON.stringify({items})});
     const payload=await res.json().catch(()=>({}));
-    if(!res.ok||!payload.ok)throw new Error(payload.error||'Inventory sync to Odoo failed.');
+    if(!res.ok||!payload.ok){
+      const first=payload.errors?.[0];
+      const message=first?(first.product_code+': '+first.error):(payload.error||'Inventory sync to Odoo failed.');
+      if(status){status.textContent='Odoo: Sync failed';status.className='inventory-odoo-status error';}
+      throw new Error(message);
+    }
     const unmatched=payload.unmatched?.length||0,errors=payload.errors?.length||0,synced=payload.synced?.length||0;
     if(status){status.textContent='Odoo: '+synced+' synced'+(unmatched?' · '+unmatched+' unmatched':'');status.className='inventory-odoo-status '+(errors?'error':'synced');}
     return payload;
@@ -139,7 +144,11 @@
 
   function bind(){
     el('inventoryRefresh')?.addEventListener('click',()=>load().catch(e=>alert(e.message)));
-    el('inventoryOdooSync')?.addEventListener('click',()=>syncToOdoo().then(()=>alert('Inventory synced to Odoo successfully.')).catch(e=>{const s=el('inventoryOdooStatus');if(s){s.textContent='Odoo: Sync failed';s.className='inventory-odoo-status error';}alert(e.message);}));
+    el('inventoryOdooSync')?.addEventListener('click',()=>syncToOdoo().then(payload=>{
+      const synced=payload.synced?.length||0,unmatched=payload.unmatched?.length||0,errors=payload.errors||[];
+      const first=errors[0];
+      alert('Odoo inventory sync finished.\\nSynced: '+synced+'\\nUnmatched: '+unmatched+'\\nErrors: '+errors.length+(first?'\\nFirst error ('+first.product_code+'): '+first.error:''));
+    }).catch(e=>{const s=el('inventoryOdooStatus');if(s){s.textContent='Odoo: Sync failed';s.className='inventory-odoo-status error';}alert('Odoo inventory sync failed: '+e.message);}));
     window.addEventListener('pilark:refresh-view',e=>{if(e.detail?.view==='inventory')load().then(()=>e.detail?.done?.()).catch(err=>e.detail?.done?.(err));});
     document.querySelectorAll('[data-inventory-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.inventoryTab));
     el('inventoryAdjustmentForm')?.addEventListener('submit',adjust);
