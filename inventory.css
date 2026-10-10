@@ -13,3 +13,9 @@
 .inventory-card-filter button{min-height:44px}
 @media(max-width:1100px){.inventory-card-filter{grid-template-columns:1fr 1fr}.inventory-card-filter button{grid-column:1/-1}}
 @media(max-width:800px){.inventory-adjustment-layout{grid-template-columns:1fr}.inventory-card-filter{grid-template-columns:1fr}.inventory-card-filter button{grid-column:auto}}
+
+.inventory-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.inventory-odoo-status{font-size:12px;font-weight:700;padding:7px 10px;border-radius:999px;background:#eef3f6;color:#607785}
+.inventory-odoo-status.syncing{background:#fff4d6;color:#8a6500}
+.inventory-odoo-status.synced{background:#e7f6ed;color:#16734a}
+.inventory-odoo-status.error{background:#fdeaea;color:#b42318}
