@@ -70,7 +70,9 @@ const roleLabels={
 
 function hasAdminPermission(permission){return adminAccessState.permissions.includes(permission)}
 function hasViewAccess(view){
-  if(!adminAccessState.loaded)return true;
+  // Fail closed: until the database confirms the user's permissions, protected
+  // views must not be exposed.
+  if(!adminAccessState.loaded)return false;
   if(!adminAccessState.roles.length)return view==='settings';
   const permission=accessMap[view];
   return !permission||hasAdminPermission(permission);
@@ -95,6 +97,11 @@ function applyAdminAccess(){
   document.querySelectorAll('.side-link[data-view]').forEach(button=>{
     const view=button.dataset.view;
     button.hidden=!hasViewAccess(view);
+  });
+  // Hide entire parent groups when the role has no permitted child views.
+  document.querySelectorAll('.sidebar-menu-group[data-menu-group]').forEach(group=>{
+    const children=[...group.querySelectorAll('.side-link[data-view]')];
+    group.hidden=children.length>0&&!children.some(button=>!button.hidden);
   });
   const settings= document.getElementById('settingsUserManagement');
   if(settings) settings.hidden=!hasAdminPermission('settings.manage');
@@ -1035,7 +1042,12 @@ document.addEventListener('DOMContentLoaded',async()=>{
     if(session){
       await loadCloudState();
       enterDashboard();
-      try{await loadAdminAccess();}catch(err){console.warn('Role access load failed:',err.message);}
+      try{await loadAdminAccess();}catch(err){
+        console.error('Role access load failed; hiding protected modules:',err.message);
+        adminAccessState={roles:[],permissions:[],userId:null,loaded:true};
+        applyAdminAccess();
+        showView('settings');
+      }
       loadAdminChats();
       if(adminChatState.timer)clearInterval(adminChatState.timer);adminChatState.timer=setInterval(()=>{loadAdminChats();if(adminChatState.selected)loadAdminChatMessages();},5000);
     }else{
