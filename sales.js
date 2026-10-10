@@ -6,6 +6,7 @@
   const money=v=>'Rp'+Number(v||0).toLocaleString('id-ID',{maximumFractionDigits:2});
   const moneyCompact=v=>{const n=Number(v||0);if(!n)return 'Rp0';if(n>=1e12)return 'Rp'+(n/1e12).toLocaleString('id-ID',{maximumFractionDigits:2})+' T';if(n>=1e9)return 'Rp'+(n/1e9).toLocaleString('id-ID',{maximumFractionDigits:2})+' B';if(n>=1e6)return 'Rp'+(n/1e6).toLocaleString('id-ID',{maximumFractionDigits:2})+' Jt';if(n>=1e3)return 'Rp'+(n/1e3).toLocaleString('id-ID',{maximumFractionDigits:1})+' Rb';return money(n);};
   const esc=v=>String(v??'').replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[m]));
+  const SALES_QUOTATION_VAT_RATE=11;
   let state={orders:[],quotations:[],partners:[],products:[],tab:'overview',crm:{accounts:[],projects:[],opportunities:[],activities:[]}};
   async function load(){
     if(!client())return;
@@ -133,7 +134,7 @@
     e.preventDefault();
     const partner=el('quotationPartner')?.value,date=el('quotationDate')?.value,lines=readQuotationLines();
     if(!partner||!date||!lines.length||lines.some(l=>!l.item_name||l.quantity<=0||l.unit_price<0))return alert('Complete customer, date and all quotation items.');
-    const subtotal=lines.reduce((a,l)=>a+l.line_total,0),taxRate=Number(el('quotationTaxRate')?.value||0),tax=Math.round(subtotal*taxRate)/100,total=subtotal+tax;
+    const subtotal=lines.reduce((a,l)=>a+l.line_total,0),taxRate=SALES_QUOTATION_VAT_RATE,tax=Math.round(subtotal*taxRate)/100,total=subtotal+tax;
     const {data:userData}=await client().auth.getUser();
     const {data:qn,error:ne}=await client().rpc('next_sales_quotation_no',{p_date:date});if(ne)return alert(ne.message);
     const payload={quotation_no:qn,quotation_date:date,project_name:el('quotationProject')?.value.trim()||null,partner_id:partner,reference:el('quotationReference')?.value.trim()||null,currency_code:'IDR',subtotal,tax_rate:taxRate,tax_amount:tax,total_amount:total,status:'draft',delivery_time:el('quotationDeliveryTime')?.value.trim()||'TBA',offer_period:el('quotationOfferPeriod')?.value.trim()||null,delivery_term:el('quotationDeliveryTerm')?.value.trim()||null,warranty:el('quotationWarranty')?.value.trim()||null,notes:el('quotationNotes')?.value.trim()||null,terms_conditions:el('quotationTerms')?.value.trim()||null,salesperson_name:el('quotationSalesperson')?.value.trim()||'Sales Engineer',created_by:userData?.user?.id||null,updated_by:userData?.user?.id||null};
@@ -988,6 +989,6 @@ async function openContactResearchModal(accountId){
   el('crmSaveContact').onclick=()=>saveCRMContact(a.id);
 }
 
-function init(){if(!el('view-sales'))return;bind();showTab(state.tab||'overview');window.addEventListener('pilark:open-sales-tab',e=>{if(e.detail?.tab)showTab(e.detail.tab);});window.addEventListener('pilark:refresh-sales-quotation',()=>{load().then(()=>initQuotationUi()).catch(console.warn);});if(client())Promise.all([load(),loadCRM()]).then(()=>initQuotationUi()).catch(e=>console.warn('Sales init:',e));window.addEventListener('pilark:quotation-saved',()=>load().catch(console.warn));}
+function init(){if(!el('view-sales'))return;bind();showTab(state.tab||'overview');window.addEventListener('pilark:open-sales-tab',e=>{if(e.detail?.tab)showTab(e.detail.tab);});window.addEventListener('pilark:refresh-sales-quotation',()=>{load().then(()=>initQuotationUi()).catch(console.warn);});if(client()){load().catch(e=>console.warn('Sales data load:',e));loadCRM().catch(e=>console.warn('Sales CRM load:',e));initQuotationUi();}window.addEventListener('pilark:quotation-saved',()=>load().catch(console.warn));}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
