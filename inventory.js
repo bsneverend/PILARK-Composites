@@ -62,18 +62,42 @@
     renderStockCard();
   }
 
+  async function syncToOdoo(){
+    const c=client();
+    if(!c)throw new Error('Supabase client is not ready.');
+    const {data,error:sessionError}=await c.auth.getSession();
+    if(sessionError)throw sessionError;
+    if(!data?.session)throw new Error('CMS session has expired.');
+    const balances=state.balances;
+    const byProduct=new Map();
+    for(const b of balances)byProduct.set(b.product_id,(byProduct.get(b.product_id)||0)+Number(b.quantity||0));
+    const items=state.products.filter(p=>p.is_active).map(p=>({product_code:p.product_code,name:p.name,quantity:byProduct.get(p.id)||0}));
+    const status=el('inventoryOdooStatus');
+    if(status){status.textContent='Odoo: Syncing…';status.className='inventory-odoo-status syncing';}
+    const res=await fetch('https://seelqcgjfuuwurslwtgf.supabase.co/functions/v1/odoo-director-dashboard?detail=inventory_sync',{method:'POST',headers:{Authorization:'Bearer '+data.session.access_token,apikey:window.PILARK_SUPABASE_CONFIG?.anonKey||'','Content-Type':'application/json'},body:JSON.stringify({items})});
+    const payload=await res.json().catch(()=>({}));
+    if(!res.ok||!payload.ok)throw new Error(payload.error||'Inventory sync to Odoo failed.');
+    const unmatched=payload.unmatched?.length||0,errors=payload.errors?.length||0,synced=payload.synced?.length||0;
+    if(status){status.textContent='Odoo: '+synced+' synced'+(unmatched?' · '+unmatched+' unmatched':'');status.className='inventory-odoo-status '+(errors?'error':'synced');}
+    return payload;
+  }
+
   async function receive(id){
     if(!confirm('Receive the remaining quantities on this Purchase Order into Main Warehouse?'))return;
     const {error}=await client().rpc('receive_purchase_order_inventory',{p_purchase_order_id:id});
     if(error)return alert(error.message);
-    await load();alert('Stock receipt posted successfully.');
+    await load();
+    try{await syncToOdoo();}catch(err){console.warn('Odoo inventory sync:',err);}
+    alert('Stock receipt posted successfully and Odoo sync was attempted.');
   }
 
   async function deliver(id){
     if(!confirm('Deliver the remaining quantities on this Sales Order from Main Warehouse? This will post COGS.'))return;
     const {error}=await client().rpc('deliver_sales_order_inventory',{p_sales_order_id:id});
     if(error)return alert(error.message);
-    await load();alert('Delivery posted and COGS recorded at inventory average cost.');
+    await load();
+    try{await syncToOdoo();}catch(err){console.warn('Odoo inventory sync:',err);}
+    alert('Delivery posted, COGS recorded and Odoo sync was attempted.');
   }
 
   async function adjust(e){
@@ -85,7 +109,9 @@
     if(!confirm((type==='increase'?'Increase':'Decrease')+' inventory by '+qty(quantity)+'? This will create an accounting entry.'))return;
     const {error}=await client().rpc('adjust_inventory_stock',{p_product_id:product,p_location_id:location,p_quantity:signed,p_unit_cost:cost,p_reason:reason});
     if(error)return alert(error.message);
-    e.target.reset();populateSelectors();await load();showTab('adjustment');alert('Inventory adjustment posted successfully.');
+    e.target.reset();populateSelectors();await load();
+    try{await syncToOdoo();}catch(err){console.warn('Odoo inventory sync:',err);}
+    showTab('adjustment');alert('Inventory adjustment posted and Odoo sync was attempted.');
   }
 
   function renderStockCard(){
@@ -113,6 +139,7 @@
 
   function bind(){
     el('inventoryRefresh')?.addEventListener('click',()=>load().catch(e=>alert(e.message)));
+    el('inventoryOdooSync')?.addEventListener('click',()=>syncToOdoo().then(()=>alert('Inventory synced to Odoo successfully.')).catch(e=>{const s=el('inventoryOdooStatus');if(s){s.textContent='Odoo: Sync failed';s.className='inventory-odoo-status error';}alert(e.message);}));
     window.addEventListener('pilark:refresh-view',e=>{if(e.detail?.view==='inventory')load().then(()=>e.detail?.done?.()).catch(err=>e.detail?.done?.(err));});
     document.querySelectorAll('[data-inventory-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.inventoryTab));
     el('inventoryAdjustmentForm')?.addEventListener('submit',adjust);
