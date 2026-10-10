@@ -627,3 +627,32 @@
     width:100%;
   }
 }
+
+
+/* 2026-10-10 Quotation totals align exactly with Unit Price + Total columns */
+@media (min-width:1001px){
+  .quotation-financial-row{
+    width:470px!important;
+    max-width:470px!important;
+    grid-template-columns:304px 150px!important;
+    gap:16px!important;
+    margin-left:auto!important;
+    margin-right:0!important;
+    justify-content:initial!important;
+    align-items:center!important;
+  }
+  .quotation-total-box{
+    width:304px!important;
+    box-sizing:border-box!important;
+  }
+  .quotation-financial-row>label{
+    width:150px!important;
+    box-sizing:border-box!important;
+  }
+}
+@media (max-width:1000px){
+  .quotation-financial-row{
+    width:100%!important;
+    max-width:none!important;
+  }
+}
