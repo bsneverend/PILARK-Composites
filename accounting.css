@@ -734,3 +734,21 @@
     width:100%!important;
   }
 }
+
+
+/* 2026-10-10 Final quotation total alignment — right edge matches Total column */
+@media(min-width:1001px){
+  .quotation-financial-row{
+    display:flex!important;
+    justify-content:flex-end!important;
+    width:100%!important;
+    padding-right:44px!important; /* remove-button column (34px) + column gap (10px) */
+    box-sizing:border-box;
+  }
+  .quotation-financial-row>.quotation-total-box{
+    width:260px!important; /* Unit Price 125 + gap 10 + Total 125 */
+    max-width:260px!important;
+    margin:0!important;
+    box-sizing:border-box;
+  }
+}
