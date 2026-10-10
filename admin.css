@@ -1224,3 +1224,52 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:1
   #view-general-ledger .section-intro{display:block}
   #view-general-ledger .section-intro .text-btn{display:none}
 }
+
+
+/* 2026-10-10 Research Gantt mobile: keep activity labels fixed; scroll only weeks */
+@media(max-width:800px){
+  #view-research-schedule .research-gantt-wrap{
+    width:100%;
+    max-width:100%;
+    overflow-x:auto!important;
+    overflow-y:auto!important;
+    overscroll-behavior-x:contain;
+    -webkit-overflow-scrolling:touch;
+  }
+  #view-research-schedule .research-gantt-table{
+    min-width:0!important;
+    width:max-content!important;
+    table-layout:fixed;
+  }
+  #view-research-schedule .research-fixed-code,
+  #view-research-schedule .research-code{
+    width:58px!important;
+    min-width:58px!important;
+    max-width:58px!important;
+    left:0!important;
+  }
+  #view-research-schedule .research-fixed-name,
+  #view-research-schedule .research-name{
+    width:210px!important;
+    min-width:210px!important;
+    max-width:210px!important;
+    left:58px!important;
+    white-space:normal;
+  }
+  #view-research-schedule .research-week{
+    width:30px!important;
+    min-width:30px!important;
+    max-width:30px!important;
+  }
+  #view-research-schedule .research-week-cell{
+    width:30px!important;
+    min-width:30px!important;
+    max-width:30px!important;
+  }
+  #view-research-schedule .research-fixed-meta,
+  #view-research-schedule .research-status,
+  #view-research-schedule .research-progress,
+  #view-research-schedule .research-pic{
+    display:none!important;
+  }
+}
