@@ -49,9 +49,11 @@
 
     el('inventoryProductsBody').innerHTML=state.products.filter(p=>p.is_active).map(p=>{
       const bs=state.balances.filter(b=>b.product_id===p.id);
-      const q=bs.reduce((n,b)=>n+Number(b.quantity||0),0), v=bs.reduce((n,b)=>n+Number(b.stock_value||0),0);
-      const avg=q>0?v/q:0;
-      return '<tr data-inventory-product-row="'+esc(p.id)+'"><td><b>'+esc(p.product_code)+'</b></td><td>'+esc(p.name)+'</td><td>'+esc(p.unit)+'</td><td class="num">'+qty(q)+'</td><td class="num">'+money(v)+'</td><td class="num">'+money(avg)+'</td><td><input class="inventory-price-input" data-price-field="selling_price" type="number" min="0" step="0.01" placeholder="Not set" value="'+(p.selling_price==null?'':esc(p.selling_price))+'" aria-label="Sales price for '+esc(p.name)+'"></td><td><input class="inventory-price-input" data-price-field="standard_cost" type="number" min="0" step="0.01" value="'+esc(p.standard_cost??0)+'" aria-label="Cost for '+esc(p.name)+'"></td><td><button class="accounting-small-btn inventory-save-prices" type="button" data-id="'+esc(p.id)+'">Save</button></td></tr>';
+      const q=bs.reduce((n,b)=>n+Number(b.quantity||0),0);
+      const salesPrice=p.selling_price==null?null:Number(p.selling_price), cost=Number(p.standard_cost||0);
+      const margin=salesPrice==null?null:salesPrice-cost;
+      const stockValue=salesPrice==null?0:salesPrice*q;
+      return '<tr data-inventory-product-row="'+esc(p.id)+'"><td><b>'+esc(p.product_code)+'</b></td><td>'+esc(p.name)+'</td><td>'+esc(p.unit)+'</td><td class="num">'+qty(q)+'</td><td class="num">'+money(stockValue)+'</td><td class="num">'+(margin==null?'—':money(margin))+'</td><td><input class="inventory-price-input" data-price-field="selling_price" type="number" min="0" step="0.01" placeholder="Not set" value="'+(p.selling_price==null?'':esc(p.selling_price))+'" aria-label="Sales price for '+esc(p.name)+'"></td><td><input class="inventory-price-input" data-price-field="standard_cost" type="number" min="0" step="0.01" value="'+esc(p.standard_cost??0)+'" aria-label="Cost for '+esc(p.name)+'"></td><td><button class="accounting-small-btn inventory-save-prices" type="button" data-id="'+esc(p.id)+'">Save</button></td></tr>';
     }).join('')||'<tr><td colspan="9" class="accounting-empty">No inventory products.</td></tr>';
 
     el('inventoryReceipts').innerHTML=state.purchaseOrders.map(o=>'<div class="inventory-order-row"><div><b>'+esc(o.order_no)+'</b><span>'+esc(o.accounting_partners?.name||'—')+'</span></div><button class="accounting-small-btn inventory-receive-btn" data-id="'+o.id+'">Receive Stock</button></div>').join('')||'<div class="accounting-empty">No confirmed Purchase Orders awaiting receipt.</div>';
