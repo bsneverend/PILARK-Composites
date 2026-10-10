@@ -313,3 +313,76 @@
 .quotation-logo-card .quotation-logo-selected{position:absolute;right:7px;top:7px;background:#0b5b91;color:#fff;border-radius:999px;padding:2px 6px;font-size:8px;font-weight:800}
 .quotation-logo-empty{font-size:11px;color:#84959d;padding:6px 0}
 @media(max-width:700px){.quotation-logo-head{align-items:flex-start;flex-direction:column}.quotation-logo-card{width:130px}}
+
+
+/* 2026-10-10 Quotation proportional field layout */
+@media (min-width:1001px){
+  .quotation-editor-panel{overflow:hidden}
+  .quotation-header-grid{
+    grid-template-columns:minmax(0,1.35fr) minmax(150px,.7fr) minmax(190px,1fr) minmax(0,1fr);
+    gap:16px;
+  }
+  .quotation-items-section{
+    padding:16px;
+    overflow:hidden;
+  }
+  .quotation-section-title{
+    display:grid;
+    grid-template-columns:minmax(260px,.55fr) minmax(0,1.45fr);
+    gap:18px;
+    align-items:center;
+  }
+  .quotation-section-title .accounting-small-btn{
+    width:100%;
+    min-height:46px;
+    box-sizing:border-box;
+  }
+  .quotation-line-head,
+  .quotation-line{
+    grid-template-columns:
+      minmax(105px,.85fr)
+      minmax(145px,1.05fr)
+      minmax(240px,1.9fr)
+      minmax(72px,.62fr)
+      minmax(72px,.62fr)
+      minmax(125px,.95fr)
+      minmax(125px,.95fr)
+      34px;
+    gap:9px;
+  }
+  .quotation-line-head>div,
+  .quotation-line>*{
+    min-width:0;
+  }
+  .quotation-line input,
+  .quotation-line textarea{
+    width:100%;
+    max-width:100%;
+    box-sizing:border-box;
+  }
+  .quotation-line textarea{
+    min-height:48px;
+  }
+  .quotation-financial-row{
+    grid-template-columns:minmax(320px,1fr) 150px;
+    width:min(100%,520px);
+    margin-left:auto;
+  }
+  .quotation-terms-grid{
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    gap:16px;
+  }
+  .quotation-terms-grid label{
+    min-width:0;
+  }
+  .quotation-terms-grid input,
+  .quotation-terms-grid textarea{
+    width:100%;
+    box-sizing:border-box;
+  }
+}
+@media (min-width:701px) and (max-width:1000px){
+  .quotation-header-grid{grid-template-columns:1fr 1fr}
+  .quotation-section-title{grid-template-columns:minmax(220px,.7fr) minmax(0,1.3fr)}
+  .quotation-section-title .accounting-small-btn{width:100%}
+}
