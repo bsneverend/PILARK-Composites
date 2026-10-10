@@ -664,7 +664,7 @@ function renderOpportunityDetail(id){
       opportunity_name:opportunity,
       product:el('prospectProduct')?.value||'Other GFRP / FRP / GRP Solution',
       application:v('prospectApplication'),
-      sales_strategy:'Technical-led project development',
+      sales_strategy:'DIRECT PROJECT',
       lead_status:el('prospectPriority')?.value||'WARM',
       stage:'PROSPECT',
       probability:10,
