@@ -19,3 +19,5 @@
 .inventory-odoo-status.syncing{background:#fff4d6;color:#8a6500}
 .inventory-odoo-status.synced{background:#e7f6ed;color:#16734a}
 .inventory-odoo-status.error{background:#fdeaea;color:#b42318}
+
+.inventory-price-input{width:120px;max-width:100%;box-sizing:border-box;padding:8px 9px;border:1px solid var(--line,#dce8ee);border-radius:8px;font:inherit;font-size:13px;background:#fff;color:#14232d}.inventory-save-prices{white-space:nowrap}.inventory-table-wrap .accounting-table{min-width:1050px}.inventory-table-wrap .accounting-table td{vertical-align:middle}
