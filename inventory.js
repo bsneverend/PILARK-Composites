@@ -148,7 +148,7 @@
       const syncedItems=payload.synced||[],synced=syncedItems.length,unmatched=payload.unmatched?.length||0,errors=payload.errors||[];
       const salesPrices=syncedItems.filter(x=>x.sales_price_updated).length,costs=syncedItems.filter(x=>x.cost_updated).length;
       const first=errors[0];
-      alert('Odoo inventory sync finished.\\nSynced products: '+synced+'\\nSales prices updated: '+salesPrices+'\\nCosts updated: '+costs+'\\nUnmatched: '+unmatched+'\\nErrors: '+errors.length+(first?'\\nFirst error ('+first.product_code+'): '+first.error:''));
+      alert('Odoo inventory sync finished.\nSynced products: '+synced+'\nSales prices updated: '+salesPrices+'\nCosts updated: '+costs+'\nUnmatched: '+unmatched+'\nErrors: '+errors.length+(first?'\nFirst error ('+first.product_code+'): '+first.error:''));
     }).catch(e=>{const s=el('inventoryOdooStatus');if(s){s.textContent='Odoo: Sync failed';s.className='inventory-odoo-status error';}alert('Odoo inventory sync failed: '+e.message);}));
     window.addEventListener('pilark:refresh-view',e=>{if(e.detail?.view==='inventory')load().then(()=>e.detail?.done?.()).catch(err=>e.detail?.done?.(err));});
     document.querySelectorAll('[data-inventory-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.inventoryTab));
