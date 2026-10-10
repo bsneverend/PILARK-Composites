@@ -660,7 +660,11 @@ async function autoMatchReconcile(){const lines=state.entryLines.filter(l=>{cons
     const allLines=await postedLines();
     const allBalances=state.accounts.map(a=>({account:a,balance:balanceForAccount(allLines,a.id)}));
     const cash=allBalances.filter(x=>x.account.account_type==='asset_cash').reduce((s,x)=>s+x.balance,0);
-    const inventory=state.inventoryBalances.reduce((s,x)=>s+Number(x.stock_value||0),0);
+    let odooInventory=null;
+    try{odooInventory=await loadOdooInventory();}catch(err){console.warn('Odoo inventory for ERP Overview:',err);}
+    const inventory=odooInventory?.totals?.estimated_stock_value!=null
+      ? Number(odooInventory.totals.estimated_stock_value||0)
+      : state.inventoryBalances.reduce((s,x)=>s+Number(x.stock_value||0),0);
 
     el('erpRevenue').textContent=money(revenue);
     el('erpExpenses').textContent=money(expenses);
