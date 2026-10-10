@@ -161,6 +161,17 @@ async function bootstrapAdmin(){
     if(button)button.disabled=false;
   }
 }
+function checkZohoConnectionOnCmsLogin(){
+  const client=window.PILARK_CMS?.client;
+  if(!client?.functions?.invoke)return;
+  // Silent server-side check/refresh only; never open Zoho consent automatically.
+  client.functions.invoke('zoho-mail-status',{body:{}})
+    .then(({data,error})=>{
+      if(error)console.warn('Zoho background connection check failed:',error.message||error);
+      else window.dispatchEvent(new CustomEvent('pilark:zoho-status-checked',{detail:data||{connected:false}}));
+    })
+    .catch(err=>console.warn('Zoho background connection check failed:',err?.message||err));
+}
 function cloudReady(){return !!window.PILARK_CMS?.ready}
 function load(){try{return JSON.parse(localStorage.getItem(KEY)||'{}')}catch{return {}}}
 function activeData(){return cloudReady()?cloudState:load()}
@@ -979,6 +990,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
         }
         if(loginStatus) loginStatus.textContent='';
         enterDashboard();
+        checkZohoConnectionOnCmsLogin();
         showFirstAllowedView();
       }catch(err){
         if(loginStatus) loginStatus.textContent=err?.message||'Unable to sign in.';
@@ -1073,6 +1085,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
       enterDashboard();
       try{
         await loadAdminAccess();
+        checkZohoConnectionOnCmsLogin();
         showFirstAllowedView();
       }catch(err){
         console.error('Role access load failed; hiding protected modules:',err.message);
