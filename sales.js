@@ -594,8 +594,44 @@ function renderOpportunityDetail(id){
     if(remaining?.[0]?.due_date)await client().from('sales_opportunities').update({next_follow_up:remaining[0].due_date}).eq('id',id);
     await loadCRM();
   }
+  async function refreshZohoStatus(){
+    const badge=el('salesZohoStatus'),btn=el('salesConnectZoho');
+    if(!badge)return;
+    const setStatus=(label,state)=>{
+      badge.textContent=label;
+      badge.dataset.state=state;
+      const styles={
+        connected:{background:'#e8f7ee',color:'#137a43',border:'1px solid #b8e6c8'},
+        disconnected:{background:'#fff1f0',color:'#b42318',border:'1px solid #f3c4c0'},
+        checking:{background:'#f1f5f9',color:'#475569',border:'1px solid #dbe3eb'}
+      };
+      Object.assign(badge.style,{display:'inline-flex',alignItems:'center',gap:'7px',padding:'7px 11px',borderRadius:'999px',fontSize:'12px',fontWeight:'700',lineHeight:'1.2',...(styles[state]||styles.checking)});
+    };
+    setStatus('Checking Zoho Mail…','checking');
+    if(btn)btn.hidden=true;
+    if(!client()){
+      setStatus('Zoho Mail status unavailable','disconnected');
+      if(btn)btn.hidden=false;
+      return;
+    }
+    try{
+      const {data,error}=await client().functions.invoke('zoho-mail-status',{body:{}});
+      if(error)throw error;
+      if(data?.connected===true){
+        setStatus('● Zoho Mail connected','connected');
+        if(btn)btn.hidden=true;
+      }else{
+        setStatus('● Zoho Mail not connected','disconnected');
+        if(btn)btn.hidden=false;
+      }
+    }catch(err){
+      console.warn('Zoho connection status:',err?.message||err);
+      setStatus('● Zoho Mail status unavailable','disconnected');
+      if(btn)btn.hidden=false;
+    }
+  }
   function bind(){document.querySelectorAll('[data-sales-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.salesTab));el('partnerForm')?.addEventListener('submit',createSalesContact);el('salesForm')?.addEventListener('submit',createQuotation);el('addSalesLine')?.addEventListener('click',()=>{el('salesLines').insertAdjacentHTML('beforeend',lineHtml(el('salesLines').children.length));updatePreview();});el('salesLines')?.addEventListener('click',e=>{if(e.target.classList.contains('sales-line-remove')){const rows=el('salesLines').querySelectorAll('.sales-line');if(rows.length>1)e.target.closest('.sales-line').remove();updatePreview();}});el('salesLines')?.addEventListener('input',updatePreview);el('salesRefresh')?.addEventListener('click',()=>Promise.all([load(),loadCRM()]).catch(e=>alert(e.message)));
-    window.addEventListener('pilark:refresh-view',e=>{if(e.detail?.view==='sales')Promise.all([load(),loadCRM()]).then(()=>e.detail?.done?.()).catch(err=>e.detail?.done?.(err));});
+    window.addEventListener('pilark:refresh-view',e=>{if(e.detail?.view==='sales')Promise.all([load(),loadCRM(),refreshZohoStatus()]).then(()=>e.detail?.done?.()).catch(err=>e.detail?.done?.(err));});
     el('salesCrmRefresh')?.addEventListener('click',()=>loadCRM().catch(e=>alert(e.message)));
     el('salesConnectZoho')?.addEventListener('click',async()=>{
       const btn=el('salesConnectZoho');
