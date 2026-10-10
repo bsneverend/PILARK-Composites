@@ -597,6 +597,21 @@ function renderOpportunityDetail(id){
   function bind(){document.querySelectorAll('[data-sales-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.salesTab));el('partnerForm')?.addEventListener('submit',createSalesContact);el('salesForm')?.addEventListener('submit',createQuotation);el('addSalesLine')?.addEventListener('click',()=>{el('salesLines').insertAdjacentHTML('beforeend',lineHtml(el('salesLines').children.length));updatePreview();});el('salesLines')?.addEventListener('click',e=>{if(e.target.classList.contains('sales-line-remove')){const rows=el('salesLines').querySelectorAll('.sales-line');if(rows.length>1)e.target.closest('.sales-line').remove();updatePreview();}});el('salesLines')?.addEventListener('input',updatePreview);el('salesRefresh')?.addEventListener('click',()=>Promise.all([load(),loadCRM()]).catch(e=>alert(e.message)));
     window.addEventListener('pilark:refresh-view',e=>{if(e.detail?.view==='sales')Promise.all([load(),loadCRM()]).then(()=>e.detail?.done?.()).catch(err=>e.detail?.done?.(err));});
     el('salesCrmRefresh')?.addEventListener('click',()=>loadCRM().catch(e=>alert(e.message)));
+    el('salesConnectZoho')?.addEventListener('click',async()=>{
+      const btn=el('salesConnectZoho');
+      if(!client())return alert('PILARK CMS connection is not ready. Please reload and sign in again.');
+      const original=btn.textContent;
+      btn.disabled=true;btn.textContent='Connecting…';
+      try{
+        const {data,error}=await client().functions.invoke('zoho-mail-oauth-start',{body:{}});
+        if(error)throw error;
+        if(!data?.authorization_url)throw new Error(data?.error||'Could not start Zoho authorization.');
+        window.location.assign(data.authorization_url);
+      }catch(err){
+        alert(err?.message||'Could not start Zoho authorization.');
+        btn.disabled=false;btn.textContent=original;
+      }
+    });
     el('salesAddProspect')?.addEventListener('click',openSalesProspectModal);
     el('salesAiFindProspect')?.addEventListener('click',openAiProspectModal);
     el('salesAiProspectClose')?.addEventListener('click',closeAiProspectModal);
