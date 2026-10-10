@@ -87,7 +87,7 @@
     });
   }
   function updateQuotationTotals(){
-    const lines=readQuotationLines(),sub=lines.reduce((a,l)=>a+l.line_total,0),rate=Number(el('quotationTaxRate')?.value||0),tax=Math.round(sub*rate)/100,total=sub+tax;
+    const lines=readQuotationLines(),sub=lines.reduce((a,l)=>a+l.line_total,0),rate=SALES_QUOTATION_VAT_RATE,tax=Math.round(sub*rate)/100,total=sub+tax;
     if(el('quotationSubtotal'))el('quotationSubtotal').textContent=money(sub);
     if(el('quotationTax'))el('quotationTax').textContent=money(tax);
     if(el('quotationTotal'))el('quotationTotal').textContent=money(total);
@@ -139,7 +139,7 @@
     const payload={quotation_no:qn,quotation_date:date,project_name:el('quotationProject')?.value.trim()||null,partner_id:partner,reference:el('quotationReference')?.value.trim()||null,currency_code:'IDR',subtotal,tax_rate:taxRate,tax_amount:tax,total_amount:total,status:'draft',delivery_time:el('quotationDeliveryTime')?.value.trim()||'TBA',offer_period:el('quotationOfferPeriod')?.value.trim()||null,delivery_term:el('quotationDeliveryTerm')?.value.trim()||null,warranty:el('quotationWarranty')?.value.trim()||null,notes:el('quotationNotes')?.value.trim()||null,terms_conditions:el('quotationTerms')?.value.trim()||null,salesperson_name:el('quotationSalesperson')?.value.trim()||'Sales Engineer',created_by:userData?.user?.id||null,updated_by:userData?.user?.id||null};
     const {data:q,error}=await client().from('sales_quotations').insert(payload).select().single();if(error)return alert(error.message);
     const {error:le}=await client().from('sales_quotation_lines').insert(lines.map(l=>({...l,quotation_id:q.id})));if(le){await client().from('sales_quotations').delete().eq('id',q.id);return alert(le.message);}
-    e.target.reset();el('quotationDate').value=today();el('quotationTaxRate').value=11;el('quotationDeliveryTime').value='TBA';el('quotationOfferPeriod').value='Price could be changed without any prior notice';el('quotationWarranty').value='1 Year';el('quotationSalesperson').value='Sales Engineer';el('quotationLines').innerHTML=quotationLineHtml(0);updateQuotationTotals();await load();showTab('quotations');alert('Quotation '+qn+' saved as Draft.');
+    e.target.reset();el('quotationDate').value=today();el('quotationDeliveryTime').value='TBA';el('quotationOfferPeriod').value='Price could be changed without any prior notice';el('quotationWarranty').value='1 Year';el('quotationSalesperson').value='Sales Engineer';el('quotationLines').innerHTML=quotationLineHtml(0);updateQuotationTotals();await load();showTab('quotations');alert('Quotation '+qn+' saved as Draft.');
   }
   async function printQuotation(id){
     const w=window.open('about:blank','_blank','width=900,height=900');if(!w)return alert('Please allow pop-ups for Print / PDF.');
@@ -166,7 +166,7 @@
       form.addEventListener('submit',createSalesQuotationDocument);
       el('addQuotationLine')?.addEventListener('click',()=>{const box=el('quotationLines');if(box){box.insertAdjacentHTML('beforeend',quotationLineHtml(box.children.length));updateQuotationTotals();}});
       el('quotationDate')?.addEventListener('change',prepareQuotationNumber);
-      el('quotationTaxRate')?.addEventListener('input',updateQuotationTotals);
+      
       el('quotationLogoFile')?.addEventListener('change',e=>uploadQuotationLogo(e.target.files?.[0]).catch(err=>alert(err.message||'Logo upload failed.')));
     }
     if(el('quotationDate')&&!el('quotationDate').value)el('quotationDate').value=today();
