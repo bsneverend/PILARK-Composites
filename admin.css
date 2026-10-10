@@ -1273,3 +1273,13 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:1
     display:none!important;
   }
 }
+
+
+/* 2026-10-10 Fix mobile Gantt week alignment after hiding metadata columns */
+@media(max-width:800px){
+  #view-research-schedule #researchGanttHead tr:nth-child(2) th:nth-child(3),
+  #view-research-schedule #researchGanttHead tr:nth-child(2) th:nth-child(4),
+  #view-research-schedule #researchGanttHead tr:nth-child(2) th:nth-child(5){
+    display:none!important;
+  }
+}
