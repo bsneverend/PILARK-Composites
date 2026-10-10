@@ -1046,6 +1046,6 @@ async function openContactResearchModal(accountId){
   el('crmSaveContact').onclick=()=>saveCRMContact(a.id);
 }
 
-function init(){if(!el('view-sales'))return;bind();showTab(state.tab||'overview');window.addEventListener('pilark:open-sales-tab',e=>{if(e.detail?.tab)showTab(e.detail.tab);});window.addEventListener('pilark:refresh-sales-quotation',()=>{load().then(()=>initQuotationUi()).catch(console.warn);});if(client()){load().catch(e=>console.warn('Sales data load:',e));loadCRM().catch(e=>console.warn('Sales CRM load:',e));initQuotationUi();}window.addEventListener('pilark:quotation-saved',()=>load().catch(console.warn));}
+function init(){if(!el('view-sales'))return;bind();showTab(state.tab||'overview');refreshZohoStatus().catch(console.warn);window.addEventListener('pilark:open-sales-tab',e=>{if(e.detail?.tab)showTab(e.detail.tab);});window.addEventListener('pilark:refresh-sales-quotation',()=>{load().then(()=>initQuotationUi()).catch(console.warn);});if(client()){load().catch(e=>console.warn('Sales data load:',e));loadCRM().catch(e=>console.warn('Sales CRM load:',e));initQuotationUi();}window.addEventListener('pilark:quotation-saved',()=>load().catch(console.warn));}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
