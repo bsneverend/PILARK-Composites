@@ -905,6 +905,18 @@ function showView(name){
   if(name!=='settings' && !hasViewAccess(name)) showView('settings');
 }
 
+function showFirstAllowedView(){
+  const active=document.querySelector('.view.active');
+  const activeName=active?.id?.replace(/^view-/,'');
+  if(activeName&&hasViewAccess(activeName)){
+    showView(activeName);
+    return;
+  }
+  const preferred=['dashboard','research-schedule','odoo-director-dashboard','general-ledger','transaction-input','sales','purchase','inventory','media','products','sections','chat','settings'];
+  const next=preferred.find(view=>hasViewAccess(view));
+  if(next)showView(next);
+}
+
 function enterDashboard(){
   document.getElementById('loginView').hidden=true;
   document.getElementById('adminApp').hidden=false;
@@ -949,12 +961,25 @@ document.addEventListener('DOMContentLoaded',async()=>{
       if(!email||!password){if(loginStatus) loginStatus.textContent='Please enter your email and password.';return;}
 
       try{
+        // Clear the previous account's permissions before authenticating another user.
+        adminAccessState={roles:[],permissions:[],userId:null,loaded:false};
+        applyAdminAccess();
         if(loginStatus) loginStatus.textContent='Signing in...';
         const {error}=await window.PILARK_CMS.client.auth.signInWithPassword({email,password});
         if(error) throw error;
         await loadCloudState();
+        try{
+          await loadAdminAccess();
+        }catch(accessError){
+          // Never keep the previous account's permissions if the access RPC fails.
+          adminAccessState={roles:[],permissions:[],userId:null,loaded:true};
+          applyAdminAccess();
+          await window.PILARK_CMS.client.auth.signOut().catch(()=>{});
+          throw new Error('Unable to load your role permissions. Please try again. '+(accessError?.message||''));
+        }
         if(loginStatus) loginStatus.textContent='';
         enterDashboard();
+        showFirstAllowedView();
       }catch(err){
         if(loginStatus) loginStatus.textContent=err?.message||'Unable to sign in.';
       }
@@ -1028,6 +1053,10 @@ document.addEventListener('DOMContentLoaded',async()=>{
     if(logoutBtn) logoutBtn.onclick=async()=>{
       try{await window.PILARK_CMS.client.auth.signOut();}catch(err){console.warn('Sign out failed:',err);}
       sessionStorage.removeItem(SESSION_KEY);
+      // Remove the old user's role state immediately; the next login must fetch
+      // permissions again for the newly authenticated Supabase user.
+      adminAccessState={roles:[],permissions:[],userId:null,loaded:false};
+      applyAdminAccess();
       document.getElementById('loginForm').reset();
       showLogin('');
     };
