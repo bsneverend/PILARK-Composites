@@ -1071,7 +1071,10 @@ document.addEventListener('DOMContentLoaded',async()=>{
     if(session){
       await loadCloudState();
       enterDashboard();
-      try{await loadAdminAccess();}catch(err){
+      try{
+        await loadAdminAccess();
+        showFirstAllowedView();
+      }catch(err){
         console.error('Role access load failed; hiding protected modules:',err.message);
         adminAccessState={roles:[],permissions:[],userId:null,loaded:true};
         applyAdminAccess();
