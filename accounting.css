@@ -656,3 +656,43 @@
     max-width:none!important;
   }
 }
+
+
+/* 2026-10-10 Quotation financial row — VAT left, totals aligned under price/total */
+.quotation-financial-row{
+  width:min(100%,620px)!important;
+  grid-template-columns:150px minmax(360px,1fr)!important;
+  justify-content:end!important;
+  align-items:center!important;
+  gap:16px!important;
+}
+.quotation-financial-row>.quotation-vat-field{
+  grid-column:1;
+  grid-row:1;
+  width:100%;
+  align-self:center!important;
+}
+.quotation-financial-row>.quotation-total-box{
+  grid-column:2;
+  grid-row:1;
+  width:100%;
+  box-sizing:border-box;
+  margin:0!important;
+}
+.quotation-vat-field input{
+  width:100%!important;
+  height:48px!important;
+  min-height:48px!important;
+  box-sizing:border-box;
+}
+@media(max-width:700px){
+  .quotation-financial-row{
+    width:100%!important;
+    grid-template-columns:1fr!important;
+  }
+  .quotation-financial-row>.quotation-vat-field,
+  .quotation-financial-row>.quotation-total-box{
+    grid-column:1;
+    grid-row:auto;
+  }
+}
