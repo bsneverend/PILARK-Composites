@@ -386,3 +386,214 @@
   .quotation-section-title{grid-template-columns:minmax(220px,.7fr) minmax(0,1.3fr)}
   .quotation-section-title .accounting-small-btn{width:100%}
 }
+
+
+/* 2026-10-10 Quotation visual refinement — balanced, clean workspace */
+.quotation-workspace{
+  gap:20px;
+}
+.quotation-editor-panel{
+  border-radius:18px!important;
+}
+.quotation-logo-panel{
+  margin:0 0 2px!important;
+  padding:18px 20px!important;
+  border-radius:16px!important;
+  background:linear-gradient(180deg,#fbfdfe 0%,#f7fafb 100%)!important;
+}
+.quotation-logo-head{
+  align-items:center!important;
+  margin-bottom:14px!important;
+}
+.quotation-logo-library{
+  display:flex!important;
+  align-items:center!important;
+  min-height:88px;
+}
+.quotation-logo-card{
+  width:190px!important;
+  padding:10px!important;
+  border-radius:12px!important;
+  box-sizing:border-box;
+}
+.quotation-logo-card img{
+  height:62px!important;
+}
+.quotation-logo-upload{
+  min-height:40px;
+  padding:0 16px!important;
+  border-radius:10px!important;
+}
+
+.quotation-items-section{
+  padding:18px 20px!important;
+  border-radius:16px!important;
+  background:#fbfdfe!important;
+}
+.quotation-section-title{
+  grid-template-columns:300px minmax(0,1fr)!important;
+  gap:18px!important;
+  margin-bottom:16px!important;
+}
+.quotation-section-title strong{
+  font-size:16px!important;
+}
+.quotation-section-title span{
+  font-size:12px!important;
+  line-height:1.35;
+}
+.quotation-section-title .accounting-small-btn{
+  min-height:48px!important;
+  border-radius:10px!important;
+  font-size:13px!important;
+  background:#fff!important;
+}
+
+.quotation-line-head,
+.quotation-line{
+  grid-template-columns:
+    minmax(100px,.78fr)
+    minmax(150px,1.05fr)
+    minmax(250px,1.9fr)
+    minmax(70px,.55fr)
+    minmax(70px,.58fr)
+    minmax(125px,.9fr)
+    minmax(125px,.9fr)
+    34px!important;
+  gap:10px!important;
+}
+.quotation-line-head{
+  padding:0 2px 8px!important;
+  font-size:10px!important;
+}
+.quotation-line{
+  padding:0!important;
+}
+.quotation-line input,
+.quotation-line textarea{
+  min-height:42px;
+  padding:10px 11px!important;
+  border-radius:9px!important;
+  font-size:12px!important;
+}
+.quotation-line textarea{
+  min-height:58px!important;
+}
+.quotation-line .q-line-total{
+  background:#f3f7f9!important;
+  font-weight:700!important;
+}
+.quotation-line .q-remove{
+  width:34px;
+  height:42px;
+  border-radius:9px;
+  align-self:start;
+}
+
+.quotation-financial-row{
+  width:min(100%,540px)!important;
+  grid-template-columns:minmax(330px,1fr) 150px!important;
+  gap:16px!important;
+  margin-top:20px!important;
+}
+.quotation-total-box{
+  padding:15px 18px!important;
+  border-radius:14px!important;
+  background:#f7fafb!important;
+}
+.quotation-total-box span,
+.quotation-total-box strong{
+  min-height:26px;
+  align-items:center;
+}
+.quotation-total-box strong{
+  font-size:18px!important;
+}
+.quotation-financial-row label{
+  display:grid;
+  gap:7px;
+  color:#506672;
+  font-size:12px;
+  font-weight:700;
+}
+.quotation-financial-row input{
+  width:100%;
+  min-height:48px;
+  box-sizing:border-box;
+  border:1px solid #d5e3e9;
+  border-radius:11px;
+  padding:11px 12px;
+  font:500 14px Inter,sans-serif;
+}
+
+.quotation-terms-grid{
+  margin-top:22px!important;
+  gap:18px!important;
+}
+.quotation-terms-grid label{
+  display:grid;
+  gap:7px;
+  min-width:0;
+  color:#506672;
+  font-size:12px;
+  font-weight:700;
+}
+.quotation-terms-grid input,
+.quotation-terms-grid textarea{
+  min-height:48px;
+  box-sizing:border-box;
+  border:1px solid #d5e3e9;
+  border-radius:11px;
+  padding:11px 12px;
+  font:500 14px Inter,sans-serif;
+}
+.quotation-terms-grid textarea{
+  min-height:92px!important;
+}
+
+@media(max-width:1000px){
+  .quotation-section-title{
+    grid-template-columns:1fr!important;
+  }
+  .quotation-section-title .accounting-small-btn{
+    width:100%!important;
+  }
+  .quotation-line-head{display:none!important}
+  .quotation-line{
+    grid-template-columns:1fr 1fr!important;
+    gap:10px!important;
+    padding:10px!important;
+    border:1px solid #e1eaee;
+    border-radius:12px;
+    background:#fff;
+  }
+  .quotation-line .q-desc{
+    grid-column:1/-1;
+  }
+  .quotation-line .q-remove{
+    justify-self:end;
+  }
+}
+@media(max-width:700px){
+  .quotation-logo-head{
+    align-items:flex-start!important;
+    flex-direction:column!important;
+  }
+  .quotation-logo-card{width:160px!important}
+  .quotation-financial-row{
+    width:100%!important;
+    grid-template-columns:1fr!important;
+  }
+  .quotation-terms-grid{
+    grid-template-columns:1fr!important;
+  }
+  .quotation-items-section{
+    padding:14px!important;
+  }
+  .quotation-line{
+    grid-template-columns:1fr!important;
+  }
+  .quotation-line .q-desc{
+    grid-column:auto;
+  }
+}
