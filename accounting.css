@@ -710,3 +710,27 @@
   box-sizing:border-box;
   margin:0!important;
 }
+
+
+/* 2026-10-10 Quotation totals — directly under Unit Price + Total columns */
+.quotation-financial-row{
+  display:flex!important;
+  justify-content:flex-end!important;
+  align-items:flex-start!important;
+  width:100%!important;
+  margin-top:20px!important;
+}
+.quotation-financial-row>.quotation-total-box{
+  width:360px!important;
+  max-width:calc(100% - 0px)!important;
+  margin:0!important;
+  box-sizing:border-box;
+}
+@media(max-width:700px){
+  .quotation-financial-row{
+    display:block!important;
+  }
+  .quotation-financial-row>.quotation-total-box{
+    width:100%!important;
+  }
+}
