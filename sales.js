@@ -7,7 +7,7 @@
   const moneyCompact=v=>{const n=Number(v||0);if(!n)return 'Rp0';if(n>=1e12)return 'Rp'+(n/1e12).toLocaleString('id-ID',{maximumFractionDigits:2})+' T';if(n>=1e9)return 'Rp'+(n/1e9).toLocaleString('id-ID',{maximumFractionDigits:2})+' B';if(n>=1e6)return 'Rp'+(n/1e6).toLocaleString('id-ID',{maximumFractionDigits:2})+' Jt';if(n>=1e3)return 'Rp'+(n/1e3).toLocaleString('id-ID',{maximumFractionDigits:1})+' Rb';return money(n);};
   const esc=v=>String(v??'').replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[m]));
   const SALES_QUOTATION_VAT_RATE=11;
-  let state={orders:[],quotations:[],partners:[],products:[],tab:'overview',crm:{accounts:[],projects:[],opportunities:[],activities:[]}};
+  let state={orders:[],quotations:[],partners:[],products:[],tab:'overview',crm:{accounts:[],projects:[],opportunities:[],activities:[]}}; const crmExpandedStages=new Set();
   async function load(){
     if(!client())return;
     const [o,q,p,pr]=await Promise.all([
@@ -444,15 +444,19 @@ function renderOpportunityDetail(id){
     const board=el('salesExecutionBoard');
     if(board){
       board.innerHTML=CRM_STAGES.map(stage=>{
-        const items=os.filter(o=>o.stage===stage);
-        return '<div class="crm-column '+crmStageClass(stage)+'"><div class="crm-column-head"><b>'+esc(stage)+'</b><span>'+items.length+'</span></div><div class="crm-column-body">'+(items.length?items.map(o=>{
+        const items=os.filter(o=>o.stage===stage).sort((a,b)=>String(b.created_at||b.id||'').localeCompare(String(a.created_at||a.id||'')));
+        const expanded=crmExpandedStages.has(stage);
+        const visible=expanded?items:items.slice(0,3);
+        const toggle=items.length>3?'<button type="button" class="crm-column-toggle" data-crm-toggle-stage="'+esc(stage)+'">'+(expanded?'Show less':'Show all ('+items.length+')')+'</button>':'';
+        return '<div class="crm-column '+crmStageClass(stage)+'"><div class="crm-column-head"><div><b>'+esc(stage)+'</b><span>'+items.length+'</span></div>'+toggle+'</div><div class="crm-column-body">'+(visible.length?visible.map(o=>{
           const a=o.sales_accounts||{},p=o.sales_projects||{};
           const next=CRM_STAGES[Math.min(CRM_STAGES.indexOf(stage)+1,CRM_STAGES.length-1)];
           return '<article class="crm-card" data-opp-id="'+o.id+'"><button type="button" class="crm-card-open" data-id="'+o.id+'" aria-label="Open opportunity">↗</button><div class="crm-card-top"><span class="crm-priority '+crmPriorityClass(a.priority||o.lead_status)+'">'+esc(a.priority||o.lead_status)+'</span><span class="crm-card-product">'+esc(o.product)+'</span></div><strong>'+esc(a.company_name||'—')+'</strong><small>'+esc(p.project_name||o.opportunity_name)+'</small><div class="crm-card-meta"><span>'+esc(o.sales_strategy)+'</span><span>Follow-up '+esc(o.next_follow_up||'—')+'</span></div><p>'+esc(o.next_action||'No next action')+'</p><div class="crm-card-actions"><button type="button" class="crm-action crm-done" data-id="'+o.id+'">Done</button>'+(CRM_STAGES.indexOf(stage)>0?'<button type="button" class="crm-action crm-undo" data-id="'+o.id+'">↶ Undo</button>':'')+(CRM_STAGES.indexOf(stage)<CRM_STAGES.length-1?'<button type="button" class="crm-action crm-advance" data-id="'+o.id+'" data-next="'+esc(next)+'">→ '+esc(next)+'</button>':'')+'</div></article>';
         }).join(''):'<div class="crm-empty">No opportunities</div>')+'</div></div>';
       }).join('');
+      board.querySelectorAll('[data-crm-toggle-stage]').forEach(btn=>btn.onclick=()=>{const stage=btn.dataset.crmToggleStage;if(crmExpandedStages.has(stage))crmExpandedStages.delete(stage);else crmExpandedStages.add(stage);renderCRM();});
     }
-    if(el('salesAccountsBody'))el('salesAccountsBody').innerHTML=as.map(a=>{
+     if(el('salesAccountsBody'))el('salesAccountsBody').innerHTML=as.map(a=>{
       const cs=(c.contacts||[]).filter(x=>x.account_id===a.id);
       const rank={HIGH:0,MEDIUM:1,LOW:2}; const best=cs.slice().sort((x,y)=>(rank[x.confidence]??9)-(rank[y.confidence]??9))[0];
       const email=best?.email||a.public_email, phone=best?.phone||a.public_phone, mobile=best?.whatsapp_phone||best?.mobile_phone||a.whatsapp_phone||a.mobile_phone, linkedin=best?.linkedin_url||a.linkedin_url;
