@@ -615,7 +615,9 @@ function renderOpportunityDetail(id){
       return;
     }
     try{
-      const {data,error}=await client().functions.invoke('zoho-mail-status',{body:{}});
+      const statusRequest=client().functions.invoke('zoho-mail-status',{body:{}});
+      const timeout=new Promise((_,reject)=>setTimeout(()=>reject(new Error('Zoho status check timed out')),8000));
+      const {data,error}=await Promise.race([statusRequest,timeout]);
       if(error)throw error;
       if(data?.connected===true){
         setStatus('● Zoho Mail connected','connected');
