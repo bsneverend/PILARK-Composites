@@ -51,7 +51,7 @@
       const bs=state.balances.filter(b=>b.product_id===p.id);
       const q=bs.reduce((n,b)=>n+Number(b.quantity||0),0), v=bs.reduce((n,b)=>n+Number(b.stock_value||0),0);
       const avg=q>0?v/q:0;
-      return '<tr><td><b>'+esc(p.product_code)+'</b></td><td>'+esc(p.name)+'</td><td>'+esc(p.unit)+'</td><td class="num">'+qty(q)+'</td><td class="num">'+money(v)+'</td><td class="num">'+money(avg)+'</td></tr>';
+      return '<tr data-inventory-product-row="'+esc(p.id)+'"><td><b>'+esc(p.product_code)+'</b></td><td>'+esc(p.name)+'</td><td>'+esc(p.unit)+'</td><td class="num">'+qty(q)+'</td><td class="num">'+money(v)+'</td><td class="num">'+money(avg)+'</td><td><input class="inventory-price-input" data-price-field="selling_price" type="number" min="0" step="0.01" placeholder="Not set" value="'+(p.selling_price==null?'':esc(p.selling_price))+'" aria-label="Sales price for '+esc(p.name)+'"></td><td><input class="inventory-price-input" data-price-field="standard_cost" type="number" min="0" step="0.01" value="'+esc(p.standard_cost??0)+'" aria-label="Cost for '+esc(p.name)+'"></td><td><button class="accounting-small-btn inventory-save-prices" type="button" data-id="'+esc(p.id)+'">Save</button></td></tr>';
     }).join('')||'<tr><td colspan="6" class="accounting-empty">No inventory products.</td></tr>';
 
     el('inventoryReceipts').innerHTML=state.purchaseOrders.map(o=>'<div class="inventory-order-row"><div><b>'+esc(o.order_no)+'</b><span>'+esc(o.accounting_partners?.name||'—')+'</span></div><button class="accounting-small-btn inventory-receive-btn" data-id="'+o.id+'">Receive Stock</button></div>').join('')||'<div class="accounting-empty">No confirmed Purchase Orders awaiting receipt.</div>';
@@ -71,7 +71,7 @@
     const balances=state.balances;
     const byProduct=new Map();
     for(const b of balances)byProduct.set(b.product_id,(byProduct.get(b.product_id)||0)+Number(b.quantity||0));
-    const items=state.products.filter(p=>p.is_active).map(p=>({product_code:p.product_code,name:p.name,quantity:byProduct.get(p.id)||0}));
+    const items=state.products.filter(p=>p.is_active).map(p=>({product_code:p.product_code,name:p.name,quantity:byProduct.get(p.id)||0,...(p.selling_price!==null&&p.selling_price!==undefined&&p.selling_price!==''?{selling_price:Number(p.selling_price)}:{}),...(Number(p.standard_cost)>0?{standard_cost:Number(p.standard_cost)}:{})}));
     const status=el('inventoryOdooStatus');
     if(status){status.textContent='Odoo: Syncing…';status.className='inventory-odoo-status syncing';}
     const res=await fetch('https://seelqcgjfuuwurslwtgf.supabase.co/functions/v1/odoo-director-dashboard?detail=inventory_sync',{method:'POST',headers:{Authorization:'Bearer '+data.session.access_token,apikey:window.PILARK_SUPABASE_CONFIG?.anonKey||'','Content-Type':'application/json'},body:JSON.stringify({items})});
@@ -152,6 +152,24 @@
     window.addEventListener('pilark:refresh-view',e=>{if(e.detail?.view==='inventory')load().then(()=>e.detail?.done?.()).catch(err=>e.detail?.done?.(err));});
     document.querySelectorAll('[data-inventory-tab]').forEach(b=>b.onclick=()=>showTab(b.dataset.inventoryTab));
     el('inventoryAdjustmentForm')?.addEventListener('submit',adjust);
+    el('inventoryProductsBody')?.addEventListener('click',async e=>{
+      const button=e.target.closest('.inventory-save-prices');
+      if(!button)return;
+      const row=button.closest('[data-inventory-product-row]');
+      if(!row)return;
+      const sellingInput=row.querySelector('[data-price-field="selling_price"]');
+      const costInput=row.querySelector('[data-price-field="standard_cost"]');
+      const sellingRaw=sellingInput.value.trim(),costRaw=costInput.value.trim();
+      const sellingPrice=sellingRaw===''?null:Number(sellingRaw),standardCost=costRaw===''?0:Number(costRaw);
+      if((sellingPrice!==null&&(!Number.isFinite(sellingPrice)||sellingPrice<0))||!Number.isFinite(standardCost)||standardCost<0)return alert('Prices must be valid numbers greater than or equal to zero.');
+      button.disabled=true;button.textContent='Saving…';
+      try{
+        const {error}=await client().from('inventory_products').update({selling_price:sellingPrice,standard_cost:standardCost}).eq('id',button.dataset.id);
+        if(error)throw error;
+        await load();
+        alert('Prices saved in PILARK. Click “Sync to Odoo” to update Odoo Sales Price and Cost.');
+      }catch(err){alert('Could not save product prices: '+(err.message||err));button.disabled=false;button.textContent='Save';}
+    });
     el('inventoryCardApply')?.addEventListener('click',renderStockCard);
     el('inventoryCardProduct')?.addEventListener('change',renderStockCard);
     el('inventoryCardLocation')?.addEventListener('change',renderStockCard);
