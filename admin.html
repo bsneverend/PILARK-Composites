@@ -222,7 +222,9 @@
       <label>Subject<input id="crmActivitySubject" required placeholder="e.g. Request engineering meeting"></label>
       <label>Email Recipient<input id="crmActivityTo" type="email" placeholder="Contact email"></label>
       <label>Message / Notes<textarea id="crmActivityNotes" rows="7" placeholder="Write the activity notes or email message..."></textarea></label>
-      <div class="crm-email-hint">For EMAIL activities, the message is sent through the configured PILARK mail provider and logged automatically in the CRM.</div>
+      <label>Attachments <input id="crmActivityAttachments" type="file" multiple></label>
+      <div class="crm-email-hint">For EMAIL activities, select any documents to attach (company profile, product catalog, brochure, technical datasheet, or project reference). Up to 10 files; 15 MB per file and 25 MB total. Attachments are optional.</div>
+      <div class="crm-email-hint">Emails are sent through PILARK's connected Zoho Mail account and logged automatically in the CRM.</div>
       <div class="crm-modal-form-actions"><button id="crmActivityCancel" class="accounting-small-btn" type="button">Cancel</button><button id="crmActivitySend" class="primary-btn" type="submit">Save Activity →</button></div>
     </form>
   </div>
@@ -570,4 +572,4 @@
     </form>
   </div>
 </div>
-</main></div><script src="admin.js?v=20261010-zoho-login-check-v1"></script><script src="sales.js?v=20261010-zoho-init-check-v3"></script><script src="purchase.js?v=20261006-stable-pre-floating"></script><script src="inventory.js?v=20261010-product-prices-v2"></script><script src="bank-reconciliation.js?v=20261006-stable-pre-floating"></script><script src="general-ledger.js?v=20261009-odoo-gl-v10"></script><script src="transaction-input.js?v=20261009-live-odoo-status-v3"></script></body></html>
+</main></div><script src="admin.js?v=20261010-zoho-login-check-v1"></script><script src="sales.js?v=20261010-email-attachments-v1"></script><script src="purchase.js?v=20261006-stable-pre-floating"></script><script src="inventory.js?v=20261010-product-prices-v2"></script><script src="bank-reconciliation.js?v=20261006-stable-pre-floating"></script><script src="general-ledger.js?v=20261009-odoo-gl-v10"></script><script src="transaction-input.js?v=20261009-live-odoo-status-v3"></script></body></html>
