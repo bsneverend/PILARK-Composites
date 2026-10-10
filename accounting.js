@@ -77,7 +77,9 @@
     const balances=state.accounts.map(a=>({account:a,balance:balanceForAccount(lines,a.id)}));
     const sumType=types=>balances.filter(x=>types.includes(x.account.account_type)).reduce((s,x)=>s+x.balance,0);
     const cash=sumType(['asset_cash']), ar=sumType(['asset_receivable']), ap=sumType(['liability_payable']), revenue=sumType(['income','income_other']), expenses=sumType(['expense','expense_other','expense_depreciation','expense_direct_cost']);
-    const inventory=state.inventoryBalances.reduce((s,x)=>s+Number(x.stock_value||0),0);
+    let odooInventory=null;
+    try{odooInventory=await loadOdooInventory();}catch(err){console.warn('Odoo inventory:',err);}
+
     const mStart=monthStart(), now=today();
     const salesMTD=state.invoices.filter(d=>d.status!=='cancelled'&&d.document_date>=mStart&&d.document_date<=now).reduce((s,d)=>s+Number(d.total_amount||0),0);
     const purchasesMTD=state.bills.filter(d=>d.status!=='cancelled'&&d.document_date>=mStart&&d.document_date<=now).reduce((s,d)=>s+Number(d.total_amount||0),0);
@@ -615,6 +617,21 @@ async function autoMatchReconcile(){const lines=state.entryLines.filter(l=>{cons
     return {from:y+'-01-01',to:y+'-12-31',label:'Full year '+y};
   }
 
+  async function loadOdooInventory(){
+    const c=client();
+    if(!c)throw new Error('Supabase client is not ready.');
+    const {data,error:sessionError}=await c.auth.getSession();
+    if(sessionError)throw sessionError;
+    if(!data?.session)throw new Error('CMS session has expired.');
+    const res=await fetch('https://seelqcgjfuuwurslwtgf.supabase.co/functions/v1/odoo-director-dashboard?detail=inventory',{
+      method:'GET',
+      headers:{Authorization:'Bearer '+data.session.access_token,apikey:window.PILARK_SUPABASE_CONFIG?.anonKey||''}
+    });
+    const payload=await res.json().catch(()=>({}));
+    if(!res.ok||!payload.ok)throw new Error(payload.error||'Unable to load inventory from Odoo.');
+    return payload;
+  }
+
   async function renderErpOverview(){
     if(!el('view-erp-overview'))return;
     const mode=el('erpDashboardPeriod')?.value||'year';
@@ -662,13 +679,16 @@ async function autoMatchReconcile(){const lines=state.entryLines.filter(l=>{cons
       ['Net trading flow',money(sales-purchases)]
     ].map(r=>'<div class="dashboard-stack-row"><span>'+esc(r[0])+'</span><b>'+esc(r[1])+'</b></div>').join('');
 
-    const activeProducts=new Set(state.inventoryBalances.map(x=>x.product_id)).size;
-    const units=state.inventoryBalances.reduce((s,x)=>s+Number(x.quantity||0),0);
-    el('erpInventory').innerHTML=[
-      ['Products with balance',String(activeProducts)],
-      ['Units on hand',Number(units).toLocaleString('id-ID')],
-      ['Stock value',money(inventory)]
-    ].map(r=>'<div class="dashboard-stack-row"><span>'+esc(r[0])+'</span><b>'+esc(r[1])+'</b></div>').join('');
+    if(odooInventory?.totals){
+      const t=odooInventory.totals;
+      el('erpInventory').innerHTML=[
+        ['Products with stock',Number(t.products_with_stock||0).toLocaleString('id-ID')],
+        ['Units on hand',Number(t.on_hand||0).toLocaleString('id-ID')],
+        ['Incoming / Outgoing',Number(t.incoming||0).toLocaleString('id-ID')+' / '+Number(t.outgoing||0).toLocaleString('id-ID')]
+      ].map(r=>'<div class="dashboard-stack-row"><span>'+esc(r[0])+'</span><b>'+esc(r[1])+'</b></div>').join('');
+    }else{
+      el('erpInventory').innerHTML='<div class="accounting-empty">Unable to load inventory from Odoo.</div>';
+    }
 
     const ageBuckets=(docs)=>{
       const buckets={'Current':0,'1–30 days':0,'31–60 days':0,'61–90 days':0,'90+ days':0};
