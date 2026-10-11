@@ -1437,3 +1437,15 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:1
     padding-top:calc(118px + env(safe-area-inset-top, 0px))!important;
   }
 }
+
+/* Mobile admin viewport: prevent the unused area below panels from rendering dark.
+   This is a page background fix only; it does not alter WhatsApp Center layout or scrolling. */
+@media (max-width:800px){
+  html,
+  body{
+    background:var(--soft)!important;
+  }
+  #adminApp:not([hidden]){
+    background:var(--soft)!important;
+  }
+}
