@@ -1801,3 +1801,27 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:1
     padding-bottom:max(8px,env(safe-area-inset-bottom))!important;
   }
 }
+
+
+/* Recovery: allocate the thread from its bounded parent; never zero its height. */
+@media (min-width:901px){
+ .admin-main.chat-mode #view-chat .chat-admin-thread-panel,
+ .admin-main.whatsapp-mode #view-whatsapp .wa-thread-panel{display:flex!important;flex-direction:column!important;min-width:0!important;min-height:0!important;height:100%!important;overflow:hidden!important}
+ .admin-main.chat-mode #view-chat #adminChatThread:not([hidden]),
+ .admin-main.whatsapp-mode #view-whatsapp #waThread:not([hidden]){display:grid!important;flex:1 1 0%!important;width:100%!important;height:auto!important;min-height:0!important;max-height:100%!important;align-self:stretch!important;overflow:hidden!important}
+ .admin-main.chat-mode #view-chat #adminChatThread:not([hidden]){grid-template-rows:auto minmax(0,1fr) auto!important}
+ .admin-main.whatsapp-mode #view-whatsapp #waThread:not([hidden]){grid-template-rows:auto minmax(0,1fr) auto auto!important}
+ .admin-main.chat-mode #view-chat #adminChatMessages,
+ .admin-main.whatsapp-mode #view-whatsapp #waMessages{display:flex!important;flex-direction:column!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;flex:initial!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain!important;box-sizing:border-box!important}
+ .admin-main.chat-mode #view-chat #adminChatComposer,
+ .admin-main.whatsapp-mode #view-whatsapp #waComposer,
+ .admin-main.whatsapp-mode #view-whatsapp .wa-composer-note{position:relative!important;inset:auto!important;flex:initial!important;min-height:0!important;width:100%!important;box-sizing:border-box!important}
+}
+@media (max-width:900px){
+ .admin-main.chat-mode.mobile-chat-open #view-chat #adminChatThread:not([hidden]),
+ .admin-main.whatsapp-mode.mobile-wa-open #view-whatsapp #waThread:not([hidden]){display:grid!important;flex:1 1 0%!important;width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:hidden!important}
+ .admin-main.chat-mode.mobile-chat-open #view-chat #adminChatThread:not([hidden]){grid-template-rows:auto minmax(0,1fr) auto!important}
+ .admin-main.whatsapp-mode.mobile-wa-open #view-whatsapp #waThread:not([hidden]){grid-template-rows:auto minmax(0,1fr) auto auto!important}
+ .admin-main.chat-mode.mobile-chat-open #view-chat #adminChatMessages,
+ .admin-main.whatsapp-mode.mobile-wa-open #view-whatsapp #waMessages{height:auto!important;min-height:0!important;max-height:none!important;flex:initial!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important}
+}
