@@ -340,13 +340,34 @@
         return;
       }
       if(channel==='WHATSAPP'){
-        const number=crmWhatsAppNumber(contact.whatsapp_phone||contact.mobile_phone);
+        const number=crmWhatsAppNumber(contact.whatsapp_phone||contact.mobile_phone||contact.phone);
         if(!number)return alert('No WhatsApp/mobile number is available for this contact.');
         const message=crmWhatsAppMessage(o,contact);
-        await logCRMContactInitiated(o,contact,'WHATSAPP','WhatsApp draft opened with a product/stage-specific introduction.');
-        window.open('https://wa.me/'+number+'?text='+encodeURIComponent(message),'_blank','noopener');
-        await loadCRM();
-        renderOpportunityDetail(oppId);
+        const button=document.querySelector('[data-action="WHATSAPP"][data-opp="'+oppId+'"][data-contact="'+contactId+'"]');
+        if(button){button.disabled=true;button.dataset.originalText=button.textContent;button.textContent='Sending…';}
+        try{
+          const {data,error}=await client().functions.invoke('whatsapp-crm-send',{body:{
+            to:number,
+            message,
+            opportunity_id:o.id,
+            contact_id:contact.id||null,
+            contact_name:contact.contact_person||contact.department||o.sales_accounts?.contact_department||'Business contact',
+            product:o.product||null,
+            project_name:o.sales_projects?.project_name||o.opportunity_name||null
+          }});
+          if(error)throw new Error(error.message||'WhatsApp API request failed.');
+          if(data?.error)throw new Error(data.error);
+          if(!data?.success)throw new Error('WhatsApp API did not confirm the message was sent.');
+          await logCRMContactInitiated(o,contact,'WHATSAPP','Message submitted directly through WhatsApp Cloud API. Message ID: '+(data.message_id||'accepted')+'. Delivery status will be confirmed by WhatsApp webhook.');
+          await loadCRM();
+          renderOpportunityDetail(oppId);
+          alert('WhatsApp message submitted through PILARK API. '+(data.message_id?'Message ID: '+data.message_id:'Please check delivery status in WhatsApp.'));
+        }catch(sendError){
+          console.error('PILARK CRM WhatsApp API send failed:',sendError);
+          alert('WhatsApp was not sent. '+(sendError.message||'Unknown API error')+'\n\nIf this contact has not messaged your business in the last 24 hours, Meta requires an approved WhatsApp message template.');
+        }finally{
+          if(button){button.disabled=false;button.textContent=button.dataset.originalText||'◉ WhatsApp';delete button.dataset.originalText;}
+        }
         return;
       }
       if(channel==='CALL'){
