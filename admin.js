@@ -836,6 +836,7 @@ function showView(name){
   openSidebarForView(name);
   const main=document.querySelector('.admin-main');
   main?.classList.toggle('chat-mode',name==='chat');
+  main?.classList.toggle('whatsapp-mode',name==='whatsapp');
   if(name!=='chat')setMobileChatOpen(false);
   if(name==='general-ledger')window.initGeneralLedger?.(); if(name==='transaction-input')window.initTransactionInput?.();
   document.getElementById('pageTitle').textContent={dashboard:'Website overview',media:'Media Library',products:'Product thumbnails',sections:'Website Content',chat:'Live Chat',sales:'Sales',purchase:'Purchase',inventory:'Inventory',accounting:'Accounting', 'erp-overview':'ERP Overview', settings:'User Access', 'research-schedule':'Schedule', 'odoo-director-dashboard':'Director Dashboard', 'general-ledger':'General Ledger', 'transaction-input':'Expense Center'}[name]||'PILARK Admin';
