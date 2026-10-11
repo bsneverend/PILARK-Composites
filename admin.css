@@ -1409,3 +1409,31 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:1
     touch-action:pan-y!important;
   }
 }
+
+/* Mobile admin navigation: pin the logo/hamburger bar to the viewport while scrolling. */
+@media (max-width:800px){
+  #adminApp:not([hidden]) > .sidebar{
+    position:fixed!important;
+    top:0!important;
+    left:0!important;
+    right:0!important;
+    width:100%!important;
+    height:auto!important;
+    min-height:0!important;
+    max-height:100dvh!important;
+    overflow-x:hidden!important;
+    overflow-y:visible!important;
+    padding-top:calc(10px + env(safe-area-inset-top, 0px))!important;
+    z-index:2000!important;
+  }
+  #adminApp:not([hidden]) > .sidebar.mobile-open{
+    height:auto!important;
+    max-height:100dvh!important;
+    overflow-y:auto!important;
+    overscroll-behavior:contain!important;
+    padding-bottom:calc(14px + env(safe-area-inset-bottom, 0px))!important;
+  }
+  #adminApp:not([hidden]) > .admin-main{
+    padding-top:calc(118px + env(safe-area-inset-top, 0px))!important;
+  }
+}
