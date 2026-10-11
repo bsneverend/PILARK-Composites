@@ -809,7 +809,8 @@ function showView(name){
     if(host && v.parentElement!==host)host.appendChild(v);
     v.classList.toggle('active',isActive);
     v.hidden=!isActive;
-    v.style.setProperty('display',isActive?'block':'none','important');
+    // Let the view's layout CSS control display (Chat/WhatsApp need grid/flex, not forced block).
+    v.style.removeProperty('display');
   });
   // The desktop workspace uses .admin-main as the scroll container.
   // Reset that container to the top when switching modules so every child page
