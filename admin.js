@@ -308,8 +308,11 @@ async function selectAdminChat(id){
   document.getElementById('adminChatName').textContent=convo.visitor_name||'Website visitor';
   document.getElementById('adminChatMeta').textContent=(convo.visitor_email||'No email provided')+(convo.current_page?' · '+convo.current_page:'');
   document.getElementById('adminChatStatus').value=convo.status;
-  await loadAdminChatMessages();
+  // Reveal the mobile thread before measuring its message viewport so long
+  // conversations scroll inside the message pane instead of expanding the page.
   setMobileChatOpen(true);
+  await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+  await loadAdminChatMessages();
 }
 async function loadAdminChatMessages(){
   const convo=adminChatState.selected;if(!convo||!cloudReady())return;
