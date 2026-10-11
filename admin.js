@@ -840,11 +840,13 @@ function showView(name){
   main?.classList.toggle('whatsapp-mode',name==='whatsapp');
   if(name!=='chat')setMobileChatOpen(false);
   if(name==='general-ledger')window.initGeneralLedger?.(); if(name==='transaction-input')window.initTransactionInput?.();
-  document.getElementById('pageTitle').textContent={dashboard:'Website overview',media:'Media Library',products:'Product thumbnails',sections:'Website Content',chat:'Live Chat',whatsapp:'WhatsApp Inbox',sales:'Sales',purchase:'Purchase',inventory:'Inventory',accounting:'Accounting', 'erp-overview':'ERP Overview', settings:'User Access', 'research-schedule':'Schedule', 'odoo-director-dashboard':'Director Dashboard', 'general-ledger':'General Ledger', 'transaction-input':'Expense Center'}[name]||'PILARK Admin';
+  document.getElementById('pageTitle').textContent={dashboard:'Website overview',media:'Media Library',products:'Product thumbnails',sections:'Website Content',chat:'Live Chat',whatsapp:'WhatsApp Center',sales:'Sales',purchase:'Purchase',inventory:'Inventory',accounting:'Accounting', 'erp-overview':'ERP Overview', settings:'User Access', 'research-schedule':'Schedule', 'odoo-director-dashboard':'Director Dashboard', 'general-ledger':'General Ledger', 'transaction-input':'Expense Center'}[name]||'PILARK Admin';
   // Finance modules use the top-right action slot for data refresh instead of
   // the Preview Website button position. Non-finance pages keep Preview Website.
   const topbarAction=document.getElementById('topbarAction');
   const financeRefreshMap={
+    chat:'__liveChatRefresh',
+    whatsapp:'__whatsappCenterRefresh',
     'erp-overview':'erpDashboardRefresh',
     'odoo-director-dashboard':'odooDirectorRefresh',
     'general-ledger':'generalLedgerRefresh', 'transaction-input':'transactionInputRefresh',
@@ -865,7 +867,17 @@ function showView(name){
         const originalLabel=topbarAction.textContent;
         topbarAction.textContent='Refreshing…';
         try{
-          if(name==='research-schedule'){
+          if(name==='chat'){
+            await loadAdminChats();
+            if(adminChatState.selected) await loadAdminChatMessages();
+          }else if(name==='whatsapp'){
+            await new Promise((resolve,reject)=>{
+              let settled=false;
+              const done=(error)=>{if(settled)return;settled=true;error?reject(error):resolve();};
+              window.dispatchEvent(new CustomEvent('pilark:refresh-view',{detail:{view:name,done}}));
+              window.setTimeout(()=>done(new Error('WhatsApp refresh handler did not respond.')),10000);
+            });
+          }else if(name==='research-schedule'){
             await loadResearchSchedule();
           }else{
             await new Promise((resolve,reject)=>{
