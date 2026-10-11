@@ -1373,15 +1373,39 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:1
   }
 }
 
-/* 2026-10-12 Live Chat mobile inbox: expand the contact list to use the available screen. */
+/* Live Chat mobile: fixed-height inbox with independently scrollable contacts. */
 @media (max-width:900px){
-  .admin-main.chat-mode:not(.mobile-chat-open) #view-chat.view.active .chat-admin-layout{
-    height:68dvh!important;min-height:560px!important;max-height:none!important;overflow:hidden!important;
+  .admin-main.chat-mode #view-chat.view.active .chat-admin-layout{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr)!important;
+    grid-template-rows:minmax(0,1fr)!important;
+    height:68dvh!important;
+    min-height:0!important;
+    max-height:68dvh!important;
+    overflow:hidden!important;
   }
   .admin-main.chat-mode:not(.mobile-chat-open) #view-chat.view.active .chat-admin-list-panel{
-    display:flex!important;flex-direction:column!important;min-height:0!important;height:100%!important;overflow:hidden!important;
+    display:flex!important;
+    flex-direction:column!important;
+    height:100%!important;
+    min-height:0!important;
+    max-height:100%!important;
+    overflow:hidden!important;
+    border-bottom:0!important;
   }
-  .admin-main.chat-mode:not(.mobile-chat-open) #view-chat.view.active .admin-chat-list{
-    flex:1 1 auto!important;min-height:0!important;height:auto!important;max-height:none!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch;
+  .admin-main.chat-mode:not(.mobile-chat-open) #view-chat.view.active .chat-admin-list-head{
+    flex:0 0 auto!important;
+  }
+  .admin-main.chat-mode:not(.mobile-chat-open) #view-chat.view.active #adminChatList.admin-chat-list{
+    display:block!important;
+    flex:1 1 0!important;
+    height:0!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow-x:hidden!important;
+    overflow-y:scroll!important;
+    -webkit-overflow-scrolling:touch!important;
+    overscroll-behavior-y:contain!important;
+    touch-action:pan-y!important;
   }
 }
