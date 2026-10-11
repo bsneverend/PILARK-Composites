@@ -1560,3 +1560,244 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:1
 @media(min-width:901px){
   .wa-mobile-back{display:none!important}
 }
+
+
+/* 2026-10-12 FINAL FIX: chat threads must be viewport-bound; message bubbles scroll
+   inside their own message region and must never increase the page/workspace height. */
+@media (min-width:901px){
+  .admin-app:has(.admin-main.chat-mode),
+  .admin-app:has(.admin-main.whatsapp-mode){
+    height:100dvh!important;
+    min-height:0!important;
+    overflow:hidden!important;
+  }
+  .admin-main.chat-mode,
+  .admin-main.whatsapp-mode{
+    box-sizing:border-box!important;
+    width:100%!important;
+    max-width:none!important;
+    height:100dvh!important;
+    min-height:0!important;
+    max-height:100dvh!important;
+    margin:0!important;
+    padding:24px 28px 22px!important;
+    overflow:hidden!important;
+    display:grid!important;
+    grid-template-rows:auto minmax(0,1fr)!important;
+    align-content:stretch!important;
+  }
+  .admin-main.chat-mode > .topbar,
+  .admin-main.whatsapp-mode > .topbar{
+    min-height:0!important;
+    margin-bottom:16px!important;
+  }
+  .admin-main.chat-mode #view-chat.view.active,
+  .admin-main.whatsapp-mode #view-whatsapp.view.active{
+    display:flex!important;
+    flex-direction:column!important;
+    min-width:0!important;
+    min-height:0!important;
+    height:100%!important;
+    max-height:100%!important;
+    overflow:hidden!important;
+  }
+  .admin-main.chat-mode #view-chat .chat-admin-layout,
+  .admin-main.whatsapp-mode #view-whatsapp .wa-admin-layout{
+    display:grid!important;
+    grid-template-columns:minmax(260px,340px) minmax(0,1fr)!important;
+    flex:1 1 0!important;
+    width:100%!important;
+    height:0!important;
+    min-width:0!important;
+    min-height:0!important;
+    max-height:100%!important;
+    overflow:hidden!important;
+  }
+  .admin-main.chat-mode #view-chat .chat-admin-list-panel,
+  .admin-main.chat-mode #view-chat .chat-admin-thread-panel,
+  .admin-main.whatsapp-mode #view-whatsapp .wa-list-panel,
+  .admin-main.whatsapp-mode #view-whatsapp .wa-thread-panel{
+    min-width:0!important;
+    min-height:0!important;
+    height:100%!important;
+    max-height:100%!important;
+    overflow:hidden!important;
+  }
+  .admin-main.chat-mode #view-chat .chat-admin-list-panel,
+  .admin-main.whatsapp-mode #view-whatsapp .wa-list-panel{
+    display:flex!important;
+    flex-direction:column!important;
+  }
+  .admin-main.chat-mode #view-chat #adminChatList,
+  .admin-main.whatsapp-mode #view-whatsapp #waConversationList{
+    flex:1 1 0!important;
+    height:0!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow-x:hidden!important;
+    overflow-y:auto!important;
+    overscroll-behavior:contain!important;
+  }
+  .admin-main.chat-mode #view-chat .chat-admin-thread-panel,
+  .admin-main.whatsapp-mode #view-whatsapp .wa-thread-panel{
+    display:flex!important;
+    flex-direction:column!important;
+  }
+  .admin-main.chat-mode #view-chat #adminChatThread:not([hidden]){
+    display:grid!important;
+    grid-template-rows:auto minmax(0,1fr) auto!important;
+    flex:1 1 0!important;
+    width:100%!important;
+    height:0!important;
+    min-height:0!important;
+    max-height:100%!important;
+    overflow:hidden!important;
+  }
+  .admin-main.chat-mode #view-chat #adminChatMessages{
+    display:flex!important;
+    flex-direction:column!important;
+    flex:1 1 0!important;
+    height:0!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow-x:hidden!important;
+    overflow-y:auto!important;
+    overscroll-behavior:contain!important;
+    overflow-anchor:auto;
+  }
+  .admin-main.chat-mode #view-chat #adminChatComposer{
+    position:relative!important;
+    inset:auto!important;
+    width:100%!important;
+    min-height:0!important;
+    flex:0 0 auto!important;
+    z-index:2!important;
+  }
+  .admin-main.whatsapp-mode #view-whatsapp #waThread:not([hidden]){
+    display:grid!important;
+    grid-template-rows:auto minmax(0,1fr) auto auto!important;
+    flex:1 1 0!important;
+    width:100%!important;
+    height:0!important;
+    min-height:0!important;
+    max-height:100%!important;
+    overflow:hidden!important;
+  }
+  .admin-main.whatsapp-mode #view-whatsapp #waMessages{
+    display:flex!important;
+    flex-direction:column!important;
+    flex:1 1 0!important;
+    height:0!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow-x:hidden!important;
+    overflow-y:auto!important;
+    overscroll-behavior:contain!important;
+  }
+  .admin-main.whatsapp-mode #view-whatsapp #waComposer,
+  .admin-main.whatsapp-mode #view-whatsapp .wa-composer-note{
+    position:relative!important;
+    inset:auto!important;
+    flex:0 0 auto!important;
+  }
+}
+
+/* Mobile: list stays in its own scroll box; opening a thread pins it to the viewport. */
+@media (max-width:900px){
+  .admin-main.chat-mode,
+  .admin-main.whatsapp-mode{
+    min-width:0!important;
+    overflow-x:hidden!important;
+  }
+  .admin-main.chat-mode #view-chat.view.active,
+  .admin-main.whatsapp-mode #view-whatsapp.view.active{
+    min-width:0!important;
+    overflow:visible!important;
+  }
+  .admin-main.chat-mode:not(.mobile-chat-open) #view-chat .chat-admin-layout,
+  .admin-main.whatsapp-mode:not(.mobile-wa-open) #view-whatsapp .wa-admin-layout{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr)!important;
+    grid-template-rows:minmax(0,1fr)!important;
+    height: min(68dvh, 620px)!important;
+    min-height:300px!important;
+    max-height:68dvh!important;
+    overflow:hidden!important;
+  }
+  .admin-main.chat-mode:not(.mobile-chat-open) #view-chat #adminChatList,
+  .admin-main.whatsapp-mode:not(.mobile-wa-open) #view-whatsapp #waConversationList{
+    flex:1 1 0!important;
+    height:0!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow-y:auto!important;
+    -webkit-overflow-scrolling:touch!important;
+    overscroll-behavior-y:contain!important;
+  }
+  .admin-main.chat-mode.mobile-chat-open #view-chat .chat-admin-thread-panel,
+  .admin-main.whatsapp-mode.mobile-wa-open #view-whatsapp .wa-thread-panel{
+    position:fixed!important;
+    inset:0!important;
+    z-index:3000!important;
+    display:flex!important;
+    flex-direction:column!important;
+    width:100vw!important;
+    height:100dvh!important;
+    min-height:0!important;
+    max-height:100dvh!important;
+    margin:0!important;
+    padding:0!important;
+    border:0!important;
+    border-radius:0!important;
+    overflow:hidden!important;
+    box-sizing:border-box!important;
+    background:#f5fafc!important;
+  }
+  .admin-main.chat-mode.mobile-chat-open #view-chat #adminChatThread:not([hidden]),
+  .admin-main.whatsapp-mode.mobile-wa-open #view-whatsapp #waThread:not([hidden]){
+    display:grid!important;
+    flex:1 1 0!important;
+    grid-template-rows:auto minmax(0,1fr) auto!important;
+    width:100%!important;
+    height:0!important;
+    min-height:0!important;
+    max-height:100%!important;
+    overflow:hidden!important;
+    box-sizing:border-box!important;
+  }
+  .admin-main.whatsapp-mode.mobile-wa-open #view-whatsapp #waThread:not([hidden]){
+    grid-template-rows:auto minmax(0,1fr) auto auto!important;
+  }
+  .admin-main.chat-mode.mobile-chat-open #view-chat #adminChatMessages,
+  .admin-main.whatsapp-mode.mobile-wa-open #view-whatsapp #waMessages{
+    display:flex!important;
+    flex-direction:column!important;
+    flex:1 1 0!important;
+    height:0!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow-x:hidden!important;
+    overflow-y:auto!important;
+    -webkit-overflow-scrolling:touch!important;
+    overscroll-behavior-y:contain!important;
+  }
+  .admin-main.chat-mode.mobile-chat-open #view-chat #adminChatComposer,
+  .admin-main.whatsapp-mode.mobile-wa-open #view-whatsapp #waComposer{
+    position:relative!important;
+    inset:auto!important;
+    flex:0 0 auto!important;
+    width:100%!important;
+    min-height:0!important;
+    box-sizing:border-box!important;
+    padding-bottom:max(12px,env(safe-area-inset-bottom))!important;
+  }
+  .admin-main.chat-mode.mobile-chat-open #view-chat .admin-chat-thread-head,
+  .admin-main.whatsapp-mode.mobile-wa-open #view-whatsapp .wa-thread-head{
+    flex:0 0 auto!important;
+    padding-top:max(12px,env(safe-area-inset-top))!important;
+  }
+  .admin-main.whatsapp-mode.mobile-wa-open #view-whatsapp .wa-composer-note{
+    flex:0 0 auto!important;
+    padding-bottom:max(8px,env(safe-area-inset-bottom))!important;
+  }
+}
