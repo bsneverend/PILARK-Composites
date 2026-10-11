@@ -348,7 +348,13 @@
         try{
           const {data,error}=await client().functions.invoke('whatsapp-crm-send',{body:{
             to:number,
-            message,
+            template_name:'pilark_sales_intro',
+            template_language:'en_US',
+            template_variables:[
+              contact.contact_person||contact.department||o.sales_accounts?.contact_department||'there',
+              o.product||'GFRP / FRP / GRP solution',
+              o.sales_projects?.project_name||o.opportunity_name||'infrastructure project'
+            ],
             opportunity_id:o.id,
             contact_id:contact.id||null,
             contact_name:contact.contact_person||contact.department||o.sales_accounts?.contact_department||'Business contact',
