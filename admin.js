@@ -293,7 +293,10 @@ function escapeHtml(v){return String(v||'').replace(/[&<>"']/g,s=>({'&':'&amp;',
 function isMobileChatViewport(){return window.matchMedia('(max-width:900px)').matches}
 function setMobileChatOpen(open){
   const main=document.querySelector('.admin-main');
+  const chatView=document.getElementById('view-chat');
   const shouldOpen=!!open&&isMobileChatViewport();
+  // Keep chat layout state in sync when the chat view is restored directly.
+  main?.classList.toggle('chat-mode',!!chatView?.classList.contains('active')||shouldOpen);
   main?.classList.toggle('mobile-chat-open',shouldOpen);
   document.body.classList.toggle('mobile-chat-open',shouldOpen);
 }
