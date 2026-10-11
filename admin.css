@@ -1328,3 +1328,20 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:1
 .admin-main.whatsapp-mode #view-whatsapp .wa-messages{flex:1 1 auto!important;min-height:0!important;height:auto!important;max-height:none!important;overflow-y:auto!important;overscroll-behavior:contain}
 .admin-main.whatsapp-mode #view-whatsapp .wa-composer,.admin-main.whatsapp-mode #view-whatsapp .wa-composer-note{flex:none!important}
 @media(max-width:900px){.admin-app:has(.admin-main.whatsapp-mode){height:auto!important;min-height:100vh!important;overflow:visible!important}.admin-main.whatsapp-mode{height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;display:block!important;padding-bottom:70px!important}.admin-main.whatsapp-mode #view-whatsapp.view.active{display:block!important;overflow:visible!important}.admin-main.whatsapp-mode #view-whatsapp .wa-admin-layout{grid-template-columns:1fr!important;min-height:620px!important;height:auto!important;overflow:visible!important}.admin-main.whatsapp-mode #view-whatsapp .wa-conversation-list{max-height:260px!important}.admin-main.whatsapp-mode #view-whatsapp .wa-thread-panel{height:auto!important;min-height:480px!important}.admin-main.whatsapp-mode #view-whatsapp .wa-messages{height:380px!important;min-height:380px!important;max-height:none!important;flex:none!important}}
+
+
+/* 2026-10-12 WhatsApp Inbox — match Live Chat's full desktop viewport frame. */
+@media (min-width:901px){
+  .admin-app:has(.admin-main.whatsapp-mode){height:100dvh!important;min-height:0!important;overflow:hidden!important}
+  .admin-main.whatsapp-mode{box-sizing:border-box!important;width:100%!important;max-width:none!important;height:100dvh!important;min-height:0!important;max-height:100dvh!important;overflow:hidden!important;display:grid!important;grid-template-rows:auto auto minmax(0,1fr)!important}
+  .admin-main.whatsapp-mode #adminViewHost{display:block!important;min-width:0!important;min-height:0!important;height:100%!important;overflow:hidden!important}
+  .admin-main.whatsapp-mode #view-whatsapp.view.active{display:grid!important;grid-template-rows:auto minmax(0,1fr)!important;height:100%!important;min-height:0!important;overflow:hidden!important}
+  .admin-main.whatsapp-mode #view-whatsapp .wa-admin-layout{display:grid!important;grid-template-columns:340px minmax(0,1fr)!important;height:100%!important;min-height:0!important;max-height:100%!important;overflow:hidden!important}
+  .admin-main.whatsapp-mode #view-whatsapp .wa-list-panel,.admin-main.whatsapp-mode #view-whatsapp .wa-thread-panel{height:100%!important;min-height:0!important;overflow:hidden!important}
+  .admin-main.whatsapp-mode #view-whatsapp .wa-list-panel{display:flex!important;flex-direction:column!important}
+  .admin-main.whatsapp-mode #view-whatsapp .wa-conversation-list{flex:1 1 auto!important;min-height:0!important;height:auto!important;max-height:none!important;overflow-y:auto!important}
+  .admin-main.whatsapp-mode #view-whatsapp .wa-thread-panel{display:flex!important;flex-direction:column!important}
+  .admin-main.whatsapp-mode #view-whatsapp #waThread:not([hidden]){display:grid!important;grid-template-rows:auto minmax(0,1fr) auto auto!important;flex:1 1 auto!important;height:100%!important;min-height:0!important;overflow:hidden!important}
+  .admin-main.whatsapp-mode #view-whatsapp .wa-messages{height:auto!important;min-height:0!important;max-height:none!important;overflow-y:auto!important;overscroll-behavior:contain}
+  .admin-main.whatsapp-mode #view-whatsapp .wa-composer,.admin-main.whatsapp-mode #view-whatsapp .wa-composer-note{flex:none!important}
+}
