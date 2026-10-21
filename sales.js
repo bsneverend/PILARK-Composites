@@ -48,8 +48,7 @@
     const v=id=>el(id)?.value?.trim()||null;
     const payload={name:v('partnerName'),partner_type:el('partnerType')?.value||'customer',email:v('partnerEmail'),phone:v('partnerPhone'),tax_id:v('partnerTax'),address:v('partnerAddress')};
     if(!payload.name)return alert('Name is required.');
-    const {data:userData}=await client().auth.getUser();
-    payload.created_by=userData?.user?.id||null;
+    // accounting_partners does not define created_by; insert only supported columns.
     const {error}=await client().from('accounting_partners').insert(payload);
     if(error)return alert(error.message);
     e.target.reset();
