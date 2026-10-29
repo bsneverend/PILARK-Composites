@@ -3,21 +3,7 @@ const ADMIN_OVERRIDES_KEY='pilarkAdminOverridesV1';
 function getAdminOverrides(){try{return JSON.parse(localStorage.getItem(ADMIN_OVERRIDES_KEY)||'{}')}catch(e){return {}}}
 function applyAdminOverrides(){
   const o=getAdminOverrides();
-  if(o.products){
-    const defaults=new Map(products.map(p=>[p.id,p]));
-    const merged=[];
-    Object.values(o.products).forEach(row=>{
-      const base=defaults.get(row.id);
-      if(base){
-        merged.push({...base,title:row.title||base.title,cat:row.category||base.cat,desc:row.description||base.desc,img:row.image_url||row.img||base.img,modalImg:row.modal_image_url||base.modalImg,features:Array.isArray(row.features)&&row.features.length?row.features:base.features,spec:Array.isArray(row.specifications)&&row.specifications.length?row.specifications:base.spec,page:row.catalog_page||base.page,isActive:row.is_active!==false,sortOrder:row.sort_order||0});
-        defaults.delete(row.id);
-      }else if(row.title){
-        merged.push({id:row.id,title:row.title,cat:row.category||'Other',desc:row.description||'',img:row.image_url||'',modalImg:row.modal_image_url||row.image_url||'',features:Array.isArray(row.features)?row.features:[],spec:Array.isArray(row.specifications)?row.specifications:[],page:row.catalog_page||1,isActive:row.is_active!==false,sortOrder:row.sort_order||0});
-      }
-    });
-    defaults.forEach(p=>merged.push(p));
-    products=merged.filter(p=>p.isActive!==false).sort((a,b)=>(a.sortOrder||0)-(b.sortOrder||0));
-  }
+  if(o.products){products.forEach(p=>{if(o.products[p.id]?.img)p.img=o.products[p.id].img;});}
 
   const set=(id,src)=>{const el=document.getElementById(id);if(el&&src)el.src=src;};
   set('navbarLogo',o.media?.navbarLogo);
@@ -82,7 +68,21 @@ async function applyCloudCms(){
   const o=await cms.load();
   if(!o) return false;
 
-  if(o.products){products.forEach(p=>{if(o.products[p.id]?.img)p.img=o.products[p.id].img;});}
+  if(o.products){
+    const defaults=new Map(products.map(p=>[p.id,p]));
+    const merged=[];
+    Object.values(o.products).forEach(row=>{
+      const base=defaults.get(row.id);
+      if(base){
+        merged.push({...base,title:row.title||base.title,cat:row.category||base.cat,desc:row.description||base.desc,img:row.image_url||row.img||base.img,modalImg:row.modal_image_url||base.modalImg,features:Array.isArray(row.features)&&row.features.length?row.features:base.features,spec:Array.isArray(row.specifications)&&row.specifications.length?row.specifications:base.spec,page:row.catalog_page||base.page,isActive:row.is_active!==false,sortOrder:row.sort_order||0});
+        defaults.delete(row.id);
+      }else if(row.title){
+        merged.push({id:row.id,title:row.title,cat:row.category||'Other',desc:row.description||'',img:row.image_url||row.img||'',modalImg:row.modal_image_url||row.image_url||'',features:Array.isArray(row.features)?row.features:[],spec:Array.isArray(row.specifications)?row.specifications:[],page:row.catalog_page||1,isActive:row.is_active!==false,sortOrder:row.sort_order||0});
+      }
+    });
+    defaults.forEach(p=>merged.push(p));
+    products=merged.filter(p=>p.isActive!==false).sort((a,b)=>(a.sortOrder||0)-(b.sortOrder||0));
+  }
   const set=(id,src)=>{const el=document.getElementById(id);if(el&&src)el.src=src;};
   set('navbarLogo',o.media?.navbarLogo);
   set('footerLogo',o.media?.footerLogo);
