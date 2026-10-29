@@ -184,7 +184,98 @@ async function cloudUpload(file,path){
   return data.publicUrl;
 }
 async function saveMediaCloud(key,src){const {error}=await window.PILARK_CMS.client.from('site_media').upsert({key,src,updated_at:new Date().toISOString()});if(error)throw error;cloudState.media[key]=src}
-async function saveProductCloud(id,img){const {error}=await window.PILARK_CMS.client.from('site_products').upsert({id,image_url:img,updated_at:new Date().toISOString()});if(error)throw error;cloudState.products[id]={img}}
+async function saveProductCloud(id,record){
+  const payload={...record,id,updated_at:new Date().toISOString()};
+  const {error}=await window.PILARK_CMS.client.from('site_products').upsert(payload);
+  if(error)throw error;
+  cloudState.products[id]={...(cloudState.products[id]||{}),...payload,img:payload.image_url};
+}
+function productSlug(v){return String(v||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,70)}
+function defaultProductCategory(name){
+  if(/grating/i.test(name))return 'FRP Grating';
+  if(/manhole/i.test(name))return 'Manhole Covers';
+  if(/cable/i.test(name))return 'Cable Management';
+  if(/profile/i.test(name))return 'Structural FRP';
+  if(/handrail|ladder/i.test(name))return 'Access & Safety';
+  if(/rebar|mesh/i.test(name))return 'Reinforcement';
+  if(/drain|septic/i.test(name))return 'Drainage & Septic';
+  if(/sheet piling/i.test(name))return 'FRP Sheet Piling';
+  return 'Other';
+}
+function productRecord(id,name,src){
+  const row=cloudState.products?.[id]||{};
+  return {id,title:row.title||name,category:row.category||defaultProductCategory(name),description:row.description||'',image_url:row.image_url||row.img||src,modal_image_url:row.modal_image_url||'',features:Array.isArray(row.features)?row.features:[],specifications:Array.isArray(row.specifications)?row.specifications:[],catalog_page:row.catalog_page||null,is_active:row.is_active!==false,sort_order:Number(row.sort_order??productDefaults.findIndex(x=>x[0]===id))};
+}
+function productField(v){return escapeHtml(String(v??''))}
+async function uploadProductImage(file,id){
+  if(!file)return '';
+  if(!cloudReady())throw new Error('Connect to the CMS database before uploading product images.');
+  if(!file.type.startsWith('image/'))throw new Error('Please select an image file.');
+  if(file.size>8*1024*1024)throw new Error('Product images must be 8 MB or smaller.');
+  return await cloudUpload(file,'products/'+id+'-'+Date.now()+'-'+file.name.replace(/[^a-z0-9._-]/gi,'-'));
+}
+async function saveProductEditor(card){
+  const id=card.dataset.productId;
+  const get=name=>card.querySelector('[name="'+name+'"]');
+  const name=get('title').value.trim(),category=get('category').value.trim(),description=get('description').value.trim();
+  if(!name||!category||!description)throw new Error('Product name, category and short description are required.');
+  const old=productRecord(id,name,'');
+  let image=old.image_url,modalImage=old.modal_image_url;
+  const imageFile=get('image').files[0],modalFile=get('modal_image').files[0];
+  if(imageFile)image=await uploadProductImage(imageFile,id);
+  if(modalFile)modalImage=await uploadProductImage(modalFile,id+'-detail');
+  if(!image)throw new Error('Please upload a product image.');
+  const features=get('features').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  const specifications=get('specifications').value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean).map(line=>{const i=line.indexOf('|');return i<0?[line,'']: [line.slice(0,i).trim(),line.slice(i+1).trim()]});
+  const record={title:name,category,description,image_url:image,modal_image_url:modalImage||null,features,specifications,catalog_page:Number(get('catalog_page').value)||null,is_active:get('is_active').checked,sort_order:Number(get('sort_order').value)||0};
+  await saveProductCloud(id,record);
+  renderProducts(document.getElementById('productSearch')?.value||'');
+}
+function renderProducts(query=''){
+  const q=query.trim().toLowerCase();
+  const rows=productDefaults.map(([id,name,src])=>productRecord(id,name,src));
+  Object.values(cloudState.products||{}).forEach(row=>{if(row?.id&&row.title&&!rows.some(x=>x.id===row.id))rows.push(productRecord(row.id,row.title,row.image_url||row.img||''));});
+  const list=rows.filter(row=>(row.title+' '+row.category+' '+row.description).toLowerCase().includes(q));
+  const target=document.getElementById('productEditor');if(!target)return;
+  target.innerHTML=list.map(row=>'<article class="product-edit-card" data-product-id="'+productField(row.id)+'"><img src="'+productField(row.image_url)+'" alt="'+productField(row.title)+'"><div class="product-edit-body"><h3>'+productField(row.title)+'</h3><div class="product-edit-fields">'+
+    '<label>Product name *<input name="title" maxlength="120" value="'+productField(row.title)+'" required></label>'+
+    '<label>Category *<input name="category" maxlength="80" value="'+productField(row.category)+'" required></label>'+
+    '<label class="wide">Short description *<textarea name="description" rows="3" maxlength="1200" required>'+productField(row.description)+'</textarea></label>'+
+    '<label class="wide">Features (one per line)<textarea name="features" rows="3">'+productField(row.features.join('\\n'))+'</textarea></label>'+
+    '<label class="wide">Specifications (Label | Value, one per line)<textarea name="specifications" rows="3">'+productField(row.specifications.map(x=>Array.isArray(x)?x.join(' | '):x).join('\\n'))+'</textarea></label>'+
+    '<label>Catalog page<input name="catalog_page" type="number" min="1" max="49" value="'+productField(row.catalog_page||'')+'"></label><label>Display order<input name="sort_order" type="number" min="0" value="'+productField(row.sort_order)+'"></label>'+
+    '<label class="wide">Replace product image<input name="image" type="file" accept="image/*"></label><label class="wide">Replace popup image (optional)<input name="modal_image" type="file" accept="image/*"></label>'+
+    '<label class="wide"><span><input name="is_active" type="checkbox" '+(row.is_active?'checked':'')+'> Show on public website</span></label></div><div class="product-edit-actions"><button class="save-btn" type="button" data-save-product>Save changes</button><span class="product-status-pill">'+(row.is_active?'Published':'Hidden')+'</span></div><div class="content-status" data-product-status></div></div></article>').join('')||'<p>No products match your search.</p>';
+  target.querySelectorAll('[data-save-product]').forEach(btn=>btn.addEventListener('click',async()=>{
+    const card=btn.closest('[data-product-id]'),status=card.querySelector('[data-product-status]');
+    btn.disabled=true;if(status)status.textContent='Saving product…';
+    try{await saveProductEditor(card);updateStats();}
+    catch(err){if(status)status.textContent='Save failed: '+(err.message||err);else alert(err.message);}
+    finally{btn.disabled=false;}
+  }));
+}
+function initProductManagement(){
+  const form=document.getElementById('newProductForm'),toggle=document.getElementById('addProductToggle'),status=document.getElementById('newProductStatus');
+  toggle?.addEventListener('click',()=>{form.hidden=!form.hidden;});
+  document.getElementById('cancelNewProduct')?.addEventListener('click',()=>{form.reset();form.hidden=true;if(status)status.textContent='';});
+  form?.addEventListener('submit',async e=>{
+    e.preventDefault();if(!cloudReady())return alert('CMS database is not connected.');
+    const data=new FormData(form),title=String(data.get('title')||'').trim(),category=String(data.get('category')||'').trim(),description=String(data.get('description')||'').trim(),file=data.get('image');
+    if(!title||!category||!description||!(file instanceof File)||!file.size)return alert('Complete the required fields and choose a product image.');
+    let id=productSlug(title);if(!id)return alert('Please enter a valid product name.');
+    if(cloudState.products[id]||productDefaults.some(p=>p[0]===id))id=id+'-'+Date.now().toString(36);
+    const submit=form.querySelector('[type="submit"]');submit.disabled=true;if(status)status.textContent='Uploading and saving…';
+    try{
+      const image_url=await uploadProductImage(file,id),modalFile=data.get('modal_image');
+      const modal_image_url=modalFile instanceof File&&modalFile.size?await uploadProductImage(modalFile,id+'-detail'):null;
+      const features=String(data.get('features')||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+      const specifications=String(data.get('specifications')||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean).map(line=>{const i=line.indexOf('|');return i<0?[line,'']:[line.slice(0,i).trim(),line.slice(i+1).trim()]});
+      await saveProductCloud(id,{title,category,description,image_url,modal_image_url,features,specifications,catalog_page:Number(data.get('catalog_page'))||null,is_active:true,sort_order:Number(data.get('sort_order'))||100});
+      form.reset();form.hidden=true;renderProducts(document.getElementById('productSearch')?.value||'');updateStats();if(status)status.textContent='Product published to the website.';
+    }catch(err){if(status)status.textContent='Save failed: '+(err.message||err);}
+    finally{submit.disabled=false;}
+  });
+}
 async function saveContentCloud(section,data){const {error}=await window.PILARK_CMS.client.from('site_content').upsert({section,data,updated_at:new Date().toISOString()});if(error)throw error;cloudState.content[section]=data}
 function save(data){localStorage.setItem(KEY,JSON.stringify(data))}
 function getMedia(item){return activeData().media?.[item.key]||item.src}
@@ -214,7 +305,7 @@ function bindUploads(){
   document.querySelectorAll('input[data-product]').forEach(input=>input.onchange=e=>upload(e.target.files[0],async result=>{
     try{
       const id=e.target.dataset.product;
-      if(cloudReady()){const src=await cloudUpload(result,'products/'+id+'-'+Date.now()+'-'+result.name.replace(/[^a-z0-9._-]/gi,'-'));await saveProductCloud(id,src);}
+      if(cloudReady()){const src=await cloudUpload(result,'products/'+id+'-'+Date.now()+'-'+result.name.replace(/[^a-z0-9._-]/gi,'-'));const row=productRecord(id,productDefaults.find(p=>p[0]===id)?.[1]||id,src);await saveProductCloud(id,{...row,image_url:src});}
       else {const d=load();d.products=d.products||{};d.products[id]={img:result};save(d);}
       renderProducts(document.getElementById('productSearch')?.value||'');updateStats();
     }catch(err){alert('Upload failed: '+err.message);}
@@ -1021,6 +1112,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
   try{
     renderMedia();
     renderProducts();
+    initProductManagement();
     renderContentEditor();
     updateStats();
 
