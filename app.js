@@ -3,7 +3,21 @@ const ADMIN_OVERRIDES_KEY='pilarkAdminOverridesV1';
 function getAdminOverrides(){try{return JSON.parse(localStorage.getItem(ADMIN_OVERRIDES_KEY)||'{}')}catch(e){return {}}}
 function applyAdminOverrides(){
   const o=getAdminOverrides();
-  if(o.products){products.forEach(p=>{if(o.products[p.id]?.img)p.img=o.products[p.id].img;});}
+  if(o.products){
+    const defaults=new Map(products.map(p=>[p.id,p]));
+    const merged=[];
+    Object.values(o.products).forEach(row=>{
+      const base=defaults.get(row.id);
+      if(base){
+        merged.push({...base,title:row.title||base.title,cat:row.category||base.cat,desc:row.description||base.desc,img:row.image_url||row.img||base.img,modalImg:row.modal_image_url||base.modalImg,features:Array.isArray(row.features)&&row.features.length?row.features:base.features,spec:Array.isArray(row.specifications)&&row.specifications.length?row.specifications:base.spec,page:row.catalog_page||base.page,isActive:row.is_active!==false,sortOrder:row.sort_order||0});
+        defaults.delete(row.id);
+      }else if(row.title){
+        merged.push({id:row.id,title:row.title,cat:row.category||'Other',desc:row.description||'',img:row.image_url||'',modalImg:row.modal_image_url||row.image_url||'',features:Array.isArray(row.features)?row.features:[],spec:Array.isArray(row.specifications)?row.specifications:[],page:row.catalog_page||1,isActive:row.is_active!==false,sortOrder:row.sort_order||0});
+      }
+    });
+    defaults.forEach(p=>merged.push(p));
+    products=merged.filter(p=>p.isActive!==false).sort((a,b)=>(a.sortOrder||0)-(b.sortOrder||0));
+  }
 
   const set=(id,src)=>{const el=document.getElementById(id);if(el&&src)el.src=src;};
   set('navbarLogo',o.media?.navbarLogo);
@@ -41,7 +55,7 @@ function applyAdminOverrides(){
   }
 }
 
-const products=[
+let products=[
 {id:'molded-grating',cat:'FRP Grating',title:'Molded Grating',img:'assets/molded-grating-product.jpg?v=20260829',modalImg:'assets/profile/page14.jpg',desc:'GFRP molded grating manufactured through a molding process using fiberglass reinforcement, thermosetting resin and controlled curing.',page:14,features:['Open-mold manufacturing process','Corrosion and chemical resistance','Non-conductive composite flooring','Multiple mesh, color and surface options'],spec:[['Typical application','Industrial flooring, platforms, walkways, trench covers'],['Open area','Multiple configurations in catalog'],['Surface options','Anti-skid, concave, chequered plate, flat'],['Colors','Dark green, dark grey, light grey, yellow']]},
 {id:'pultruded-grating',cat:'FRP Grating',title:'Pultruded Grating',img:'assets/pultruded-grating-thumb.jpg',modalImg:'assets/catalog/page19.jpg',desc:'Pultruded grating manufactured by pulling fiberglass reinforcements through resin, then shaping and heating into structural grating profiles.',page:15,features:['High strength-to-weight ratio','Directional load-bearing performance','Lightweight modular construction','Demanding industrial environments'],spec:[['Series','G-2500, G-4000, G-5000'],['Cross rod','Catalog provides dimensions by series'],['Open area','Catalog provides values by series']]},
 {id:'bmc-manhole',cat:'Manhole Covers',title:'BMC Manhole Cover',img:'assets/bmc-manhole-cover-thumb.jpg',modalImg:'assets/profile/page15.jpg',desc:'BMC manhole cover system using bulk molding compound for inspection chambers where strength, corrosion resistance and lightweight handling are required.',page:24,features:['Rounded and square variants','Resin and glass-fiber composite','Lightweight','Multiple colors'],spec:[['Material','BMC / Bulk Molding Compound'],['Variants','Rounded and Square'],['Colors','Black, Light Grey, Yellow, Green']]},
@@ -93,8 +107,7 @@ function closeClientModal(){const modal=$('clientModal');modal?.classList.remove
 function initClientModal(){document.querySelectorAll('[data-client-sector]').forEach(btn=>btn.addEventListener('click',()=>openClientSector(Number(btn.dataset.clientSector))));$('closeClientModal')?.addEventListener('click',closeClientModal);$('clientModal')?.addEventListener('click',e=>{if(e.target===e.currentTarget)closeClientModal()});document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('clientModal')?.classList.contains('open'))closeClientModal();});}
 
 const $=id=>document.getElementById(id);
-const categories=['All',...new Set(products.map(p=>p.cat))];
-function renderFilters(){const el=$('filters');if(!el)return;el.innerHTML=categories.map((c,i)=>`<button class="filter ${i?'':'active'}" data-filter="${c}">${c}</button>`).join('');el.querySelectorAll('.filter').forEach(b=>b.onclick=()=>{el.querySelectorAll('.filter').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderProducts(b.dataset.filter)})}
+function renderFilters(){const el=$('filters');if(!el)return;const categories=['All',...new Set(products.map(p=>p.cat).filter(Boolean))];el.innerHTML=categories.map((c,i)=>`<button class="filter ${i?'':'active'}" data-filter="${c}">${c}</button>`).join('');el.querySelectorAll('.filter').forEach(b=>b.onclick=()=>{el.querySelectorAll('.filter').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderProducts(b.dataset.filter)})}
 function renderProducts(filter='All'){const el=$('productGrid');if(!el)return;const list=filter==='All'?products:products.filter(p=>p.cat===filter);el.innerHTML=list.map(p=>`<article class="product reveal"><div class="product-media"><img loading="lazy" src="${p.img}" alt="${p.title}"></div><div class="product-body"><div class="product-meta"><span class="pill">${p.cat}</span></div><h3>${p.title}</h3><p>${p.desc}</p><button class="product-link" data-product="${p.id}" style="border:0;background:none;padding:0;cursor:pointer">Explore specifications →</button></div></article>`).join('');el.querySelectorAll('[data-product]').forEach(b=>b.onclick=()=>openProduct(b.dataset.product));observeReveals()}
 function openProduct(id){const p=products.find(x=>x.id===id),m=$('productModal');if(!p||!m)return;$('modalTitle').textContent=p.title;$('modalImage').src=p.modalImg||p.img;$('modalImage').alt=p.title;$('modalDesc').textContent=p.desc;$('modalFeatures').innerHTML=p.features.map(x=>`<li>${x}</li>`).join('');$('modalSpec').innerHTML=p.spec.map(r=>`<tr><th>${r[0]}</th><td>${r[1]}</td></tr>`).join('');$('modalCatalog').href='#catalog';$('modalCatalog').dataset.page=String(p.page);m.classList.add('open');document.body.classList.add('lock')}
 function closeModal(){$('productModal')?.classList.remove('open');document.body.classList.remove('lock')}
