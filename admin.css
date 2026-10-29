@@ -1825,3 +1825,21 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:1
  .admin-main.chat-mode.mobile-chat-open #view-chat #adminChatMessages,
  .admin-main.whatsapp-mode.mobile-wa-open #view-whatsapp #waMessages{height:auto!important;min-height:0!important;max-height:none!important;flex:initial!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch!important}
 }
+
+/* Product Management CRUD */
+.product-create-form{background:#fff;border:1px solid #dce8ee;border-radius:16px;padding:20px;margin:18px 0 22px}
+.product-create-form[hidden]{display:none!important}
+.product-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.product-form-grid label,.product-edit-fields label{display:flex;flex-direction:column;gap:6px;font-size:.84rem;font-weight:700;color:#49616e}
+.product-form-grid input,.product-form-grid textarea,.product-edit-fields input,.product-edit-fields textarea,.product-edit-fields select{width:100%;border:1px solid #d7e3e9;border-radius:9px;padding:10px 12px;font:inherit;color:#14242c;background:#fff;box-sizing:border-box}
+.product-form-grid .wide{grid-column:1/-1}
+.product-form-actions{display:flex;align-items:center;gap:12px;margin-top:16px;flex-wrap:wrap}
+.product-edit-card{min-width:0}
+.product-edit-body{display:flex;flex-direction:column;gap:10px}
+.product-edit-body h3{margin:0}
+.product-edit-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.product-edit-fields .wide{grid-column:1/-1}
+.product-edit-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.product-edit-actions button{cursor:pointer}
+.product-status-pill{font-size:.75rem;border-radius:99px;padding:4px 9px;background:#e8f7ef;color:#08754a}
+@media(max-width:700px){.product-form-grid,.product-edit-fields{grid-template-columns:1fr}.product-form-grid .wide,.product-edit-fields .wide{grid-column:auto}}
