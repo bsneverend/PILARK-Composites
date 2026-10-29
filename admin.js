@@ -231,29 +231,58 @@ async function saveProductEditor(card){
   await saveProductCloud(id,record);
   renderProducts(document.getElementById('productSearch')?.value||'');
 }
+function closeProductEditor(){
+  const modal=document.getElementById('productEditModal');
+  if(modal)modal.remove();
+  document.body.classList.remove('product-editor-open');
+}
+function openProductEditor(row){
+  closeProductEditor();
+  const modal=document.createElement('div');
+  modal.id='productEditModal';
+  modal.className='product-edit-modal';
+  modal.innerHTML='<div class="product-edit-dialog" role="dialog" aria-modal="true" aria-labelledby="productEditModalTitle">'+
+    '<div class="product-edit-modal-head"><div><span class="product-edit-kicker">PRODUCT MANAGEMENT</span><h2 id="productEditModalTitle">Edit '+productField(row.title)+'</h2></div><button type="button" class="product-edit-close" aria-label="Close editor">×</button></div>'+
+    '<article class="product-edit-form-card" data-product-id="'+productField(row.id)+'"><div class="product-edit-form-grid">'+
+    '<label>Product name *<input name="title" maxlength="120" value="'+productField(row.title)+'" required></label>'+
+    '<label>Category *<input name="category" maxlength="80" value="'+productField(row.category)+'" required></label>'+
+    '<label class="wide">Short description *<textarea name="description" rows="4" maxlength="1200" required>'+productField(row.description)+'</textarea></label>'+
+    '<label class="wide">Features (one per line)<textarea name="features" rows="4">'+productField((row.features||[]).join('\n'))+'</textarea></label>'+
+    '<label class="wide">Specifications (Label | Value, one per line)<textarea name="specifications" rows="5">'+productField((row.specifications||[]).map(x=>Array.isArray(x)?x.join(' | '):x).join('\n'))+'</textarea></label>'+
+    '<label>Catalog page<input name="catalog_page" type="number" min="1" max="49" value="'+productField(row.catalog_page||'')+'"></label>'+
+    '<label>Display order<input name="sort_order" type="number" min="0" value="'+productField(row.sort_order??0)+'"></label>'+
+    '<label class="wide">Main product image<input name="image" type="file" accept="image/*"><small>Current: '+productField(row.image_url||'No image')+'</small></label>'+
+    '<label class="wide">Popup / detail image (optional)<input name="modal_image" type="file" accept="image/*"><small>Current: '+productField(row.modal_image_url||'Uses main image if empty')+'</small></label>'+
+    '<label class="wide product-publish-check"><input name="is_active" type="checkbox" '+(row.is_active?'checked':'')+'> Show on public website</label>'+
+    '</div><div class="product-edit-modal-actions"><span data-product-status role="status"></span><button type="button" class="text-btn" data-cancel-product>Cancel</button><button type="button" class="save-btn" data-save-product>Save changes</button></div></article></div>';
+  document.body.appendChild(modal);
+  document.body.classList.add('product-editor-open');
+  modal.querySelector('.product-edit-close')?.addEventListener('click',closeProductEditor);
+  modal.querySelector('[data-cancel-product]')?.addEventListener('click',closeProductEditor);
+  modal.addEventListener('click',e=>{if(e.target===modal)closeProductEditor();});
+  modal.querySelector('[data-save-product]')?.addEventListener('click',async e=>{
+    const btn=e.currentTarget,card=modal.querySelector('[data-product-id]'),status=modal.querySelector('[data-product-status]');
+    btn.disabled=true;if(status)status.textContent='Saving product…';
+    try{await saveProductEditor(card);closeProductEditor();updateStats();}
+    catch(err){if(status)status.textContent='Save failed: '+(err.message||err);}
+    finally{btn.disabled=false;}
+  });
+  modal.querySelector('[name="title"]')?.focus();
+}
 function renderProducts(query=''){
   const q=query.trim().toLowerCase();
   const rows=productDefaults.map(([id,name,src])=>productRecord(id,name,src));
-  Object.values(cloudState.products||{}).forEach(row=>{if(row?.id&&row.title&&!rows.some(x=>x.id===row.id))rows.push(productRecord(row.id,row.title,row.image_url||row.img||''));});
+  Object.values(cloudState.products||{}).forEach(row=>{
+    if(row?.id&&row.title&&!rows.some(x=>x.id===row.id))rows.push(productRecord(row.id,row.title,row.image_url||row.img||''));
+  });
   const list=rows.filter(row=>(row.title+' '+row.category+' '+row.description).toLowerCase().includes(q));
   const target=document.getElementById('productEditor');if(!target)return;
-  target.innerHTML=list.map(row=>'<article class="product-edit-card" data-product-id="'+productField(row.id)+'"><img src="'+productField(row.image_url)+'" alt="'+productField(row.title)+'"><div class="product-edit-body"><h3>'+productField(row.title)+'</h3><div class="product-edit-fields">'+
-    '<label>Product name *<input name="title" maxlength="120" value="'+productField(row.title)+'" required></label>'+
-    '<label>Category *<input name="category" maxlength="80" value="'+productField(row.category)+'" required></label>'+
-    '<label class="wide">Short description *<textarea name="description" rows="3" maxlength="1200" required>'+productField(row.description)+'</textarea></label>'+
-    '<label class="wide">Features (one per line)<textarea name="features" rows="3">'+productField(row.features.join('\n'))+'</textarea></label>'+
-    '<label class="wide">Specifications (Label | Value, one per line)<textarea name="specifications" rows="3">'+productField(row.specifications.map(x=>Array.isArray(x)?x.join(' | '):x).join('\n'))+'</textarea></label>'+
-    '<label>Catalog page<input name="catalog_page" type="number" min="1" max="49" value="'+productField(row.catalog_page||'')+'"></label><label>Display order<input name="sort_order" type="number" min="0" value="'+productField(row.sort_order)+'"></label>'+
-    '<label class="wide">Replace product image<input name="image" type="file" accept="image/*"></label><label class="wide">Replace popup image (optional)<input name="modal_image" type="file" accept="image/*"></label>'+
-    '<label class="wide"><span><input name="is_active" type="checkbox" '+(row.is_active?'checked':'')+'> Show on public website</span></label></div><div class="product-edit-actions"><button class="save-btn" type="button" data-save-product>Save changes</button><span class="product-status-pill">'+(row.is_active?'Published':'Hidden')+'</span></div><div class="content-status" data-product-status></div></div></article>').join('')||'<p>No products match your search.</p>';
-  target.querySelectorAll('[data-save-product]').forEach(btn=>btn.addEventListener('click',async()=>{
-    const card=btn.closest('[data-product-id]'),status=card.querySelector('[data-product-status]');
-    btn.disabled=true;if(status)status.textContent='Saving product…';
-    try{await saveProductEditor(card);updateStats();}
-    catch(err){if(status)status.textContent='Save failed: '+(err.message||err);else alert(err.message);}
-    finally{btn.disabled=false;}
+  target.innerHTML=list.map(row=>'<article class="product-edit-card"><div class="product-edit-thumb"><img src="'+productField(row.image_url)+'" alt="'+productField(row.title)+'"></div><div class="product-edit-body"><h3>'+productField(row.title)+'</h3><p>'+productField(row.category||'Uncategorized')+'</p><span class="product-edit-description">'+productField(row.description||'No short description yet.')+'</span><button type="button" class="save-btn product-edit-open" data-edit-product="'+productField(row.id)+'">Edit product</button></div></article>').join('')||'<p>No products match your search.</p>';
+  target.querySelectorAll('[data-edit-product]').forEach(btn=>btn.addEventListener('click',()=>{
+    const row=rows.find(x=>x.id===btn.dataset.editProduct);if(row)openProductEditor(row);
   }));
 }
+
 function initProductManagement(){
   const form=document.getElementById('newProductForm'),toggle=document.getElementById('addProductToggle'),status=document.getElementById('newProductStatus');
   toggle?.addEventListener('click',()=>{form.hidden=!form.hidden;});
