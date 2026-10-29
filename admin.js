@@ -336,7 +336,7 @@ function renderContentEditor(){
 
 function updateStats(){
   const d=activeData();
-  document.getElementById('productCount').textContent=productDefaults.length;
+  document.getElementById('productCount').textContent=productDefaults.length+Object.values(cloudState.products||{}).filter(p=>p?.title&&!productDefaults.some(d=>d[0]===p.id)).length;
   document.getElementById('mediaCount').textContent=mediaDefaults.length;
   const contentCount=Object.values(d.content||{}).reduce((n,g)=>n+Object.keys(g||{}).length,0);
   document.getElementById('contentCount').textContent=contentCount;
@@ -1090,6 +1090,8 @@ document.addEventListener('DOMContentLoaded',async()=>{
         const {error}=await window.PILARK_CMS.client.auth.signInWithPassword({email,password});
         if(error) throw error;
         await loadCloudState();
+        renderProducts(document.getElementById('productSearch')?.value||'');
+        updateStats();
         try{
           await loadAdminAccess();
         }catch(accessError){
