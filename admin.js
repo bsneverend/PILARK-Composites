@@ -241,7 +241,7 @@ function renderProducts(query=''){
     '<label>Product name *<input name="title" maxlength="120" value="'+productField(row.title)+'" required></label>'+
     '<label>Category *<input name="category" maxlength="80" value="'+productField(row.category)+'" required></label>'+
     '<label class="wide">Short description *<textarea name="description" rows="3" maxlength="1200" required>'+productField(row.description)+'</textarea></label>'+
-    '<label class="wide">Features (one per line)<textarea name="features" rows="3">'+productField(row.features.join('\\n'))+'</textarea></label>'+
+    '<label class="wide">Features (one per line)<textarea name="features" rows="3">'+productField(row.features.join('\n'))+'</textarea></label>'+
     '<label class="wide">Specifications (Label | Value, one per line)<textarea name="specifications" rows="3">'+productField(row.specifications.map(x=>Array.isArray(x)?x.join(' | '):x).join('\\n'))+'</textarea></label>'+
     '<label>Catalog page<input name="catalog_page" type="number" min="1" max="49" value="'+productField(row.catalog_page||'')+'"></label><label>Display order<input name="sort_order" type="number" min="0" value="'+productField(row.sort_order)+'"></label>'+
     '<label class="wide">Replace product image<input name="image" type="file" accept="image/*"></label><label class="wide">Replace popup image (optional)<input name="modal_image" type="file" accept="image/*"></label>'+
@@ -305,7 +305,7 @@ function bindUploads(){
   document.querySelectorAll('input[data-product]').forEach(input=>input.onchange=e=>upload(e.target.files[0],async result=>{
     try{
       const id=e.target.dataset.product;
-      if(cloudReady()){const src=await cloudUpload(result,'products/'+id+'-'+Date.now()+'-'+result.name.replace(/[^a-z0-9._-]/gi,'-'));const row=productRecord(id,productDefaults.find(p=>p[0]===id)?.[1]||id,src);await saveProductCloud(id,{...row,image_url:src});}
+      if(cloudReady()){const src=await cloudUpload(result,'products/'+id+'-'+Date.now()+'-'+result.name.replace(/[^a-z0-9._-]/gi,'-'));const row=productRecord(id,productDefaults.find(p=>p[0]===id)?.[1]||id,src);await saveProductCloud(id,{title:row.title,category:row.category,description:row.description,image_url:src,modal_image_url:row.modal_image_url||null,features:row.features,specifications:row.specifications,catalog_page:row.catalog_page,is_active:row.is_active,sort_order:row.sort_order});}
       else {const d=load();d.products=d.products||{};d.products[id]={img:result};save(d);}
       renderProducts(document.getElementById('productSearch')?.value||'');updateStats();
     }catch(err){alert('Upload failed: '+err.message);}
