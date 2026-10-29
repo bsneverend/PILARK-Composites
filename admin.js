@@ -288,8 +288,16 @@ function renderMedia(){document.getElementById('mediaGrid').innerHTML=mediaDefau
 
 function renderProducts(query=''){
   const q=query.trim().toLowerCase();
-  const list=productDefaults.filter(([,name])=>!q||name.toLowerCase().includes(q));
-  document.getElementById('productEditor').innerHTML=list.map(([id,name,src])=>'<article class="product-edit-card"><img src="'+getProduct(id,src)+'" alt=""><div class="product-edit-body"><h3>'+name+'</h3><span>Product thumbnail</span><label class="upload-btn">Replace thumbnail<input type="file" accept="image/*" data-product="'+id+'"></label></div></article>').join('');
+  // Start with the legacy thumbnail list, then include every product returned
+  // by Supabase so products created through the CMS also appear here.
+  const rows=productDefaults.map(([id,name,src])=>[id,name,src]);
+  Object.values(cloudState.products||{}).forEach(row=>{
+    if(row?.id&&row.title&&!rows.some(([id])=>id===row.id)){
+      rows.push([row.id,row.title,row.image_url||row.img||'']);
+    }
+  });
+  const list=rows.filter(([id,name])=>!q||(name+' '+id).toLowerCase().includes(q));
+  document.getElementById('productEditor').innerHTML=list.map(([id,name,src])=>'<article class="product-edit-card"><img src="'+getProduct(id,src)+'" alt="'+name+'"><div class="product-edit-body"><h3>'+name+'</h3><span>Product thumbnail</span><label class="upload-btn">Replace thumbnail<input type="file" accept="image/*" data-product="'+id+'"></label></div></article>').join('');
   bindUploads();
 }
 
