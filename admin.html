@@ -32,6 +32,7 @@
 <button type="button" data-sales-tab="accounts">Accounts</button><button type="button" data-sales-tab="contacts">Contacts</button>
 <button type="button" data-sales-tab="activities">Activities</button>
 <button type="button" data-sales-tab="quotations">Quotations</button>
+<button type="button" data-sales-tab="letters">Company Letters</button>
 <button type="button" data-sales-tab="orders">Sales Orders</button>
 </div>
 <div class="sales-tab-panel" data-sales-panel="overview">
@@ -208,6 +209,20 @@
   </div>
 </div>
 
+<div class="sales-tab-panel" data-sales-panel="letters" hidden><div class="quotation-workspace">
+<div class="panel quotation-editor-panel"><div class="panel-head"><div><h2 id="companyLetterEditorTitle">Create Company Letter</h2><p>Prepare official internal and external correspondence using the PILARK company letterhead.</p></div></div>
+<form id="companyLetterForm" class="accounting-form"><div class="quotation-header-grid">
+<label>Letter Category<select id="letterCategory"><option value="REF">General / Official Correspondence (REF)</option><option value="HR">Human Resources / Employment (HR)</option></select></label>
+<label>Correspondence Type<select id="letterDirection"><option value="E">External (E)</option><option value="I">Internal (I)</option></select></label>
+<label>Letter Date<input id="letterDate" type="date" required></label><label>Letter Number<input id="letterNo" readonly></label>
+<label>Recipient / Attention<input id="letterRecipient" placeholder="Recipient name / attention"></label><label>Company / Organization<input id="letterCompany" placeholder="Company or organization"></label>
+<label class="quotation-reference">Department / Address<input id="letterDepartment" placeholder="Department or address"></label><label class="quotation-reference">Subject<input id="letterSubject" required placeholder="Subject of the letter"></label></div>
+<div class="quotation-terms-grid"><label class="quotation-wide">Letter Body<textarea id="letterBody" rows="14" required placeholder="Write the official letter content here. Use a blank line to separate paragraphs."></textarea></label>
+<label>Signatory Name<input id="letterSignatory" value="Authorized Signatory"></label><label>Signatory Position<input id="letterPosition" placeholder="Director / General Manager"></label></div>
+<div class="quotation-save-row"><button class="primary-btn" type="submit">Save Letter →</button><button id="cancelLetterEdit" class="accounting-small-btn" type="button" hidden>Cancel Edit</button></div></form></div>
+<div class="panel quotation-history-panel"><div class="panel-head"><div><h2>Company Letter Register</h2><p>Saved internal and external correspondence. Edit or print any letter.</p></div></div>
+<div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Number</th><th>Date</th><th>Category</th><th>Type</th><th>Recipient</th><th>Subject</th><th>Status</th><th>Actions</th></tr></thead><tbody id="companyLettersBody"></tbody></table></div></div>
+</div></div>
 <div class="sales-tab-panel" data-sales-panel="orders" hidden>
   <div class="panel"><div class="panel-head"><div><h2>Sales Orders</h2><p>Confirmed orders ready to be invoiced.</p></div></div>
     <div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Number</th><th>Customer</th><th>Quote Date</th><th>Valid Until</th><th class="num">Total</th><th>Status</th><th>Action</th></tr></thead><tbody id="salesOrdersBody"></tbody></table></div>
@@ -582,4 +597,4 @@
     </form>
   </div>
 </div>
-</main></div><script src="admin.js?v=20261029-product-editor-modal-v1"></script><script src="whatsapp-inbox.js?v=20261012-mobile-flow-v1"></script><script src="sales.js?v=20261103-quotation-edit-v3"></script><script src="purchase.js?v=20261006-stable-pre-floating"></script><script src="inventory.js?v=20261010-product-prices-v2"></script><script src="bank-reconciliation.js?v=20261006-stable-pre-floating"></script><script src="general-ledger.js?v=20261009-odoo-gl-v10"></script><script src="transaction-input.js?v=20261009-live-odoo-status-v3"></script></body></html>
+</main></div><script src="admin.js?v=20261029-product-editor-modal-v1"></script><script src="whatsapp-inbox.js?v=20261012-mobile-flow-v1"></script><script src="sales.js?v=20261103-company-letters-v1"></script><script src="purchase.js?v=20261006-stable-pre-floating"></script><script src="inventory.js?v=20261010-product-prices-v2"></script><script src="bank-reconciliation.js?v=20261006-stable-pre-floating"></script><script src="general-ledger.js?v=20261009-odoo-gl-v10"></script><script src="transaction-input.js?v=20261009-live-odoo-status-v3"></script></body></html>
