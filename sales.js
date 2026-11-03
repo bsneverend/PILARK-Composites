@@ -198,14 +198,14 @@
   }
   function resetCompanyLetterForm(){
     state.editingLetterId=null;const f=el('companyLetterForm');if(!f)return;f.reset();
-    el('letterDate').value=today();el('letterCategory').value='REF';el('letterDirection').value='E';
-    el('companyLetterEditorTitle').textContent='Create Company Letter';f.querySelector('button[type="submit"]').textContent='Save Letter →';
+    el('letterDate').value=today();el('letterCategory').value='REF';el('letterDirection').value='E';el('letterLanguage').value='en';
+    el('companyLetterEditorTitle'.textContent='Create Company Letter';f.querySelector('button[type="submit"]').textContent='Save Letter →';
     el('cancelLetterEdit').hidden=true;prepareCompanyLetterNo();
   }
   async function editCompanyLetter(id){
     const l=state.letters.find(x=>x.id===id);if(!l)return alert('Letter not found. Refresh and try again.');
     state.editingLetterId=id;el('letterDate').value=l.letter_date||today();el('letterCategory').value=l.category;
-    el('letterDirection').value=l.direction;el('letterNo').value=l.letter_no;el('letterRecipient').value=l.recipient_name||'';
+    el('letterDirection').value=l.direction;el('letterLanguage').value=l.language||'en';el('letterNo').value=l.letter_no;el('letterRecipient').value=l.recipient_name||'';
     el('letterCompany').value=l.recipient_company||'';el('letterDepartment').value=l.recipient_department||'';
     el('letterSubject').value=l.subject||'';el('letterBody').value=l.body||'';
     el('letterSignatory').value=l.signatory_name||'';el('letterPosition').value=l.signatory_position||'';
@@ -218,7 +218,7 @@
     const subject=el('letterSubject').value.trim(),body=el('letterBody').value.trim();
     if(!date||!subject||!body)return alert('Complete letter date, subject and body.');
     const {data:userData}=await client().auth.getUser();
-    const payload={letter_date:date,category,direction,recipient_name:el('letterRecipient').value.trim()||null,recipient_company:el('letterCompany').value.trim()||null,recipient_department:el('letterDepartment').value.trim()||null,subject,body,signatory_name:el('letterSignatory').value.trim()||null,signatory_position:el('letterPosition').value.trim()||null,updated_at:new Date().toISOString(),updated_by:userData?.user?.id||null};
+    const payload={letter_date:date,category,direction,language:el('letterLanguage').value,appendix:el('letterAppendix').value.trim()||null,recipient_name:el('letterRecipient').value.trim()||null,recipient_company:el('letterCompany').value.trim()||null,recipient_department:el('letterDepartment').value.trim()||null,subject,body,signatory_name:el('letterSignatory').value.trim()||null,signatory_position:el('letterPosition').value.trim()||null,updated_at:new Date().toISOString(),updated_by:userData?.user?.id||null};
     if(state.editingLetterId){
       const id=state.editingLetterId,no=el('letterNo').value;
       const {error}=await client().from('company_letters').update(payload).eq('id',id);if(error)return alert('Letter update failed: '+error.message);
@@ -234,22 +234,34 @@
     const l=state.letters.find(x=>x.id===id);if(!l)return alert('Letter not found.');
     const w=window.open('about:blank','_blank','width=900,height=900');if(!w)return alert('Please allow pop-ups to print the letter.');
     let logo='';try{const {data}=await client().from('quotation_logo_settings').select('storage_path').eq('id',1).maybeSingle();if(data?.storage_path)logo=client().storage.from('quotation-assets').getPublicUrl(data.storage_path).data.publicUrl;}catch(_){}
-    const date=new Date(l.letter_date+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'});
+    const idn=l.language==='id',locale=idn?'id-ID':'en-GB';
+    const date=new Date(l.letter_date+'T00:00:00').toLocaleDateString(locale,{day:'numeric',month:'long',year:'numeric'});
     const safe=v=>esc(v).replace(/\n/g,'<br>');
+    const body=safe(l.body).split('<br>').map(p=>'<p>'+p+'</p>').join('');
+    const salutation=idn?'Yth.':'Dear';
+    const close=idn?'Hormat kami,':'Sincerely,';
+    const numberLabel=idn?'Nomor':'Number',appendixLabel=idn?'Lampiran':'Appendix',subjectLabel=idn?'Hal':'Subject';
     w.document.open();w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(l.letter_no)}</title><style>
       @page{size:A4;margin:0}*{box-sizing:border-box}body{margin:0;color:#171b20;font-family:Arial,sans-serif}.page{width:210mm;min-height:297mm;padding:19mm 17mm 30mm;position:relative;margin:auto}
       .head{height:79px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #09639f;padding-bottom:10px}.logo{max-width:145px;max-height:42px;object-fit:contain}
       .fallback{font-size:24px;font-weight:800;letter-spacing:3px;color:#12416b}.fallback small{display:block;font-size:8px;letter-spacing:4px}
-      .company{text-align:right;font-size:9px;line-height:1.45}.company b{font-size:11px}.meta{margin-top:34px;font-size:11pt;line-height:1.8}
-      .row{display:flex}.label{width:92px;flex:none}.subject{margin:20px 0 22px;font-weight:700;text-decoration:underline;text-align:center;font-size:12pt}
-      .body{font-size:11pt;line-height:1.65;text-align:justify;overflow-wrap:anywhere}.body p{margin:0 0 12px}.closing{margin-top:25px;font-size:11pt;line-height:1.6}
-      .sign{margin-top:65px;font-weight:700;text-decoration:underline}.footer{position:absolute;left:0;right:0;bottom:0;height:42px;text-align:center;font-size:8px;color:#68727b;padding-top:23px}
+      .company{text-align:right;font-size:9px;line-height:1.45}.company b{font-size:11px}
+      .date{text-align:right;margin-top:22px;margin-bottom:16px;font-size:10.5pt}
+      .meta{font-size:10.5pt;line-height:1.65;margin-bottom:24px}.row{display:flex}.label{width:72px;flex:none}.colon{width:14px;flex:none}
+      .recipient{font-size:10.5pt;line-height:1.55;margin:0 0 20px}.salutation{margin-bottom:14px;font-size:10.5pt}
+      .body{font-size:10.5pt;line-height:1.48;text-align:justify;overflow-wrap:anywhere}.body p{margin:0 0 10px}
+      .closing{margin-top:22px;font-size:10.5pt;line-height:1.5}.sign{margin-top:64px;font-weight:700;text-decoration:underline}.signpos{margin-top:2px}
+      .footer{position:absolute;left:0;right:0;bottom:0;height:42px;text-align:center;font-size:8px;color:#68727b;padding-top:23px}
       .footer svg{position:absolute;left:0;right:0;top:-31px;width:100%;height:40px}.footer .site{position:relative;z-index:1}
       @media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}.page{margin:0}}
     </style></head><body><main class="page"><header class="head">${logo?`<img class="logo" src="${esc(logo)}">`:'<div class="fallback">PILARK<small>COMPOSITES</small></div>'}<div class="company"><b>PT. PANCA INTEGRA LAGUNA REKSA</b><br>Jl. Arteri Kedoya nomor 88C, Desa/Kel Sukabumi Utara<br>Kec. Kebon Jeruk, Jakarta Barat 11550<br>Email : sales@pilarkkomposit.com</div></header>
-      <section class="meta"><div class="row"><span class="label">Number</span><span>: ${esc(l.letter_no)}</span></div><div class="row"><span class="label">Date</span><span>: ${esc(date)}</span></div><div class="row"><span class="label">To</span><span>: ${esc(l.recipient_name||'—')}</span></div>${l.recipient_company?`<div class="row"><span class="label"></span><span>${esc(l.recipient_company)}</span></div>`:''}${l.recipient_department?`<div class="row"><span class="label"></span><span>${esc(l.recipient_department)}</span></div>`:''}</section>
-      <div class="subject">${esc(l.subject)}</div><section class="body">${safe(l.body).split('<br>').map(p=>'<p>'+p+'</p>').join('')}</section>
-      <section class="closing">Sincerely,<div class="sign">${esc(l.signatory_name||'Authorized Signatory')}</div><div>${esc(l.signatory_position||'')}</div></section><footer class="footer"><svg viewBox="0 0 595 40" preserveAspectRatio="none" aria-hidden="true"><path d="M0 15 C90 3 150 30 245 17 S420 2 595 18" fill="none" stroke="#05335f" stroke-width="1.1"/><path d="M0 21 C100 8 170 34 270 20 S450 6 595 22" fill="none" stroke="#0870b8" stroke-width="1.2"/><path d="M0 27 C95 14 180 38 290 26 S460 12 595 27" fill="none" stroke="#078fc5" stroke-width="1"/><path d="M0 10 C110 0 190 22 300 11 S475 1 595 12" fill="none" stroke="#07558d" stroke-width=".8"/><path d="M0 31 C120 20 200 40 320 30 S485 19 595 31" fill="none" stroke="#06345f" stroke-width=".8"/><path d="M0 18 C120 6 210 28 330 17 S480 6 595 19" fill="none" stroke="#0875b4" stroke-width=".7"/></svg><span class="site">www.pilarkomposit.com</span></footer></main><script>window.onload=()=>setTimeout(()=>window.print(),400);<\/script></body></html>`);w.document.close();
+      <div class="date">Jakarta, ${esc(date)}</div>
+      <section class="meta"><div class="row"><span class="label">${numberLabel}</span><span class="colon">:</span><span>${esc(l.letter_no)}</span></div>${l.appendix?`<div class="row"><span class="label">${appendixLabel}</span><span class="colon">:</span><span>${esc(l.appendix)}</span></div>`:''}<div class="row"><span class="label">${subjectLabel}</span><span class="colon">:</span><b>${esc(l.subject)}</b></div></section>
+      <section class="recipient">${l.recipient_name?`<div>${salutation} <b>${esc(l.recipient_name)}</b></div>`:''}${l.recipient_company?`<div>${esc(l.recipient_company)}</div>`:''}${l.recipient_department?`<div>${esc(l.recipient_department)}</div>`:''}</section>
+      <div class="salutation">${idn?'Dengan hormat,':'Dear Sir / Madam,'}</div><section class="body">${body}</section>
+      <section class="closing">${close}<div class="sign">${esc(l.signatory_name||'Authorized Signatory')}</div><div class="signpos">${esc(l.signatory_position||'')}</div></section>
+      <footer class="footer"><svg viewBox="0 0 595 40" preserveAspectRatio="none" aria-hidden="true"><path d="M0 15 C90 3 150 30 245 17 S420 2 595 18" fill="none" stroke="#05335f" stroke-width="1.1"/><path d="M0 21 C100 8 170 34 270 20 S450 6 595 22" fill="none" stroke="#0870b8" stroke-width="1.2"/><path d="M0 27 C95 14 180 38 290 26 S460 12 595 27" fill="none" stroke="#078fc5" stroke-width="1"/><path d="M0 10 C110 0 190 22 300 11 S475 1 595 12" fill="none" stroke="#07558d" stroke-width=".8"/><path d="M0 31 C120 20 200 40 320 30 S485 19 595 31" fill="none" stroke="#06345f" stroke-width=".8"/><path d="M0 18 C120 6 210 28 330 17 S480 6 595 19" fill="none" stroke="#0875b4" stroke-width=".7"/></svg><span class="site">www.pilarkomposit.com</span></footer>
+      </main><script>window.onload=()=>setTimeout(()=>window.print(),400);<\/script></body></html>`);w.document.close();
   }
   function renderCompanyLetters(){
     const b=el('companyLettersBody');if(!b)return;
