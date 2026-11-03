@@ -1170,6 +1170,9 @@ document.addEventListener('DOMContentLoaded',async()=>{
     document.querySelectorAll('.side-link').forEach(b=>b.onclick=()=>{
       showView(b.dataset.view);
       if(b.dataset.salesTabTarget==='letters'){
+        setSidebarMenu('correspondence',true);
+        document.querySelectorAll('.side-link[data-sales-tab-target]').forEach(x=>x.classList.toggle('active',x===b));
+        document.getElementById('pageTitle').textContent='Company Letters';
         const openLettersTab=()=>document.querySelector('[data-sales-tab="letters"]')?.click();
         requestAnimationFrame(()=>requestAnimationFrame(openLettersTab));
       }
