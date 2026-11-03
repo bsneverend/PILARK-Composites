@@ -51,6 +51,7 @@ const accessMap={
   'general-ledger':'accounting.manage', 'transaction-input':'accounting.manage',
   sales:'sales.manage',
   'company-letters':'sales.manage',
+  'document-register':'sales.manage',
   purchase:'purchase.manage',
   inventory:'inventory.manage',
   accounting:'accounting.manage',
@@ -960,7 +961,7 @@ function showView(name){
   main?.classList.toggle('whatsapp-mode',name==='whatsapp');
   if(name!=='chat')setMobileChatOpen(false);
   if(name==='general-ledger')window.initGeneralLedger?.(); if(name==='transaction-input')window.initTransactionInput?.();
-  document.getElementById('pageTitle').textContent={dashboard:'Website overview',media:'Media Library',products:'Product thumbnails',sections:'Website Content',chat:'Live Chat',whatsapp:'WhatsApp Center',sales:'Sales',purchase:'Purchase',inventory:'Inventory',accounting:'Accounting', 'erp-overview':'ERP Overview', settings:'User Access', 'research-schedule':'Schedule', 'company-letters':'Company Letters', 'odoo-director-dashboard':'Director Dashboard', 'general-ledger':'General Ledger', 'transaction-input':'Expense Center'}[name]||'PILARK Admin';
+  document.getElementById('pageTitle').textContent={dashboard:'Website overview',media:'Media Library',products:'Product thumbnails',sections:'Website Content',chat:'Live Chat',whatsapp:'WhatsApp Center',sales:'Sales',purchase:'Purchase',inventory:'Inventory',accounting:'Accounting', 'erp-overview':'ERP Overview', settings:'User Access', 'research-schedule':'Schedule', 'company-letters':'Company Letters', 'document-register':'Document Register', 'odoo-director-dashboard':'Director Dashboard', 'general-ledger':'General Ledger', 'transaction-input':'Expense Center'}[name]||'PILARK Admin';
   // Finance modules use the top-right action slot for data refresh instead of
   // the Preview Website button position. Non-finance pages keep Preview Website.
   const topbarAction=document.getElementById('topbarAction');
@@ -968,6 +969,7 @@ function showView(name){
     chat:'__liveChatRefresh',
     whatsapp:'__whatsappCenterRefresh',
     'company-letters':'salesRefresh',
+    'document-register':'documentRegisterRefresh',
     'erp-overview':'erpDashboardRefresh',
     'odoo-director-dashboard':'odooDirectorRefresh',
     'general-ledger':'generalLedgerRefresh', 'transaction-input':'transactionInputRefresh',
