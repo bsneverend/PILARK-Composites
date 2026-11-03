@@ -741,12 +741,15 @@
   overflow:auto;
 }
 #view-company-letters #companyLettersBody td.accounting-actions{
-  display:flex;
-  align-items:center;
-  gap:8px;
+  display:table-cell;
   min-width:500px;
-  padding:18px 13px;
+  padding:12px 13px;
+  vertical-align:middle;
   white-space:nowrap;
+}
+#view-company-letters #companyLettersBody td.accounting-actions .accounting-small-btn{
+  margin:0 4px 0 0;
+  vertical-align:middle;
 }
 #view-company-letters #companyLettersBody .accounting-small-btn{
   display:inline-flex;
