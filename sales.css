@@ -758,10 +758,10 @@
   justify-content:center;
   width:auto!important;
   min-width:60px;
-  min-height:56px;
-  padding:0 14px;
-  border-radius:13px;
-  font-size:14px;
+  min-height:38px;
+  padding:6px 9px;
+  border-radius:8px;
+  font-size:11px;
   line-height:1;
 }
 #view-company-letters .accounting-table th:last-child{min-width:500px}
