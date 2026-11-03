@@ -259,10 +259,33 @@
       '<footer class="footer"><svg viewBox="0 0 595 40" preserveAspectRatio="none" aria-hidden="true"><path d="M0 15 C90 3 150 30 245 17 S420 2 595 18" fill="none" stroke="#05335f" stroke-width="1.1"/><path d="M0 21 C100 8 170 34 270 20 S450 6 595 22" fill="none" stroke="#0870b8" stroke-width="1.2"/><path d="M0 27 C95 14 180 38 290 26 S460 12 595 27" fill="none" stroke="#078fc5" stroke-width="1"/><path d="M0 10 C110 0 190 22 300 11 S475 1 595 12" fill="none" stroke="#07558d" stroke-width=".8"/><path d="M0 31 C120 20 200 40 320 30 S485 19 595 31" fill="none" stroke="#06345f" stroke-width=".8"/><path d="M0 18 C120 6 210 28 330 17 S480 6 595 19" fill="none" stroke="#0875b4" stroke-width=".7"/></svg><span class="site">www.pilarkomposit.com</span></footer></main><script>window.onload=()=>setTimeout(()=>window.print(),400);<\/script></body></html>');
     w.document.close();
   }
+  async function updateCompanyLetterStatus(id,status){
+    const labels={sent:'send',accepted:'accept',rejected:'reject'};
+    const label=labels[status]||status;
+    const letter=state.letters.find(x=>x.id===id);
+    if(!letter)return;
+    if(status==='sent'&&letter.status!=='draft')return alert('Only draft letters can be sent.');
+    if(['accepted','rejected'].includes(status)&&letter.status!=='sent')return alert('Only sent letters can be accepted or rejected.');
+    if(!confirm('Are you sure you want to '+label+' letter '+(letter.letter_no||'')+'?'))return;
+    const {data:userData}=await client().auth.getUser();
+    const {error}=await client().from('company_letters').update({status,updated_at:new Date().toISOString(),updated_by:userData?.user?.id||null}).eq('id',id).eq('status',letter.status);
+    if(error)return alert('Unable to update letter status: '+error.message);
+    await load();
+  }
   function renderCompanyLetters(){
     const b=el('companyLettersBody');if(!b)return;
-    b.innerHTML=state.letters.map(l=>'<tr><td><b>'+esc(l.letter_no)+'</b></td><td>'+esc(l.letter_date)+'</td><td>'+esc(l.category==='HR'?'Human Resources':'General / Official')+'</td><td>'+esc(l.direction==='E'?'External':'Internal')+'</td><td>'+esc(l.recipient_name||l.recipient_company||'—')+'</td><td>'+esc(l.subject)+'</td><td><span class="sales-status">'+esc(l.status)+'</span></td><td class="accounting-actions"><button type="button" class="accounting-small-btn letter-edit" data-id="'+l.id+'">Edit</button><button type="button" class="accounting-small-btn letter-print" data-id="'+l.id+'">Print / PDF</button></td></tr>').join('')||'<tr><td colspan="8" class="accounting-empty">No company letters yet.</td></tr>';
-    b.querySelectorAll('.letter-edit').forEach(x=>x.onclick=()=>editCompanyLetter(x.dataset.id));b.querySelectorAll('.letter-print').forEach(x=>x.onclick=()=>printCompanyLetter(x.dataset.id));
+    b.innerHTML=state.letters.map(l=>{
+      const status=String(l.status||'draft').toLowerCase();
+      const workflow=status==='draft'
+        ?'<button type="button" class="accounting-small-btn letter-status-action" data-id="'+l.id+'" data-status="sent">Send</button>'
+        :status==='sent'
+          ?'<button type="button" class="accounting-small-btn letter-status-action" data-id="'+l.id+'" data-status="accepted">Accept</button><button type="button" class="accounting-small-btn letter-status-action" data-id="'+l.id+'" data-status="rejected">Reject</button>'
+          :'<span class="sales-status">'+esc(status==='accepted'?'Accepted':status==='rejected'?'Rejected':status)+'</span>';
+      return '<tr><td><b>'+esc(l.letter_no)+'</b></td><td>'+esc(l.letter_date)+'</td><td>'+esc(l.category==='HR'?'Human Resources':'General / Official')+'</td><td>'+esc(l.direction==='E'?'External':'Internal')+'</td><td>'+esc(l.recipient_name||l.recipient_company||'—')+'</td><td>'+esc(l.subject)+'</td><td><span class="sales-status">'+esc(status.replace(/_/g,' '))+'</span></td><td class="accounting-actions"><button type="button" class="accounting-small-btn letter-edit" data-id="'+l.id+'">Edit</button><button type="button" class="accounting-small-btn letter-print" data-id="'+l.id+'">Print / PDF</button>'+workflow+'</td></tr>';
+    }).join('')||'<tr><td colspan="8" class="accounting-empty">No company letters yet.</td></tr>';
+    b.querySelectorAll('.letter-edit').forEach(x=>x.onclick=()=>editCompanyLetter(x.dataset.id));
+    b.querySelectorAll('.letter-print').forEach(x=>x.onclick=()=>printCompanyLetter(x.dataset.id));
+    b.querySelectorAll('.letter-status-action').forEach(x=>x.onclick=()=>updateCompanyLetterStatus(x.dataset.id,x.dataset.status));
   }
   function initCompanyLetterUi(){
     const f=el('companyLetterForm');if(!f||f.dataset.bound==='1')return;f.dataset.bound='1';f.addEventListener('submit',saveCompanyLetter);
