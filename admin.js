@@ -1027,6 +1027,9 @@ function showView(name){
   // returning from Quotations/RFQs could leave the panel hidden while Overview
   // still appears visually active.
   if(name==='sales'){
+    const salesView=document.getElementById('view-sales');
+    salesView?.querySelector('.section-intro')?.removeAttribute('hidden');
+    salesView?.querySelector('.sales-tabs')?.removeAttribute('hidden');
     document.querySelectorAll('[data-sales-tab]').forEach(b=>b.classList.toggle('active',b.dataset.salesTab==='overview'));
     document.querySelectorAll('[data-sales-panel]').forEach(p=>{
       const active=p.dataset.salesPanel==='overview';
