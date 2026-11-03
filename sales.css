@@ -729,3 +729,7 @@
 
 /* Company Letters panel */
 #companyLetterForm .quotation-header-grid{grid-template-columns:repeat(4,minmax(0,1fr))}#companyLetterForm .quotation-header-grid label{min-width:0}#companyLetterForm .quotation-header-grid .quotation-reference{grid-column:span 2}#companyLetterForm .quotation-terms-grid{margin-top:20px}#companyLettersBody td{vertical-align:middle}#companyLettersBody td:nth-child(6){min-width:190px;max-width:320px;white-space:normal}@media(max-width:900px){#companyLetterForm .quotation-header-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:560px){#companyLetterForm .quotation-header-grid{grid-template-columns:1fr}#companyLetterForm .quotation-header-grid .quotation-reference{grid-column:auto}}
+
+/* Formal correspondence print-template controls */
+#companyLetterForm #letterAppendix{min-width:0}
+#companyLetterForm #letterLanguage{font-weight:600}
