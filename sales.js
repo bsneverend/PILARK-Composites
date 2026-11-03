@@ -206,7 +206,7 @@
     const l=state.letters.find(x=>x.id===id);if(!l)return alert('Letter not found. Refresh and try again.');
     state.editingLetterId=id;el('letterDate').value=l.letter_date||today();el('letterCategory').value=l.category;
     el('letterDirection').value=l.direction;el('letterLanguage').value=l.language||'en';el('letterNo').value=l.letter_no;el('letterRecipient').value=l.recipient_name||'';
-    el('letterCompany').value=l.recipient_company||'';el('letterDepartment').value=l.recipient_department||'';
+    el('letterDepartment').value=l.recipient_department||'';el('letterCompany').value=l.recipient_company||'';el('letterLocation').value=l.recipient_location||'';
     el('letterSubject').value=l.subject||'';el('letterBody').value=l.body||'';
     el('letterSignatory').value=l.signatory_name||'';el('letterPosition').value=l.signatory_position||'';
     el('companyLetterEditorTitle').textContent='Edit Company Letter · '+l.letter_no;
@@ -218,7 +218,7 @@
     const subject=el('letterSubject').value.trim(),body=el('letterBody').value.trim();
     if(!date||!subject||!body)return alert('Complete letter date, subject and body.');
     const {data:userData}=await client().auth.getUser();
-    const payload={letter_date:date,category,direction,language:el('letterLanguage').value,appendix:el('letterAppendix').value.trim()||null,recipient_name:el('letterRecipient').value.trim()||null,recipient_company:el('letterCompany').value.trim()||null,recipient_department:el('letterDepartment').value.trim()||null,subject,body,signatory_name:el('letterSignatory').value.trim()||null,signatory_position:el('letterPosition').value.trim()||null,updated_at:new Date().toISOString(),updated_by:userData?.user?.id||null};
+    const payload={letter_date:date,category,direction,language:el('letterLanguage').value,appendix:el('letterAppendix').value.trim()||null,recipient_name:el('letterRecipient').value.trim()||null,recipient_department:el('letterDepartment').value.trim()||null,recipient_company:el('letterCompany').value.trim()||null,recipient_location:el('letterLocation').value.trim()||null,subject,body,signatory_name:el('letterSignatory').value.trim()||null,signatory_position:el('letterPosition').value.trim()||null,updated_at:new Date().toISOString(),updated_by:userData?.user?.id||null};
     if(state.editingLetterId){
       const id=state.editingLetterId,no=el('letterNo').value;
       const {error}=await client().from('company_letters').update(payload).eq('id',id);if(error)return alert('Letter update failed: '+error.message);
@@ -241,7 +241,7 @@
     const logoMarkup=logo?'<img class="logo" src="'+esc(logo)+'">':'<div class="fallback">PILARK<small>COMPOSITES</small></div>';
     const numberLabel=idn?'Nomor':'Number',appendixLabel=idn?'Lampiran':'Appendix',subjectLabel=idn?'Hal':'Subject';
     const appendixMarkup=l.appendix?'<div class="row"><span class="label">'+appendixLabel+'</span><span class="colon">:</span><span>'+esc(l.appendix)+'</span></div>':'';
-    const recipientMarkup=(l.recipient_name?'<div>'+(idn?'Yth. ':'To: ')+'<b>'+esc(l.recipient_name)+'</b></div>':'')+(l.recipient_company?'<div>'+esc(l.recipient_company)+'</div>':'')+(l.recipient_department?'<div>'+esc(l.recipient_department)+'</div>':'');
+    const recipientMarkup=(l.recipient_name?'<div>'+(idn?'Yth. ':'To: ')+'<b>'+esc(l.recipient_name)+'</b></div>':'')+(l.recipient_department?'<div>'+esc(l.recipient_department)+'</div>':'')+(l.recipient_company?'<div>'+esc(l.recipient_company)+'</div>':'')+(l.recipient_location?'<div>'+esc(l.recipient_location)+'</div>':'');
     const close=idn?'Hormat kami,':'Sincerely,',greeting=idn?'Dengan hormat,':'Dear Sir / Madam,';
     w.document.open();
     w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+esc(l.letter_no)+'</title><style>'+
@@ -250,12 +250,12 @@
       '.fallback{font-size:24px;font-weight:800;letter-spacing:3px;color:#12416b}.fallback small{display:block;font-size:8px;letter-spacing:4px}.company{text-align:right;font-size:9px;line-height:1.45}.company b{font-size:11px}'+
       '.date{text-align:right;margin-top:22px;margin-bottom:16px;font-size:10.5pt}.meta{font-size:10.5pt;line-height:1.65;margin-bottom:24px}.row{display:flex}.label{width:72px;flex:none}.colon{width:14px;flex:none}'+
       '.recipient{font-size:10.5pt;line-height:1.55;margin:0 0 20px}.salutation{margin-bottom:14px;font-size:10.5pt}.body{font-size:10.5pt;line-height:1.48;text-align:justify;overflow-wrap:anywhere}.body p{margin:0 0 10px}'+
-      '.closing{margin-top:22px;font-size:10.5pt;line-height:1.5}.sign{margin-top:64px;font-weight:700;text-decoration:underline}.signpos{margin-top:2px}.footer{position:absolute;left:0;right:0;bottom:0;height:42px;text-align:center;font-size:8px;color:#68727b;padding-top:23px}'+
+      '.closing{margin-top:22px;font-size:10.5pt;line-height:1.5}.company-signatory{font-weight:700;margin-top:2px}.sign{margin-top:64px;font-weight:700;text-decoration:underline}.signpos{margin-top:2px}.footer{position:absolute;left:0;right:0;bottom:0;height:42px;text-align:center;font-size:8px;color:#68727b;padding-top:23px}'+
       '.footer svg{position:absolute;left:0;right:0;top:-31px;width:100%;height:40px}.footer .site{position:relative;z-index:1}@media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}.page{margin:0}}'+
       '</style></head><body><main class="page"><header class="head">'+logoMarkup+'<div class="company"><b>PT. PANCA INTEGRA LAGUNA REKSA</b><br>Jl. Arteri Kedoya nomor 88C, Desa/Kel Sukabumi Utara<br>Kec. Kebon Jeruk, Jakarta Barat 11550<br>Email : sales@pilarkkomposit.com</div></header>'+
       '<div class="date">Jakarta, '+esc(date)+'</div><section class="meta"><div class="row"><span class="label">'+numberLabel+'</span><span class="colon">:</span><span>'+esc(l.letter_no)+'</span></div>'+appendixMarkup+
       '<div class="row"><span class="label">'+subjectLabel+'</span><span class="colon">:</span><b>'+esc(l.subject)+'</b></div></section><section class="recipient">'+recipientMarkup+'</section>'+
-      '<div class="salutation">'+greeting+'</div><section class="body">'+body+'</section><section class="closing">'+close+'<div class="sign">'+esc(l.signatory_name||'Authorized Signatory')+'</div><div class="signpos">'+esc(l.signatory_position||'')+'</div></section>'+
+      '<div class="salutation">'+greeting+'</div><section class="body">'+body+'</section><section class="closing">'+close+'<div class="company-signatory">PT. Panca Integra Laguna Reksa</div><div class="sign">'+esc(l.signatory_name||'Authorized Signatory')+'</div><div class="signpos">'+esc(l.signatory_position||'')+'</div></section>'+
       '<footer class="footer"><svg viewBox="0 0 595 40" preserveAspectRatio="none" aria-hidden="true"><path d="M0 15 C90 3 150 30 245 17 S420 2 595 18" fill="none" stroke="#05335f" stroke-width="1.1"/><path d="M0 21 C100 8 170 34 270 20 S450 6 595 22" fill="none" stroke="#0870b8" stroke-width="1.2"/><path d="M0 27 C95 14 180 38 290 26 S460 12 595 27" fill="none" stroke="#078fc5" stroke-width="1"/><path d="M0 10 C110 0 190 22 300 11 S475 1 595 12" fill="none" stroke="#07558d" stroke-width=".8"/><path d="M0 31 C120 20 200 40 320 30 S485 19 595 31" fill="none" stroke="#06345f" stroke-width=".8"/><path d="M0 18 C120 6 210 28 330 17 S480 6 595 19" fill="none" stroke="#0875b4" stroke-width=".7"/></svg><span class="site">www.pilarkomposit.com</span></footer></main><script>window.onload=()=>setTimeout(()=>window.print(),400);<\/script></body></html>');
     w.document.close();
   }
