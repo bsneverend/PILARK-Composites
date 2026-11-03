@@ -1169,6 +1169,10 @@ document.addEventListener('DOMContentLoaded',async()=>{
     }
     document.querySelectorAll('.side-link').forEach(b=>b.onclick=()=>{
       showView(b.dataset.view);
+      if(b.dataset.salesTabTarget==='letters'){
+        const openLettersTab=()=>document.querySelector('[data-sales-tab="letters"]')?.click();
+        requestAnimationFrame(()=>requestAnimationFrame(openLettersTab));
+      }
       if(sidebar?.classList.contains('mobile-open')){
         sidebar.classList.remove('mobile-open');
         mobileNavToggle?.setAttribute('aria-expanded','false');
