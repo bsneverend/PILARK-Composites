@@ -151,10 +151,11 @@
     el('quotationSalesperson').value=q.salesperson_name||'Sales Engineer';
     el('quotationLines').innerHTML=(lines||[]).length?(lines||[]).map((l,i)=>{
       const box=document.createElement('div');box.innerHTML=quotationLineHtml(i);const row=box.firstElementChild;
-      row.querySelector('.q-item-code').value=l.item_code||'';row.querySelector('.q-item-name').value=l.item_name||'';
-      row.querySelector('.q-desc').value=l.description||'';row.querySelector('.q-qty').value=l.quantity??1;
-      row.querySelector('.q-uom').value=l.uom||'PCS';row.querySelector('.q-price').value=l.unit_price??0;
-      row.querySelector('.q-line-total').value=money(l.line_total||0);return row.outerHTML;
+      const setInput=(selector,value)=>{const input=row.querySelector(selector);if(input){input.value=value??'';input.setAttribute('value',String(value??''));}};
+      setInput('.q-item-code',l.item_code||'');setInput('.q-item-name',l.item_name||'');
+      const desc=row.querySelector('.q-desc');if(desc){desc.value=l.description||'';desc.textContent=l.description||'';}
+      setInput('.q-qty',l.quantity??1);setInput('.q-uom',l.uom||'PCS');setInput('.q-price',l.unit_price??0);
+      setInput('.q-line-total',money(l.line_total||0));return row.outerHTML;
     }).join(''):quotationLineHtml(0);
     const title=el('quotationForm').closest('.quotation-editor-panel')?.querySelector('.panel-head h2');if(title)title.textContent='Edit Quotation · '+q.quotation_no;
     const save=el('quotationForm').querySelector('button[type="submit"]');if(save)save.textContent='Save Changes →';
