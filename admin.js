@@ -50,6 +50,7 @@ const accessMap={
   'odoo-director-dashboard':'erp.overview',
   'general-ledger':'accounting.manage', 'transaction-input':'accounting.manage',
   sales:'sales.manage',
+  'company-letters':'sales.manage',
   purchase:'purchase.manage',
   inventory:'inventory.manage',
   accounting:'accounting.manage',
@@ -959,13 +960,14 @@ function showView(name){
   main?.classList.toggle('whatsapp-mode',name==='whatsapp');
   if(name!=='chat')setMobileChatOpen(false);
   if(name==='general-ledger')window.initGeneralLedger?.(); if(name==='transaction-input')window.initTransactionInput?.();
-  document.getElementById('pageTitle').textContent={dashboard:'Website overview',media:'Media Library',products:'Product thumbnails',sections:'Website Content',chat:'Live Chat',whatsapp:'WhatsApp Center',sales:'Sales',purchase:'Purchase',inventory:'Inventory',accounting:'Accounting', 'erp-overview':'ERP Overview', settings:'User Access', 'research-schedule':'Schedule', 'odoo-director-dashboard':'Director Dashboard', 'general-ledger':'General Ledger', 'transaction-input':'Expense Center'}[name]||'PILARK Admin';
+  document.getElementById('pageTitle').textContent={dashboard:'Website overview',media:'Media Library',products:'Product thumbnails',sections:'Website Content',chat:'Live Chat',whatsapp:'WhatsApp Center',sales:'Sales',purchase:'Purchase',inventory:'Inventory',accounting:'Accounting', 'erp-overview':'ERP Overview', settings:'User Access', 'research-schedule':'Schedule', 'company-letters':'Company Letters', 'odoo-director-dashboard':'Director Dashboard', 'general-ledger':'General Ledger', 'transaction-input':'Expense Center'}[name]||'PILARK Admin';
   // Finance modules use the top-right action slot for data refresh instead of
   // the Preview Website button position. Non-finance pages keep Preview Website.
   const topbarAction=document.getElementById('topbarAction');
   const financeRefreshMap={
     chat:'__liveChatRefresh',
     whatsapp:'__whatsappCenterRefresh',
+    'company-letters':'salesRefresh',
     'erp-overview':'erpDashboardRefresh',
     'odoo-director-dashboard':'odooDirectorRefresh',
     'general-ledger':'generalLedgerRefresh', 'transaction-input':'transactionInputRefresh',
@@ -1172,25 +1174,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
     }
     document.querySelectorAll('.side-link').forEach(b=>b.onclick=()=>{
       showView(b.dataset.view);
-      if(b.dataset.salesTabTarget==='letters'){
-        setSidebarMenu('correspondence',true);
-        document.querySelectorAll('.side-link[data-sales-tab-target]').forEach(x=>x.classList.toggle('active',x===b));
-        const title=document.getElementById('pageTitle');
-        if(title) title.textContent='Company Letters';
-        // Open the letters workspace directly. Do not route users through the Sales overview/tabs.
-        const salesView=document.getElementById('view-sales');
-        if(salesView){
-          salesView.querySelector('.section-intro')?.setAttribute('hidden','');
-          salesView.querySelector('.sales-tabs')?.setAttribute('hidden','');
-          salesView.querySelectorAll('[data-sales-panel]').forEach(panel=>{
-            const active=panel.dataset.salesPanel==='letters';
-            panel.hidden=!active;
-            panel.toggleAttribute('hidden',!active);
-            panel.style.setProperty('display',active?'block':'none','important');
-          });
-          salesView.querySelectorAll('[data-sales-tab]').forEach(tab=>tab.classList.toggle('active',tab.dataset.salesTab==='letters'));
-        }
-      }
+      if(b.dataset.view==='company-letters') setSidebarMenu('correspondence',true);
       if(sidebar?.classList.contains('mobile-open')){
         sidebar.classList.remove('mobile-open');
         mobileNavToggle?.setAttribute('aria-expanded','false');
