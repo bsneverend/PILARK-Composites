@@ -9,16 +9,15 @@
   const db=client();if(!db)return;
   $('documentRegisterBody').innerHTML='<tr><td colspan="8" class="accounting-empty">Loading register…</td></tr>';
   const [q,l]=await Promise.all([
-   db.from('sales_quotations').select('*,accounting_partners(name,email)').order('quotation_date',{ascending:false}).limit(1000),
-   db.from('company_letters').select('*').order('letter_date',{ascending:false}).limit(1000)
+   db.from('sales_quotations').select('*,accounting_partners(name,email)').eq('status','sent').order('quotation_date',{ascending:false}).limit(1000),
+   db.from('company_letters').select('*').eq('status','sent').order('letter_date',{ascending:false}).limit(1000)
   ]);
   if(q.error||l.error){$('documentRegisterBody').innerHTML='<tr><td colspan="8" class="accounting-empty">Unable to load register: '+esc(q.error?.message||l.error?.message)+'</td></tr>';return;}
   records=[
    ...(q.data||[]).map(x=>({kind:'quotation',id:x.id,no:x.quotation_no,date:x.quotation_date,party:x.accounting_partners?.name||'—',subject:x.project_name||x.reference||'—',amount:x.total_amount,status:x.status||'draft',data:x})),
    ...(l.data||[]).map(x=>({kind:'letter',id:x.id,no:x.letter_no,date:x.letter_date,party:[x.recipient_name,x.recipient_company].filter(Boolean).join(' · ')||'—',subject:x.subject,amount:null,status:x.status||'draft',data:x}))
   ].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))||String(a.no).localeCompare(String(b.no)));
-  const statuses=[...new Set(records.map(x=>x.status))].sort();
-  $('documentRegisterStatus').innerHTML='<option value="all">All statuses</option>'+statuses.map(s=>'<option value="'+esc(s)+'">'+esc(statusLabel(s))+'</option>').join('');
+  $('documentRegisterStatus').value='all';
   render();
  }
  function render(){
