@@ -733,3 +733,32 @@
 /* Formal correspondence print-template controls */
 #companyLetterForm #letterAppendix{min-width:0}
 #companyLetterForm #letterLanguage{font-weight:600}
+
+
+/* Company Letters action column — match the Quotation history button layout */
+#view-company-letters .quotation-history-panel .accounting-table-wrap{
+  max-height:640px;
+  overflow:auto;
+}
+#view-company-letters #companyLettersBody td.accounting-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:500px;
+  padding:18px 13px;
+  white-space:nowrap;
+}
+#view-company-letters #companyLettersBody .accounting-small-btn{
+  display:inline-flex;
+  flex:0 0 auto;
+  align-items:center;
+  justify-content:center;
+  width:auto!important;
+  min-width:60px;
+  min-height:56px;
+  padding:0 14px;
+  border-radius:13px;
+  font-size:14px;
+  line-height:1;
+}
+#view-company-letters .accounting-table th:last-child{min-width:500px}
