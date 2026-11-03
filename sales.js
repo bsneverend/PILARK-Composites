@@ -199,7 +199,7 @@
   function resetCompanyLetterForm(){
     state.editingLetterId=null;const f=el('companyLetterForm');if(!f)return;f.reset();
     el('letterDate').value=today();el('letterCategory').value='REF';el('letterDirection').value='E';el('letterLanguage').value='en';
-    el('companyLetterEditorTitle'.textContent='Create Company Letter';f.querySelector('button[type="submit"]').textContent='Save Letter →';
+    el('companyLetterEditorTitle').textContent='Create Company Letter';f.querySelector('button[type="submit"]').textContent='Save Letter →';
     el('cancelLetterEdit').hidden=true;prepareCompanyLetterNo();
   }
   async function editCompanyLetter(id){
