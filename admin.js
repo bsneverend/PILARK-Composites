@@ -1172,9 +1172,21 @@ document.addEventListener('DOMContentLoaded',async()=>{
       if(b.dataset.salesTabTarget==='letters'){
         setSidebarMenu('correspondence',true);
         document.querySelectorAll('.side-link[data-sales-tab-target]').forEach(x=>x.classList.toggle('active',x===b));
-        document.getElementById('pageTitle').textContent='Company Letters';
-        const openLettersTab=()=>document.querySelector('[data-sales-tab="letters"]')?.click();
-        requestAnimationFrame(()=>requestAnimationFrame(openLettersTab));
+        const title=document.getElementById('pageTitle');
+        if(title) title.textContent='Company Letters';
+        // Open the letters workspace directly. Do not route users through the Sales overview/tabs.
+        const salesView=document.getElementById('view-sales');
+        if(salesView){
+          salesView.querySelector('.section-intro')?.setAttribute('hidden','');
+          salesView.querySelector('.sales-tabs')?.setAttribute('hidden','');
+          salesView.querySelectorAll('[data-sales-panel]').forEach(panel=>{
+            const active=panel.dataset.salesPanel==='letters';
+            panel.hidden=!active;
+            panel.toggleAttribute('hidden',!active);
+            panel.style.setProperty('display',active?'block':'none','important');
+          });
+          salesView.querySelectorAll('[data-sales-tab]').forEach(tab=>tab.classList.toggle('active',tab.dataset.salesTab==='letters'));
+        }
       }
       if(sidebar?.classList.contains('mobile-open')){
         sidebar.classList.remove('mobile-open');
