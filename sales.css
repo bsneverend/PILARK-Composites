@@ -726,3 +726,6 @@
 .crm-column-head>div{display:flex;align-items:center;gap:8px;min-width:0}
 .crm-column-toggle{border:1px solid #cfe0e7;background:#fff;color:#087fbd;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap}
 .crm-column-toggle:hover{background:#f1f8fb}
+
+/* Company Letters panel */
+#companyLetterForm .quotation-header-grid{grid-template-columns:repeat(4,minmax(0,1fr))}#companyLetterForm .quotation-header-grid label{min-width:0}#companyLetterForm .quotation-header-grid .quotation-reference{grid-column:span 2}#companyLetterForm .quotation-terms-grid{margin-top:20px}#companyLettersBody td{vertical-align:middle}#companyLettersBody td:nth-child(6){min-width:190px;max-width:320px;white-space:normal}@media(max-width:900px){#companyLetterForm .quotation-header-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:560px){#companyLetterForm .quotation-header-grid{grid-template-columns:1fr}#companyLetterForm .quotation-header-grid .quotation-reference{grid-column:auto}}
