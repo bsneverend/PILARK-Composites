@@ -7,17 +7,18 @@
   const moneyCompact=v=>{const n=Number(v||0);if(!n)return 'Rp0';if(n>=1e12)return 'Rp'+(n/1e12).toLocaleString('id-ID',{maximumFractionDigits:2})+' T';if(n>=1e9)return 'Rp'+(n/1e9).toLocaleString('id-ID',{maximumFractionDigits:2})+' B';if(n>=1e6)return 'Rp'+(n/1e6).toLocaleString('id-ID',{maximumFractionDigits:2})+' Jt';if(n>=1e3)return 'Rp'+(n/1e3).toLocaleString('id-ID',{maximumFractionDigits:1})+' Rb';return money(n);};
   const esc=v=>String(v??'').replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[m]));
   const SALES_QUOTATION_VAT_RATE=11;
-  let state={editingQuotationId:null,orders:[],quotations:[],partners:[],products:[],tab:'overview',crm:{accounts:[],projects:[],opportunities:[],activities:[]}}; const crmExpandedStages=new Set();
+  let state={editingQuotationId:null,editingLetterId:null,orders:[],quotations:[],letters:[],partners:[],products:[],tab:'overview',crm:{accounts:[],projects:[],opportunities:[],activities:[]}}; const crmExpandedStages=new Set();
   async function load(){
     if(!client())return;
-    const [o,q,p,pr]=await Promise.all([
+    const [o,q,l,p,pr]=await Promise.all([
       client().from('sales_orders').select('*,accounting_partners(name,email)').order('quotation_date',{ascending:false}).limit(500),
       client().from('sales_quotations').select('*,accounting_partners(name,email)').order('quotation_date',{ascending:false}).limit(500),
+      client().from('company_letters').select('*').order('letter_date',{ascending:false}).limit(500),
       client().from('accounting_partners').select('*').eq('is_active',true).order('name'),
       client().from('inventory_products').select('id,product_code,name,unit,is_active').eq('is_active',true).order('product_code')
     ]);
-    if(o.error)throw o.error;if(q.error)throw q.error;if(p.error)throw p.error;
-    state.orders=o.data||[];state.quotations=q.data||[];state.partners=p.data||[];state.products=pr.data||[];render();populatePartners();
+    if(o.error)throw o.error;if(q.error)throw q.error;if(l.error)throw l.error;if(p.error)throw p.error;
+    state.orders=o.data||[];state.quotations=q.data||[];state.letters=l.data||[];state.partners=p.data||[];state.products=pr.data||[];render();populatePartners();
   }
   function populatePartners(){const options='<option value="">Select customer…</option>'+state.partners.filter(p=>['customer','both'].includes(p.partner_type)).map(p=>'<option value="'+p.id+'">'+esc(p.name)+'</option>').join('');const s=el('salesPartner');if(s)s.innerHTML=options;const q=el('quotationPartner');if(q)q.innerHTML=options;}
   function productOptions(){return '<option value="">Non-inventory / service</option>'+state.products.map(p=>'<option value="'+p.id+'">'+esc(p.product_code)+' — '+esc(p.name)+'</option>').join('');}
@@ -189,6 +190,77 @@
     const {error:le}=await client().from('sales_quotation_lines').insert(lines.map(l=>({...l,quotation_id:q.id})));if(le){await client().from('sales_quotations').delete().eq('id',q.id);return alert(le.message);}
     resetQuotationEditor();await load();showTab('quotations');alert('Quotation '+qn+' saved as Draft.');
   }
+  async function prepareCompanyLetterNo(){
+    if(state.editingLetterId)return;
+    const {data,error}=await client().rpc('next_company_letter_no',{p_category:el('letterCategory')?.value||'REF',p_direction:el('letterDirection')?.value||'E'});
+    if(error)return console.warn('Letter numbering:',error.message);
+    if(el('letterNo'))el('letterNo').value=data||'';
+  }
+  function resetCompanyLetterForm(){
+    state.editingLetterId=null;const f=el('companyLetterForm');if(!f)return;f.reset();
+    el('letterDate').value=today();el('letterCategory').value='REF';el('letterDirection').value='E';
+    el('companyLetterEditorTitle').textContent='Create Company Letter';f.querySelector('button[type="submit"]').textContent='Save Letter →';
+    el('cancelLetterEdit').hidden=true;prepareCompanyLetterNo();
+  }
+  async function editCompanyLetter(id){
+    const l=state.letters.find(x=>x.id===id);if(!l)return alert('Letter not found. Refresh and try again.');
+    state.editingLetterId=id;el('letterDate').value=l.letter_date||today();el('letterCategory').value=l.category;
+    el('letterDirection').value=l.direction;el('letterNo').value=l.letter_no;el('letterRecipient').value=l.recipient_name||'';
+    el('letterCompany').value=l.recipient_company||'';el('letterDepartment').value=l.recipient_department||'';
+    el('letterSubject').value=l.subject||'';el('letterBody').value=l.body||'';
+    el('letterSignatory').value=l.signatory_name||'';el('letterPosition').value=l.signatory_position||'';
+    el('companyLetterEditorTitle').textContent='Edit Company Letter · '+l.letter_no;
+    el('companyLetterForm').querySelector('button[type="submit"]').textContent='Save Changes →';
+    el('cancelLetterEdit').hidden=false;el('companyLetterForm').scrollIntoView({behavior:'smooth',block:'start'});
+  }
+  async function saveCompanyLetter(e){
+    e.preventDefault();const category=el('letterCategory').value,direction=el('letterDirection').value,date=el('letterDate').value;
+    const subject=el('letterSubject').value.trim(),body=el('letterBody').value.trim();
+    if(!date||!subject||!body)return alert('Complete letter date, subject and body.');
+    const {data:userData}=await client().auth.getUser();
+    const payload={letter_date:date,category,direction,recipient_name:el('letterRecipient').value.trim()||null,recipient_company:el('letterCompany').value.trim()||null,recipient_department:el('letterDepartment').value.trim()||null,subject,body,signatory_name:el('letterSignatory').value.trim()||null,signatory_position:el('letterPosition').value.trim()||null,updated_at:new Date().toISOString(),updated_by:userData?.user?.id||null};
+    if(state.editingLetterId){
+      const id=state.editingLetterId,no=el('letterNo').value;
+      const {error}=await client().from('company_letters').update(payload).eq('id',id);if(error)return alert('Letter update failed: '+error.message);
+      resetCompanyLetterForm();await load();alert('Letter '+no+' updated. Its number is unchanged.');return;
+    }
+    const {data:no,error:nerr}=await client().rpc('next_company_letter_no',{p_category:category,p_direction:direction});if(nerr)return alert(nerr.message);
+    const seq=Number(String(no).split('/')[0]);
+    const {error}=await client().from('company_letters').insert({...payload,sequence_no:seq,letter_no:no,status:'draft',created_by:userData?.user?.id||null});
+    if(error)return alert('Letter save failed: '+error.message);
+    resetCompanyLetterForm();await load();alert('Letter '+no+' saved as Draft.');
+  }
+  async function printCompanyLetter(id){
+    const l=state.letters.find(x=>x.id===id);if(!l)return alert('Letter not found.');
+    const w=window.open('about:blank','_blank','width=900,height=900');if(!w)return alert('Please allow pop-ups to print the letter.');
+    let logo='';try{const {data}=await client().from('quotation_logo_settings').select('storage_path').eq('id',1).maybeSingle();if(data?.storage_path)logo=client().storage.from('quotation-assets').getPublicUrl(data.storage_path).data.publicUrl;}catch(_){}
+    const date=new Date(l.letter_date+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'});
+    const safe=v=>esc(v).replace(/\n/g,'<br>');
+    w.document.open();w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${esc(l.letter_no)}</title><style>
+      @page{size:A4;margin:0}*{box-sizing:border-box}body{margin:0;color:#171b20;font-family:Arial,sans-serif}.page{width:210mm;min-height:297mm;padding:19mm 17mm 30mm;position:relative;margin:auto}
+      .head{height:79px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #09639f;padding-bottom:10px}.logo{max-width:145px;max-height:42px;object-fit:contain}
+      .fallback{font-size:24px;font-weight:800;letter-spacing:3px;color:#12416b}.fallback small{display:block;font-size:8px;letter-spacing:4px}
+      .company{text-align:right;font-size:9px;line-height:1.45}.company b{font-size:11px}.meta{margin-top:34px;font-size:11pt;line-height:1.8}
+      .row{display:flex}.label{width:92px;flex:none}.subject{margin:20px 0 22px;font-weight:700;text-decoration:underline;text-align:center;font-size:12pt}
+      .body{font-size:11pt;line-height:1.65;text-align:justify;overflow-wrap:anywhere}.body p{margin:0 0 12px}.closing{margin-top:25px;font-size:11pt;line-height:1.6}
+      .sign{margin-top:65px;font-weight:700;text-decoration:underline}.footer{position:absolute;left:0;right:0;bottom:0;height:42px;text-align:center;font-size:8px;color:#68727b;padding-top:23px}
+      .footer:before{content:"";position:absolute;left:0;right:0;top:-20px;height:35px;background:radial-gradient(ellipse at 10% 100%,transparent 50%,#06345f 51%,transparent 53%),radial-gradient(ellipse at 55% 120%,transparent 50%,#0875b4 51%,transparent 53%),radial-gradient(ellipse at 95% 80%,transparent 50%,#0794c7 51%,transparent 53%);background-size:100% 35px}
+      @media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}.page{margin:0}}
+    </style></head><body><main class="page"><header class="head">${logo?`<img class="logo" src="${esc(logo)}">`:'<div class="fallback">PILARK<small>COMPOSITES</small></div>'}<div class="company"><b>PT. PANCA INTEGRA LAGUNA REKSA</b><br>Jl. Arteri Kedoya nomor 88C, Desa/Kel Sukabumi Utara<br>Kec. Kebon Jeruk, Jakarta Barat 11550<br>Email : sales@pilarkkomposit.com</div></header>
+      <section class="meta"><div class="row"><span class="label">Number</span><span>: ${esc(l.letter_no)}</span></div><div class="row"><span class="label">Date</span><span>: ${esc(date)}</span></div><div class="row"><span class="label">To</span><span>: ${esc(l.recipient_name||'—')}</span></div>${l.recipient_company?`<div class="row"><span class="label"></span><span>${esc(l.recipient_company)}</span></div>`:''}${l.recipient_department?`<div class="row"><span class="label"></span><span>${esc(l.recipient_department)}</span></div>`:''}</section>
+      <div class="subject">${esc(l.subject)}</div><section class="body">${safe(l.body).split('<br>').map(p=>'<p>'+p+'</p>').join('')}</section>
+      <section class="closing">Sincerely,<div class="sign">${esc(l.signatory_name||'Authorized Signatory')}</div><div>${esc(l.signatory_position||'')}</div></section><footer class="footer">www.pilarkomposit.com</footer></main><script>window.onload=()=>setTimeout(()=>window.print(),400);<\/script></body></html>`);w.document.close();
+  }
+  function renderCompanyLetters(){
+    const b=el('companyLettersBody');if(!b)return;
+    b.innerHTML=state.letters.map(l=>'<tr><td><b>'+esc(l.letter_no)+'</b></td><td>'+esc(l.letter_date)+'</td><td>'+esc(l.category==='HR'?'Human Resources':'General / Official')+'</td><td>'+esc(l.direction==='E'?'External':'Internal')+'</td><td>'+esc(l.recipient_name||l.recipient_company||'—')+'</td><td>'+esc(l.subject)+'</td><td><span class="sales-status">'+esc(l.status)+'</span></td><td class="accounting-actions"><button type="button" class="accounting-small-btn letter-edit" data-id="'+l.id+'">Edit</button><button type="button" class="accounting-small-btn letter-print" data-id="'+l.id+'">Print / PDF</button></td></tr>').join('')||'<tr><td colspan="8" class="accounting-empty">No company letters yet.</td></tr>';
+    b.querySelectorAll('.letter-edit').forEach(x=>x.onclick=()=>editCompanyLetter(x.dataset.id));b.querySelectorAll('.letter-print').forEach(x=>x.onclick=()=>printCompanyLetter(x.dataset.id));
+  }
+  function initCompanyLetterUi(){
+    const f=el('companyLetterForm');if(!f||f.dataset.bound==='1')return;f.dataset.bound='1';f.addEventListener('submit',saveCompanyLetter);
+    ['letterCategory','letterDirection'].forEach(id=>el(id)?.addEventListener('change',prepareCompanyLetterNo));
+    el('cancelLetterEdit')?.addEventListener('click',resetCompanyLetterForm);if(!el('letterDate').value)el('letterDate').value=today();prepareCompanyLetterNo();
+  }
   async function printQuotation(id){
     const w=window.open('about:blank','_blank','width=900,height=900');if(!w)return alert('Please allow pop-ups for Print / PDF.');
     w.document.write('<!doctype html><html><body style="font-family:Arial;padding:40px">Generating quotation PDF…</body></html>');
@@ -246,6 +318,7 @@
     el('salesMetricOpen').textContent=money(so.reduce((n,o)=>n+Number(o.total_amount||0),0));
     renderSalesContacts();
     renderSalesQuotations();
+    renderCompanyLetters();
     if(el('salesQuotationsBody'))el('salesQuotationsBody').innerHTML=q.map(row).join('')||'<tr><td colspan="7" class="accounting-empty">No sales-order quotations yet.</td></tr>';
     if(el('salesOrdersBody'))el('salesOrdersBody').innerHTML=so.map(row).join('')||'<tr><td colspan="7" class="accounting-empty">No sales orders yet.</td></tr>';
     document.querySelectorAll('.sales-confirm-btn').forEach(b=>b.onclick=()=>confirmOrder(b.dataset.id));
@@ -1126,6 +1199,6 @@ async function openContactResearchModal(accountId){
   el('crmSaveContact').onclick=()=>saveCRMContact(a.id);
 }
 
-function init(){if(!el('view-sales'))return;bind();showTab(state.tab||'overview');refreshZohoStatus().catch(console.warn);window.addEventListener('pilark:open-sales-tab',e=>{if(e.detail?.tab)showTab(e.detail.tab);});window.addEventListener('pilark:refresh-sales-quotation',()=>{load().then(()=>initQuotationUi()).catch(console.warn);});if(client()){load().catch(e=>console.warn('Sales data load:',e));loadCRM().catch(e=>console.warn('Sales CRM load:',e));initQuotationUi();}window.addEventListener('pilark:quotation-saved',()=>load().catch(console.warn));}
+function init(){if(!el('view-sales'))return;bind();initCompanyLetterUi();showTab(state.tab||'overview');refreshZohoStatus().catch(console.warn);window.addEventListener('pilark:open-sales-tab',e=>{if(e.detail?.tab)showTab(e.detail.tab);});window.addEventListener('pilark:refresh-sales-quotation',()=>{load().then(()=>initQuotationUi()).catch(console.warn);});if(client()){load().catch(e=>console.warn('Sales data load:',e));loadCRM().catch(e=>console.warn('Sales CRM load:',e));initQuotationUi();}window.addEventListener('pilark:quotation-saved',()=>load().catch(console.warn));}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
