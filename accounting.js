@@ -1,5 +1,5 @@
 (() => {
-  const state = { aiMessages: [], accounts: [], partners: [], journals: [], entries: [], entryLines: [], reconLines: [], selectedLedgerAccount: '', selectedReconcileLines: new Set(), accountPickerTarget: '', accountPickerPage: 0, accountPickerQuery: '', invoices: [], bills: [], payments: [], allocations: [], sends: [], periods: [], quotations: [], inventoryBalances: [], tab: 'overview', reportFrom: '', reportTo: '' };
+  const state = { editingQuotationId: null, aiMessages: [], accounts: [], partners: [], journals: [], entries: [], entryLines: [], reconLines: [], selectedLedgerAccount: '', selectedReconcileLines: new Set(), accountPickerTarget: '', accountPickerPage: 0, accountPickerQuery: '', invoices: [], bills: [], payments: [], allocations: [], sends: [], periods: [], quotations: [], inventoryBalances: [], tab: 'overview', reportFrom: '', reportTo: '' };
   const el = id => document.getElementById(id);
   const client = () => window.PILARK_CMS?.client;
   const ready = () => !!window.PILARK_CMS?.ready && !!client();
@@ -1152,12 +1152,14 @@ async function autoMatchReconcile(){const lines=state.entryLines.filter(l=>{cons
       <td><b>${esc(q.quotation_no)}</b></td><td>${dateText(q.quotation_date)}</td><td>${esc(q.accounting_partners?.name||'—')}</td><td>${esc(q.project_name||'—')}</td><td class="num">${money(q.total_amount)}</td>
       <td><span class="${statusClass(q.status)}">${label(q.status)}</span></td>
       <td class="accounting-actions">
+        <button type="button" class="accounting-small-btn q-edit" data-id="${q.id}">Edit</button>
         <button type="button" class="accounting-small-btn q-pdf" data-id="${q.id}">Print / PDF</button>
         <button type="button" class="accounting-small-btn q-status" data-id="${q.id}" data-status="sent">Send</button>
         <button type="button" class="accounting-small-btn q-status" data-id="${q.id}" data-status="accepted">Accept</button>
         <button type="button" class="accounting-small-btn q-status" data-id="${q.id}" data-status="rejected">Reject</button>
       </td>
     </tr>`).join('')||'<tr><td colspan="7" class="accounting-empty">No quotations yet.</td></tr>';
+    body.querySelectorAll('.q-edit').forEach(b=>b.onclick=()=>editQuotation(b.dataset.id));
     body.querySelectorAll('.q-pdf').forEach(b=>b.onclick=()=>printQuotation(b.dataset.id));
     body.querySelectorAll('.q-status').forEach(b=>b.onclick=()=>updateQuotationStatus(b.dataset.id,b.dataset.status));
   }
@@ -1197,17 +1199,66 @@ async function autoMatchReconcile(){const lines=state.entryLines.filter(l=>{cons
     alert('Logo uploaded and selected for new quotation PDFs.');
   }
 
+  function resetQuotationEditor(){
+    state.editingQuotationId=null;
+    const form=el('quotationForm');if(!form)return;
+    form.reset();el('quotationDate').value=today();el('quotationTaxRate').value=11;
+    el('quotationDeliveryTime').value='TBA';el('quotationOfferPeriod').value='Price could be changed without any prior notice';
+    el('quotationWarranty').value='1 Year';el('quotationSalesperson').value='Sales Engineer';
+    el('quotationLines').innerHTML=quotationLineHtml(0);
+    const title=form.closest('.quotation-editor-panel')?.querySelector('.panel-head h2');if(title)title.textContent='New Quotation';
+    const save=form.querySelector('button[type="submit"]');if(save)save.textContent='Save Quotation →';
+    const cancel=el('cancelQuotationEdit');if(cancel)cancel.hidden=true;updateQuotationTotals();
+  }
+  async function editQuotation(id){
+    const q=state.quotations.find(x=>x.id===id);if(!q)return alert('Quotation not found. Refresh and try again.');
+    const {data:lines,error}=await client().from('sales_quotation_lines').select('*').eq('quotation_id',id).order('line_no');
+    if(error)return alert('Unable to load quotation items: '+error.message);
+    state.editingQuotationId=id;
+    el('quotationPartner').value=q.partner_id||'';el('quotationDate').value=q.quotation_date||today();el('quotationNo').value=q.quotation_no||'';
+    el('quotationProject').value=q.project_name||'';el('quotationReference').value=q.reference||'';
+    el('quotationTaxRate').value=Number(q.tax_rate??11);el('quotationDeliveryTime').value=q.delivery_time||'TBA';
+    el('quotationOfferPeriod').value=q.offer_period||'';el('quotationDeliveryTerm').value=q.delivery_term||'';
+    el('quotationWarranty').value=q.warranty||'';el('quotationNotes').value=q.notes||'';
+    el('quotationTerms').value=q.terms_conditions||'';el('quotationSalesperson').value=q.salesperson_name||'Sales Engineer';
+    el('quotationLines').innerHTML=(lines||[]).length?(lines||[]).map((l,i)=>{
+      const box=document.createElement('div');box.innerHTML=quotationLineHtml(i);
+      const row=box.firstElementChild;row.querySelector('.q-item-code').value=l.item_code||'';
+      row.querySelector('.q-item-name').value=l.item_name||'';row.querySelector('.q-desc').value=l.description||'';
+      row.querySelector('.q-qty').value=l.quantity??1;row.querySelector('.q-uom').value=l.uom||'PCS';
+      row.querySelector('.q-price').value=l.unit_price??0;row.querySelector('.q-line-total').value=money(l.line_total||0);
+      return row.outerHTML;
+    }).join(''):quotationLineHtml(0);
+    const title=el('quotationForm').closest('.quotation-editor-panel')?.querySelector('.panel-head h2');if(title)title.textContent='Edit Quotation · '+q.quotation_no;
+    const save=el('quotationForm').querySelector('button[type="submit"]');if(save)save.textContent='Save Changes →';
+    const cancel=el('cancelQuotationEdit');if(cancel)cancel.hidden=false;
+    updateQuotationTotals();el('quotationForm').scrollIntoView({behavior:'smooth',block:'start'});
+  }
   async function createQuotation(e){
     e.preventDefault();
     const partner=el('quotationPartner').value,date=el('quotationDate').value,lines=readQuotationLines();
     if(!partner||!date||!lines.length||lines.some(l=>!l.item_name||l.quantity<=0||l.unit_price<0))return alert('Complete customer, date and all quotation items.');
     const subtotal=lines.reduce((a,l)=>a+l.line_total,0),taxRate=Number(el('quotationTaxRate').value||0),tax=Math.round(subtotal*taxRate)/100,total=subtotal+tax;
     const {data:userData}=await client().auth.getUser();
+    const payload={quotation_date:date,project_name:el('quotationProject').value.trim()||null,partner_id:partner,reference:el('quotationReference').value.trim()||null,currency_code:'IDR',subtotal,tax_rate:taxRate,tax_amount:tax,total_amount:total,delivery_time:el('quotationDeliveryTime').value.trim()||'TBA',offer_period:el('quotationOfferPeriod').value.trim()||null,delivery_term:el('quotationDeliveryTerm').value.trim()||null,warranty:el('quotationWarranty').value.trim()||null,notes:el('quotationNotes').value.trim()||null,terms_conditions:el('quotationTerms').value.trim()||null,salesperson_name:el('quotationSalesperson').value.trim()||'Sales Engineer',updated_at:new Date().toISOString(),updated_by:userData?.user?.id||null};
+    if(state.editingQuotationId){
+      const id=state.editingQuotationId,qn=el('quotationNo').value;
+      const {error:he}=await client().from('sales_quotations').update(payload).eq('id',id);
+      if(he)return alert('Quotation update failed: '+he.message);
+      const {error:de}=await client().from('sales_quotation_lines').delete().eq('quotation_id',id);
+      if(de)return alert('Header updated, but old item lines could not be replaced: '+de.message);
+      const {error:le}=await client().from('sales_quotation_lines').insert(lines.map(l=>({...l,quotation_id:id})));
+      if(le)return alert('Header updated, but item lines could not be saved: '+le.message);
+      resetQuotationEditor();await load();window.dispatchEvent(new CustomEvent('pilark:quotation-saved',{detail:{id,quotation_no:qn}}));
+      alert('Quotation '+qn+' updated. Its number and status were preserved.');return;
+    }
     const {data:qn,error:ne}=await client().rpc('next_sales_quotation_no',{p_date:date});if(ne)return alert(ne.message);
-    const payload={quotation_no:qn,quotation_date:date,project_name:el('quotationProject').value.trim()||null,partner_id:partner,reference:el('quotationReference').value.trim()||null,currency_code:'IDR',subtotal,tax_rate:taxRate,tax_amount:tax,total_amount:total,status:'draft',delivery_time:el('quotationDeliveryTime').value.trim()||'TBA',offer_period:el('quotationOfferPeriod').value.trim()||null,delivery_term:el('quotationDeliveryTerm').value.trim()||null,warranty:el('quotationWarranty').value.trim()||null,notes:el('quotationNotes').value.trim()||null,terms_conditions:el('quotationTerms').value.trim()||null,salesperson_name:el('quotationSalesperson').value.trim()||'Sales Engineer',created_by:userData?.user?.id||null,updated_by:userData?.user?.id||null};
-    const {data:q,error}=await client().from('sales_quotations').insert(payload).select().single();if(error)return alert(error.message);
-    const {error:le}=await client().from('sales_quotation_lines').insert(lines.map(l=>({...l,quotation_id:q.id})));if(le){await client().from('sales_quotations').delete().eq('id',q.id);return alert(le.message);}
-    e.target.reset();el('quotationDate').value=today();el('quotationTaxRate').value=11;el('quotationDeliveryTime').value='TBA';el('quotationOfferPeriod').value='Price could be changed without any prior notice';el('quotationWarranty').value='1 Year';el('quotationSalesperson').value='Sales Engineer';el('quotationLines').innerHTML=quotationLineHtml(0);window.dispatchEvent(new CustomEvent('pilark:quotation-saved',{detail:{id:q.id,quotation_no:qn}}));window.dispatchEvent(new CustomEvent('pilark:open-sales-tab',{detail:{tab:'quotations'}}));alert('Quotation '+qn+' saved as Draft.');
+    const createPayload={...payload,quotation_no:qn,status:'draft',created_by:userData?.user?.id||null};
+    const {data:q,error}=await client().from('sales_quotations').insert(createPayload).select().single();if(error)return alert(error.message);
+    const {error:le}=await client().from('sales_quotation_lines').insert(lines.map(l=>({...l,quotation_id:q.id})));
+    if(le){await client().from('sales_quotations').delete().eq('id',q.id);return alert(le.message);}
+    resetQuotationEditor();window.dispatchEvent(new CustomEvent('pilark:quotation-saved',{detail:{id:q.id,quotation_no:qn}}));
+    window.dispatchEvent(new CustomEvent('pilark:open-sales-tab',{detail:{tab:'quotations'}}));alert('Quotation '+qn+' saved as Draft.');
   }
   async function printQuotation(id){
     const w=window.open('about:blank','_blank','width=900,height=900');if(!w)return alert('Please allow pop-ups for Print / PDF.');
@@ -1279,6 +1330,8 @@ function render(){renderAccounts();renderPartners();renderEntries();renderDocume
     quotationUiInitialized=true;
     bindQuotationLines();
     el('quotationForm')?.addEventListener('submit',createQuotation);
+    const saveRow=el('quotationForm')?.querySelector('.quotation-save-row');
+    if(saveRow&&!el('cancelQuotationEdit')){const cancel=document.createElement('button');cancel.type='button';cancel.id='cancelQuotationEdit';cancel.className='accounting-small-btn';cancel.textContent='Cancel Edit';cancel.hidden=true;cancel.onclick=resetQuotationEditor;saveRow.appendChild(cancel);}
     el('addQuotationLine')?.addEventListener('click',()=>{const box=el('quotationLines');if(box){box.insertAdjacentHTML('beforeend',quotationLineHtml(box.children.length));updateQuotationTotals();}});
     el('quotationDate')?.addEventListener('change',prepareQuotationNumber);
     el('quotationTaxRate')?.addEventListener('input',updateQuotationTotals);
