@@ -94,7 +94,7 @@
     if(el('quotationTotal'))el('quotationTotal').textContent=money(total);
   }
   async function prepareQuotationNumber(){
-    const d=el('quotationDate')?.value||today();const {data,error}=await client().rpc('next_sales_quotation_no',{p_date:d});
+    const d=el('quotationDate')?.value||today();const {data,error}=await client().rpc('preview_sales_quotation_no',{p_date:d});
     if(!error&&data&&el('quotationNo'))el('quotationNo').value=data;
   }
   async function loadQuotationLogos(){
@@ -192,7 +192,7 @@
   }
   async function prepareCompanyLetterNo(){
     if(state.editingLetterId)return;
-    const {data,error}=await client().rpc('next_company_letter_no',{p_category:el('letterCategory')?.value||'REF',p_direction:el('letterDirection')?.value||'E'});
+    const {data,error}=await client().rpc('preview_company_letter_no',{p_category:el('letterCategory')?.value||'REF',p_direction:el('letterDirection')?.value||'E'});
     if(error)return console.warn('Letter numbering:',error.message);
     if(el('letterNo'))el('letterNo').value=data||'';
   }
