@@ -149,14 +149,21 @@
     el('quotationDeliveryTerm').value=q.delivery_term||'';el('quotationWarranty').value=q.warranty||'';
     el('quotationNotes').value=q.notes||'';el('quotationTerms').value=q.terms_conditions||'';
     el('quotationSalesperson').value=q.salesperson_name||'Sales Engineer';
-    el('quotationLines').innerHTML=(lines||[]).length?(lines||[]).map((l,i)=>{
-      const box=document.createElement('div');box.innerHTML=quotationLineHtml(i);const row=box.firstElementChild;
-      const setInput=(selector,value)=>{const input=row.querySelector(selector);if(input){input.value=value??'';input.setAttribute('value',String(value??''));}};
-      setInput('.q-item-code',l.item_code||'');setInput('.q-item-name',l.item_name||'');
-      const desc=row.querySelector('.q-desc');if(desc){desc.value=l.description||'';desc.textContent=l.description||'';}
-      setInput('.q-qty',l.quantity??1);setInput('.q-uom',l.uom||'PCS');setInput('.q-price',l.unit_price??0);
-      setInput('.q-line-total',money(l.line_total||0));return row.outerHTML;
-    }).join(''):quotationLineHtml(0);
+    const lineRows=(lines||[]);
+    el('quotationLines').innerHTML=lineRows.length?lineRows.map((l,i)=>quotationLineHtml(i)).join(''):quotationLineHtml(0);
+    // Populate the live DOM only after insertion. This avoids losing input/textarea
+    // values when serializing detached elements back through outerHTML.
+    [...el('quotationLines').querySelectorAll('.quotation-line')].forEach((row,i)=>{
+      const l=lineRows[i];if(!l)return;
+      const set=(selector,value)=>{const field=row.querySelector(selector);if(field)field.value=value??'';};
+      set('.q-item-code',l.item_code||'');
+      set('.q-item-name',l.item_name||'');
+      set('.q-qty',l.quantity??1);
+      set('.q-uom',l.uom||'PCS');
+      set('.q-price',l.unit_price??0);
+      set('.q-line-total',money(l.line_total||0));
+      const desc=row.querySelector('.q-desc');if(desc)desc.value=l.description||'';
+    });
     const title=el('quotationForm').closest('.quotation-editor-panel')?.querySelector('.panel-head h2');if(title)title.textContent='Edit Quotation · '+q.quotation_no;
     const save=el('quotationForm').querySelector('button[type="submit"]');if(save)save.textContent='Save Changes →';
     const cancel=el('cancelQuotationEdit');if(cancel)cancel.hidden=false;
