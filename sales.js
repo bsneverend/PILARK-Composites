@@ -260,29 +260,17 @@
     w.document.close();
   }
   async function updateCompanyLetterStatus(id,status){
-    const labels={sent:'send',accepted:'accept',rejected:'reject'};
-    const label=labels[status]||status;
-    const letter=state.letters.find(x=>x.id===id);
-    if(!letter)return;
-    if(status==='sent'&&letter.status!=='draft')return alert('Only draft letters can be sent.');
-    if(['accepted','rejected'].includes(status)&&letter.status!=='sent')return alert('Only sent letters can be accepted or rejected.');
-    if(!confirm('Are you sure you want to '+label+' letter '+(letter.letter_no||'')+'?'))return;
+    const labels={sent:'Send',accepted:'Accept',rejected:'Reject'};
+    const letter=state.letters.find(x=>x.id===id);if(!letter)return alert('Letter not found.');
+    if(!confirm('Change letter status to '+(labels[status]||status)+'?'))return;
     const {data:userData}=await client().auth.getUser();
-    const {error}=await client().from('company_letters').update({status,updated_at:new Date().toISOString(),updated_by:userData?.user?.id||null}).eq('id',id).eq('status',letter.status);
+    const {error}=await client().from('company_letters').update({status,updated_at:new Date().toISOString(),updated_by:userData?.user?.id||null}).eq('id',id);
     if(error)return alert('Unable to update letter status: '+error.message);
     await load();
   }
   function renderCompanyLetters(){
     const b=el('companyLettersBody');if(!b)return;
-    b.innerHTML=state.letters.map(l=>{
-      const status=String(l.status||'draft').toLowerCase();
-      const workflow=status==='draft'
-        ?'<button type="button" class="accounting-small-btn letter-status-action" data-id="'+l.id+'" data-status="sent">Send</button>'
-        :status==='sent'
-          ?'<button type="button" class="accounting-small-btn letter-status-action" data-id="'+l.id+'" data-status="accepted">Accept</button><button type="button" class="accounting-small-btn letter-status-action" data-id="'+l.id+'" data-status="rejected">Reject</button>'
-          :'<span class="sales-status">'+esc(status==='accepted'?'Accepted':status==='rejected'?'Rejected':status)+'</span>';
-      return '<tr><td><b>'+esc(l.letter_no)+'</b></td><td>'+esc(l.letter_date)+'</td><td>'+esc(l.category==='HR'?'Human Resources':'General / Official')+'</td><td>'+esc(l.direction==='E'?'External':'Internal')+'</td><td>'+esc(l.recipient_name||l.recipient_company||'—')+'</td><td>'+esc(l.subject)+'</td><td><span class="sales-status">'+esc(status.replace(/_/g,' '))+'</span></td><td class="accounting-actions"><button type="button" class="accounting-small-btn letter-edit" data-id="'+l.id+'">Edit</button><button type="button" class="accounting-small-btn letter-print" data-id="'+l.id+'">Print / PDF</button>'+workflow+'</td></tr>';
-    }).join('')||'<tr><td colspan="8" class="accounting-empty">No company letters yet.</td></tr>';
+    b.innerHTML=state.letters.map(l=>'<tr><td><b>'+esc(l.letter_no)+'</b></td><td>'+esc(l.letter_date)+'</td><td>'+esc(l.category==='HR'?'Human Resources':'General / Official')+'</td><td>'+esc(l.direction==='E'?'External':'Internal')+'</td><td>'+esc(l.recipient_name||l.recipient_company||'—')+'</td><td>'+esc(l.subject)+'</td><td><span class="sales-status sales-status-'+String(l.status||'draft').replace('_','-')+'">'+esc(({draft:'Draft',sent:'Sent',accepted:'Accepted',rejected:'Rejected'}[l.status]||l.status||'Draft'))+'</span></td><td class="accounting-actions"><button type="button" class="accounting-small-btn letter-edit" data-id="'+l.id+'">Edit</button><button type="button" class="accounting-small-btn letter-print" data-id="'+l.id+'">Print / PDF</button><button type="button" class="accounting-small-btn letter-status-action" data-id="'+l.id+'" data-status="sent">Send</button><button type="button" class="accounting-small-btn letter-status-action" data-id="'+l.id+'" data-status="accepted">Accept</button><button type="button" class="accounting-small-btn letter-status-action" data-id="'+l.id+'" data-status="rejected">Reject</button></td></tr>').join('')||'<tr><td colspan="8" class="accounting-empty">No company letters yet.</td></tr>';
     b.querySelectorAll('.letter-edit').forEach(x=>x.onclick=()=>editCompanyLetter(x.dataset.id));
     b.querySelectorAll('.letter-print').forEach(x=>x.onclick=()=>printCompanyLetter(x.dataset.id));
     b.querySelectorAll('.letter-status-action').forEach(x=>x.onclick=()=>updateCompanyLetterStatus(x.dataset.id,x.dataset.status));
