@@ -109,7 +109,7 @@ function initClientModal(){document.querySelectorAll('[data-client-sector]').for
 
 const $=id=>document.getElementById(id);
 function renderFilters(){const el=$('filters');if(!el)return;const categories=['All',...new Set(products.map(p=>p.cat).filter(Boolean))];el.innerHTML=categories.map((c,i)=>`<button class="filter ${i?'':'active'}" data-filter="${c}">${c}</button>`).join('');el.querySelectorAll('.filter').forEach(b=>b.onclick=()=>{el.querySelectorAll('.filter').forEach(x=>x.classList.remove('active'));b.classList.add('active');renderProducts(b.dataset.filter)})}
-function renderProducts(filter='All'){const el=$('productGrid');if(!el)return;const list=filter==='All'?products:products.filter(p=>p.cat===filter);el.innerHTML=list.map(p=>`<article class="product reveal"><div class="product-media">${p.img?`<img loading="lazy" src="${p.img}" alt="${p.title}">`:`<div class="product-media-placeholder" aria-label="${p.title}"><span>PILARK</span><b>${p.title}</b><small>${p.cat}</small></div>`}</div><div class="product-body"><div class="product-meta"><span class="pill">${p.cat}</span></div><h3>${p.title}</h3><p>${p.desc}</p><div class="product-links">${p.url?`<a class="product-link" href="${p.url}">Product details →</a>`:''}<button class="product-link" data-product="${p.id}" style="border:0;background:none;padding:0;cursor:pointer">Explore specifications →</button></div></div></article>`).join('');el.querySelectorAll('[data-product]').forEach(b=>b.onclick=()=>openProduct(b.dataset.product));observeReveals()}
+function renderProducts(filter='All'){const el=$('productGrid');if(!el)return;const list=filter==='All'?products:products.filter(p=>p.cat===filter);el.innerHTML=list.map(p=>`<article class="product reveal"><div class="product-media">${p.img?`<img loading="lazy" src="${p.img}" alt="${p.title}">`:`<div class="product-media-placeholder" aria-label="${p.title}"><span>PILARK</span><b>${p.title}</b><small>${p.cat}</small></div>`}</div><div class="product-body"><div class="product-meta"><span class="pill">${p.cat}</span></div><h3>${p.title}</h3><p>${p.desc}</p><div class="product-links"><a class="product-link" href="?product=${encodeURIComponent(p.id)}" data-product="${p.id}">View Product Details →</a></div></div></article>`).join('');el.querySelectorAll('[data-product]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();openProduct(a.dataset.product);history.pushState({product:a.dataset.product},'',a.href)}));observeReveals()}
 function openProduct(id){const p=products.find(x=>x.id===id),m=$('productModal');if(!p||!m)return;$('modalTitle').textContent=p.title;$('modalImage').src=p.modalImg||p.img;$('modalImage').alt=p.title;$('modalDesc').textContent=p.desc;$('modalFeatures').innerHTML=p.features.map(x=>`<li>${x}</li>`).join('');$('modalSpec').innerHTML=p.spec.map(r=>`<tr><th>${r[0]}</th><td>${r[1]}</td></tr>`).join('');$('modalCatalog').href='#catalog';$('modalCatalog').dataset.page=String(p.page);m.classList.add('open');document.body.classList.add('lock')}
 function closeModal(){$('productModal')?.classList.remove('open');document.body.classList.remove('lock')}
 const CATALOG_TOTAL=49;
@@ -124,36 +124,38 @@ function initCatalogViewer(){const jump=$('catalogJump');if(jump)jump.innerHTML=
 
 function initSeoProductRoute(){
   const params=new URLSearchParams(window.location.search);
-  if(params.get('product')!=='grp-jacking-pipe') return;
-  const p=products.find(x=>x.id==='grp-jacking-pipe');
+  const productId=params.get('product');
+  if(!productId) return;
+  const p=products.find(x=>x.id===productId);
   if(!p) return;
-  document.title='GRP Jacking Pipe | Pipa GRP untuk Pipe Jacking | PILARK Composite';
-  const desc='GRP Jacking Pipe / Pipa GRP untuk metode pipe jacking dan instalasi bawah tanah. PILARK Composite menyediakan solusi GRP untuk sewer, drainase, crossing dan infrastruktur trenchless.';
-  let meta=document.querySelector('meta[name="description"]');
-  if(!meta){meta=document.createElement('meta');meta.name='description';document.head.appendChild(meta);}
-  meta.setAttribute('content',desc);
-  let robots=document.querySelector('meta[name="robots"]');
-  if(!robots){robots=document.createElement('meta');robots.name='robots';document.head.appendChild(robots);}
-  robots.setAttribute('content','index,follow');
-  let canonical=document.querySelector('link[rel="canonical"]');
-  if(!canonical){canonical=document.createElement('link');canonical.rel='canonical';document.head.appendChild(canonical);}
-  canonical.href=window.location.origin+'/?product=grp-jacking-pipe';
-  let schema=document.getElementById('grpJackingProductSchema');
-  if(!schema){
-    schema=document.createElement('script');
-    schema.id='grpJackingProductSchema';
-    schema.type='application/ld+json';
-    schema.textContent=JSON.stringify({
-      '@context':'https://schema.org','@type':'Product',
-      name:'GRP Jacking Pipe',
-      alternateName:['Pipa GRP Jacking','Pipa GRP untuk Pipe Jacking','GRP Pipe Jacking'],
-      brand:{'@type':'Brand',name:'PILARK Composite'},
-      manufacturer:{'@type':'Organization',name:'PT Panca Integra Laguna Reksa',url:'https://pilarkkomposit.com'},
-      category:'GRP Pipe',description:desc,url:window.location.origin+'/?product=grp-jacking-pipe'
-    });
-    document.head.appendChild(schema);
+  if(productId==='grp-jacking-pipe'){
+    document.title='GRP Jacking Pipe | Pipa GRP untuk Pipe Jacking | PILARK Composite';
+    const desc='GRP Jacking Pipe / Pipa GRP untuk metode pipe jacking dan instalasi bawah tanah. PILARK Composite menyediakan solusi GRP untuk sewer, drainase, crossing dan infrastruktur trenchless.';
+    let meta=document.querySelector('meta[name="description"]');
+    if(!meta){meta=document.createElement('meta');meta.name='description';document.head.appendChild(meta);}
+    meta.setAttribute('content',desc);
+    let robots=document.querySelector('meta[name="robots"]');
+    if(!robots){robots=document.createElement('meta');robots.name='robots';document.head.appendChild(robots);}
+    robots.setAttribute('content','index,follow');
+    let canonical=document.querySelector('link[rel="canonical"]');
+    if(!canonical){canonical=document.createElement('link');canonical.rel='canonical';document.head.appendChild(canonical);}
+    canonical.href=window.location.origin+'/?product='+encodeURIComponent(productId);
+    let schema=document.getElementById('grpJackingProductSchema');
+    if(!schema){
+      schema=document.createElement('script');
+      schema.id='grpJackingProductSchema';
+      schema.type='application/ld+json';
+      schema.textContent=JSON.stringify({
+        '@context':'https://schema.org','@type':'Product',
+        name:p.title,alternateName:['Pipa GRP Jacking','Pipa GRP untuk Pipe Jacking','GRP Pipe Jacking'],
+        brand:{'@type':'Brand',name:'PILARK Composite'},
+        manufacturer:{'@type':'Organization',name:'PT Panca Integra Laguna Reksa',url:'https://pilarkkomposit.com'},
+        category:'GRP Pipe',description:desc,url:window.location.origin+'/?product='+encodeURIComponent(productId)
+      });
+      document.head.appendChild(schema);
+    }
   }
-  openProduct(p.id);
+  openProduct(productId);
 }
 function observeReveals(){if(!window.IntersectionObserver){document.querySelectorAll('.reveal').forEach(x=>x.classList.add('show'));return}const o=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('show');o.unobserve(e.target)}}),{threshold:.08});document.querySelectorAll('.reveal:not(.show)').forEach(el=>o.observe(el))}
 document.addEventListener('DOMContentLoaded',async()=>{applyAdminOverrides();try{await applyCloudCms();}catch(err){console.warn('PILARK CMS unavailable:',err);}renderFilters();renderProducts();renderCatalog();initSeoProductRoute();initCatalogViewer();initClientModal();observeReveals();$('closeModal')?.addEventListener('click',closeModal);$('productModal')?.addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal()});$('modalCatalog')?.addEventListener('click',e=>{e.preventDefault();const page=Number(e.currentTarget.dataset.page)||1;closeModal();openCatalog(page)});const menu=$('mobileMenu'),btn=$('menuBtn');btn?.addEventListener('click',()=>menu?.classList.toggle('open'));menu?.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>menu.classList.remove('open')));document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeCatalog()}else if($('catalogViewer')?.classList.contains('open')&&e.key==='ArrowLeft'){updateCatalogPage(catalogPage-1)}else if($('catalogViewer')?.classList.contains('open')&&e.key==='ArrowRight'){updateCatalogPage(catalogPage+1)}})});
