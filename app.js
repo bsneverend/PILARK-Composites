@@ -124,12 +124,9 @@ function initCatalogViewer(){const jump=$('catalogJump');if(jump)jump.innerHTML=
 
 function initSeoProductRoute(){
   const params=new URLSearchParams(window.location.search);
-  const product=params.get('product');
-  if(product!=='grp-jacking-pipe') return;
+  if(params.get('product')!=='grp-jacking-pipe') return;
   const p=products.find(x=>x.id==='grp-jacking-pipe');
-  const section=$('seoProductLanding');
-  if(!p||!section) return;
-  section.hidden=false;
+  if(!p) return;
   document.title='GRP Jacking Pipe | Pipa GRP untuk Pipe Jacking | PILARK Composite';
   const desc='GRP Jacking Pipe / Pipa GRP untuk metode pipe jacking dan instalasi bawah tanah. PILARK Composite menyediakan solusi GRP untuk sewer, drainase, crossing dan infrastruktur trenchless.';
   let meta=document.querySelector('meta[name="description"]');
@@ -151,18 +148,13 @@ function initSeoProductRoute(){
       name:'GRP Jacking Pipe',
       alternateName:['Pipa GRP Jacking','Pipa GRP untuk Pipe Jacking','GRP Pipe Jacking'],
       brand:{'@type':'Brand',name:'PILARK Composite'},
-      manufacturer:{'@type':'Organization',name:'PT Panca Integra Laguna Reksa',url:'https://pilarkomposit.com'},
-      category:'GRP Pipe',
-      description:desc,
-      url:window.location.origin+'/?product=grp-jacking-pipe'
+      manufacturer:{'@type':'Organization',name:'PT Panca Integra Laguna Reksa',url:'https://pilarkkomposit.com'},
+      category:'GRP Pipe',description:desc,url:window.location.origin+'/?product=grp-jacking-pipe'
     });
     document.head.appendChild(schema);
   }
-  document.getElementById('seoProductTitle').textContent=p.title;
-  document.getElementById('seoProductIntro').textContent=p.desc;
-  section.scrollIntoView({block:'start'});
+  openProduct(p.id);
 }
-
 function observeReveals(){if(!window.IntersectionObserver){document.querySelectorAll('.reveal').forEach(x=>x.classList.add('show'));return}const o=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('show');o.unobserve(e.target)}}),{threshold:.08});document.querySelectorAll('.reveal:not(.show)').forEach(el=>o.observe(el))}
 document.addEventListener('DOMContentLoaded',async()=>{applyAdminOverrides();try{await applyCloudCms();}catch(err){console.warn('PILARK CMS unavailable:',err);}renderFilters();renderProducts();renderCatalog();initSeoProductRoute();initCatalogViewer();initClientModal();observeReveals();$('closeModal')?.addEventListener('click',closeModal);$('productModal')?.addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal()});$('modalCatalog')?.addEventListener('click',e=>{e.preventDefault();const page=Number(e.currentTarget.dataset.page)||1;closeModal();openCatalog(page)});const menu=$('mobileMenu'),btn=$('menuBtn');btn?.addEventListener('click',()=>menu?.classList.toggle('open'));menu?.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>menu.classList.remove('open')));document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeCatalog()}else if($('catalogViewer')?.classList.contains('open')&&e.key==='ArrowLeft'){updateCatalogPage(catalogPage-1)}else if($('catalogViewer')?.classList.contains('open')&&e.key==='ArrowRight'){updateCatalogPage(catalogPage+1)}})});
 
