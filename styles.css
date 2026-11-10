@@ -67,3 +67,10 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:1
 @media(max-width:760px){
   input,textarea,select{font-size:16px}
 }
+
+.product-media-placeholder{height:100%;min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:28px;box-sizing:border-box;background:linear-gradient(145deg,#071822,#123b4f);border-radius:inherit}
+.product-media-placeholder span{font-size:11px;letter-spacing:.18em;font-weight:900;color:#72d7ff;margin-bottom:12px}
+.product-media-placeholder b{max-width:260px;color:#fff;font-family:"Space Grotesk",sans-serif;font-size:28px;line-height:1.05}
+.product-media-placeholder small{margin-top:12px;color:#b9d4df;font-size:11px;font-weight:700}
+.product-links{display:flex;flex-wrap:wrap;gap:16px;align-items:center}
+.product-links .product-link{text-decoration:none;color:#078bc4;font-weight:800}
