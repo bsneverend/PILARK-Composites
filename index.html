@@ -38,5 +38,23 @@ html{scroll-behavior:smooth}
   </div>
   <form id="chatComposer" class="chat-composer" hidden><input id="chatMessage" maxlength="4000" autocomplete="off" placeholder="Type your message…"><button type="submit" aria-label="Send message">↑</button></form>
 </div><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="supabase-config.js"></script><script src="cms.js?v=20261029-product-management-v1"></script><script src="app.js?v=20261029-product-management-v1"></script><script src="chat.js?v=20260830-livechat-fix1"></script><script>
-document.addEventListener("DOMContentLoaded",()=>{if(location.hash==="#contact"){requestAnimationFrame(()=>requestAnimationFrame(()=>document.getElementById("contact")?.scrollIntoView({behavior:"auto",block:"start"})));}});
+(function(){
+  function scrollToContact(){
+    if(location.hash!=="#contact" && !new URLSearchParams(location.search).has("contact")) return;
+    const el=document.getElementById("contact");
+    if(!el) return;
+    const y=el.getBoundingClientRect().top + window.pageYOffset - 110;
+    window.scrollTo({top:Math.max(0,y),behavior:"auto"});
+  }
+  document.addEventListener("DOMContentLoaded",function(){
+    requestAnimationFrame(scrollToContact);
+    setTimeout(scrollToContact,250);
+    setTimeout(scrollToContact,750);
+    setTimeout(scrollToContact,1500);
+  });
+  window.addEventListener("load",function(){
+    setTimeout(scrollToContact,100);
+    setTimeout(scrollToContact,600);
+  });
+})();
 </script></body></html>
