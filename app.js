@@ -130,7 +130,7 @@ function initSeoProductRoute(){
   if(!p) return;
 
   const siteUrl=window.location.origin;
-  const productUrl=siteUrl+'/?product='+encodeURIComponent(productId);
+  const productUrl=siteUrl+'/product/'+encodeURIComponent(productId)+'.html';
   const category=p.cat||'Composite Products';
   const seoTitle=p.title+' | '+category+' | PILARK Composite';
   const seoDescription=(p.desc||('PILARK Composite '+p.title+' for industrial, infrastructure and commercial applications.'))
