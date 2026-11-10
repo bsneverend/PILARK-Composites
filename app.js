@@ -128,33 +128,71 @@ function initSeoProductRoute(){
   if(!productId) return;
   const p=products.find(x=>x.id===productId);
   if(!p) return;
-  if(productId==='grp-jacking-pipe'){
-    document.title='GRP Jacking Pipe | Pipa GRP untuk Pipe Jacking | PILARK Composite';
-    const desc='GRP Jacking Pipe / Pipa GRP untuk metode pipe jacking dan instalasi bawah tanah. PILARK Composite menyediakan solusi GRP untuk sewer, drainase, crossing dan infrastruktur trenchless.';
-    let meta=document.querySelector('meta[name="description"]');
-    if(!meta){meta=document.createElement('meta');meta.name='description';document.head.appendChild(meta);}
-    meta.setAttribute('content',desc);
-    let robots=document.querySelector('meta[name="robots"]');
-    if(!robots){robots=document.createElement('meta');robots.name='robots';document.head.appendChild(robots);}
-    robots.setAttribute('content','index,follow');
-    let canonical=document.querySelector('link[rel="canonical"]');
-    if(!canonical){canonical=document.createElement('link');canonical.rel='canonical';document.head.appendChild(canonical);}
-    canonical.href=window.location.origin+'/?product='+encodeURIComponent(productId);
-    let schema=document.getElementById('grpJackingProductSchema');
-    if(!schema){
-      schema=document.createElement('script');
-      schema.id='grpJackingProductSchema';
-      schema.type='application/ld+json';
-      schema.textContent=JSON.stringify({
-        '@context':'https://schema.org','@type':'Product',
-        name:p.title,alternateName:['Pipa GRP Jacking','Pipa GRP untuk Pipe Jacking','GRP Pipe Jacking'],
-        brand:{'@type':'Brand',name:'PILARK Composite'},
-        manufacturer:{'@type':'Organization',name:'PT Panca Integra Laguna Reksa',url:'https://pilarkkomposit.com'},
-        category:'GRP Pipe',description:desc,url:window.location.origin+'/?product='+encodeURIComponent(productId)
-      });
-      document.head.appendChild(schema);
-    }
+
+  const siteUrl=window.location.origin;
+  const productUrl=siteUrl+'/?product='+encodeURIComponent(productId);
+  const category=p.cat||'Composite Products';
+  const seoTitle=p.title+' | '+category+' | PILARK Composite';
+  const seoDescription=(p.desc||('PILARK Composite '+p.title+' for industrial, infrastructure and commercial applications.'))
+    .replace(/\s+/g,' ').trim().slice(0,155);
+
+  document.title=seoTitle;
+
+  const setMeta=(name,content)=>{
+    let el=document.querySelector('meta[name="'+name+'"]');
+    if(!el){el=document.createElement('meta');el.name=name;document.head.appendChild(el);}
+    el.setAttribute('content',content);
+  };
+  setMeta('description',seoDescription);
+  setMeta('robots','index,follow,max-image-preview:large');
+
+  let canonical=document.querySelector('link[rel="canonical"]');
+  if(!canonical){canonical=document.createElement('link');canonical.rel='canonical';document.head.appendChild(canonical);}
+  canonical.href=productUrl;
+
+  const imageUrl=p.img ? new URL(p.img,siteUrl).href : '';
+  let schema=document.getElementById('pilarkProductSchema');
+  if(!schema){
+    schema=document.createElement('script');
+    schema.id='pilarkProductSchema';
+    schema.type='application/ld+json';
+    document.head.appendChild(schema);
   }
+  const alternateNames=[
+    p.title,
+    p.title.replace(/^FRP\s+/i,'').replace(/^GFRP\s+/i,'')+' '+(category==='FRP Grating'?'FRP Grating':''),
+    'PILARK '+p.title
+  ].map(x=>x.replace(/\s+/g,' ').trim()).filter((x,i,a)=>x&&a.indexOf(x)===i);
+
+  schema.textContent=JSON.stringify({
+    '@context':'https://schema.org',
+    '@type':'Product',
+    name:p.title,
+    alternateName:alternateNames,
+    description:p.desc,
+    category:category,
+    image:imageUrl?[imageUrl]:undefined,
+    brand:{'@type':'Brand',name:'PILARK Composite'},
+    manufacturer:{'@type':'Organization',name:'PT Panca Integra Laguna Reksa',url:siteUrl},
+    url:productUrl
+  });
+
+  let crumb=document.getElementById('pilarkBreadcrumbSchema');
+  if(!crumb){
+    crumb=document.createElement('script');
+    crumb.id='pilarkBreadcrumbSchema';
+    crumb.type='application/ld+json';
+    document.head.appendChild(crumb);
+  }
+  crumb.textContent=JSON.stringify({
+    '@context':'https://schema.org','@type':'BreadcrumbList',
+    itemListElement:[
+      {'@type':'ListItem',position:1,name:'PILARK Composite',item:siteUrl+'/'},
+      {'@type':'ListItem',position:2,name:'Products',item:siteUrl+'/#products'},
+      {'@type':'ListItem',position:3,name:p.title,item:productUrl}
+    ]
+  });
+
   openProduct(productId);
 }
 function observeReveals(){if(!window.IntersectionObserver){document.querySelectorAll('.reveal').forEach(x=>x.classList.add('show'));return}const o=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('show');o.unobserve(e.target)}}),{threshold:.08});document.querySelectorAll('.reveal:not(.show)').forEach(el=>o.observe(el))}
