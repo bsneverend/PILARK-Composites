@@ -121,8 +121,29 @@ function openCatalog(page=1){const viewer=$('catalogViewer');if(!viewer)return;v
 function closeCatalog(){const viewer=$('catalogViewer');viewer?.classList.remove('open');viewer?.setAttribute('aria-hidden','true');document.body.classList.remove('lock')}
 function renderCatalogPicker(){const picker=$('catalogThumbs');if(!picker||catalogPickerReady)return;picker.innerHTML=Array.from({length:CATALOG_TOTAL},(_,i)=>{const page=i+1;return `<button class="catalog-page-choice" data-page="${page}"><img loading="lazy" src="${catalogSrc(page)}" alt="Catalog page ${page}"><span>${page}</span></button>`}).join('');picker.addEventListener('click',e=>{const b=e.target.closest('.catalog-page-choice');if(!b)return;updateCatalogPage(Number(b.dataset.page));picker.hidden=true});catalogPickerReady=true}
 function initCatalogViewer(){const jump=$('catalogJump');if(jump)jump.innerHTML=Array.from({length:CATALOG_TOTAL},(_,i)=>`<option value="${i+1}">Page ${i+1}</option>`).join('');$('catalogPrev')?.addEventListener('click',()=>updateCatalogPage(catalogPage-1));$('catalogNext')?.addEventListener('click',()=>updateCatalogPage(catalogPage+1));$('catalogClose')?.addEventListener('click',closeCatalog);$('catalogViewer')?.addEventListener('click',e=>{if(e.target===e.currentTarget)closeCatalog()});jump?.addEventListener('change',e=>updateCatalogPage(e.target.value));$('catalogThumbToggle')?.addEventListener('click',()=>{const picker=$('catalogThumbs');if(!picker)return;renderCatalogPicker();picker.hidden=!picker.hidden});let startX=0;$('catalogImage')?.addEventListener('touchstart',e=>{startX=e.changedTouches[0].screenX},{passive:true});$('catalogImage')?.addEventListener('touchend',e=>{const dx=e.changedTouches[0].screenX-startX;if(Math.abs(dx)>45)updateCatalogPage(catalogPage+(dx<0?1:-1))},{passive:true})}
+
+function initSeoProductRoute(){
+  const params=new URLSearchParams(window.location.search);
+  const product=params.get('product');
+  if(product!=='grp-jacking-pipe') return;
+  const p=products.find(x=>x.id==='grp-jacking-pipe');
+  const section=$('seoProductLanding');
+  if(!p||!section) return;
+  section.hidden=false;
+  document.title='GRP Jacking Pipe | Pipa GRP untuk Pipe Jacking | PILARK Composite';
+  const desc='GRP Jacking Pipe / Pipa GRP untuk metode pipe jacking dan instalasi bawah tanah. PILARK Composite menyediakan solusi GRP untuk sewer, drainase, crossing dan infrastruktur trenchless.';
+  let meta=document.querySelector('meta[name="description"]');
+  if(meta) meta.setAttribute('content',desc);
+  let canonical=document.querySelector('link[rel="canonical"]');
+  if(!canonical){canonical=document.createElement('link');canonical.rel='canonical';document.head.appendChild(canonical);}
+  canonical.href=window.location.href.split('#')[0];
+  document.getElementById('seoProductTitle').textContent=p.title;
+  document.getElementById('seoProductIntro').textContent=p.desc;
+  section.scrollIntoView({block:'start'});
+}
+
 function observeReveals(){if(!window.IntersectionObserver){document.querySelectorAll('.reveal').forEach(x=>x.classList.add('show'));return}const o=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('show');o.unobserve(e.target)}}),{threshold:.08});document.querySelectorAll('.reveal:not(.show)').forEach(el=>o.observe(el))}
-document.addEventListener('DOMContentLoaded',async()=>{applyAdminOverrides();try{await applyCloudCms();}catch(err){console.warn('PILARK CMS unavailable:',err);}renderFilters();renderProducts();renderCatalog();initCatalogViewer();initClientModal();observeReveals();$('closeModal')?.addEventListener('click',closeModal);$('productModal')?.addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal()});$('modalCatalog')?.addEventListener('click',e=>{e.preventDefault();const page=Number(e.currentTarget.dataset.page)||1;closeModal();openCatalog(page)});const menu=$('mobileMenu'),btn=$('menuBtn');btn?.addEventListener('click',()=>menu?.classList.toggle('open'));menu?.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>menu.classList.remove('open')));document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeCatalog()}else if($('catalogViewer')?.classList.contains('open')&&e.key==='ArrowLeft'){updateCatalogPage(catalogPage-1)}else if($('catalogViewer')?.classList.contains('open')&&e.key==='ArrowRight'){updateCatalogPage(catalogPage+1)}})});
+document.addEventListener('DOMContentLoaded',async()=>{applyAdminOverrides();try{await applyCloudCms();}catch(err){console.warn('PILARK CMS unavailable:',err);}renderFilters();renderProducts();renderCatalog();initSeoProductRoute();initCatalogViewer();initClientModal();observeReveals();$('closeModal')?.addEventListener('click',closeModal);$('productModal')?.addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal()});$('modalCatalog')?.addEventListener('click',e=>{e.preventDefault();const page=Number(e.currentTarget.dataset.page)||1;closeModal();openCatalog(page)});const menu=$('mobileMenu'),btn=$('menuBtn');btn?.addEventListener('click',()=>menu?.classList.toggle('open'));menu?.querySelectorAll('a').forEach(a=>a.addEventListener('click',()=>menu.classList.remove('open')));document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeCatalog()}else if($('catalogViewer')?.classList.contains('open')&&e.key==='ArrowLeft'){updateCatalogPage(catalogPage-1)}else if($('catalogViewer')?.classList.contains('open')&&e.key==='ArrowRight'){updateCatalogPage(catalogPage+1)}})});
 
 document.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('a[href^="mailto:"]').forEach(a=>{a.href='mailto:support@pilarkomposit.com';a.textContent='support@pilarkomposit.com';});
