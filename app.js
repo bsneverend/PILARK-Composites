@@ -133,10 +133,31 @@ function initSeoProductRoute(){
   document.title='GRP Jacking Pipe | Pipa GRP untuk Pipe Jacking | PILARK Composite';
   const desc='GRP Jacking Pipe / Pipa GRP untuk metode pipe jacking dan instalasi bawah tanah. PILARK Composite menyediakan solusi GRP untuk sewer, drainase, crossing dan infrastruktur trenchless.';
   let meta=document.querySelector('meta[name="description"]');
-  if(meta) meta.setAttribute('content',desc);
+  if(!meta){meta=document.createElement('meta');meta.name='description';document.head.appendChild(meta);}
+  meta.setAttribute('content',desc);
+  let robots=document.querySelector('meta[name="robots"]');
+  if(!robots){robots=document.createElement('meta');robots.name='robots';document.head.appendChild(robots);}
+  robots.setAttribute('content','index,follow');
   let canonical=document.querySelector('link[rel="canonical"]');
   if(!canonical){canonical=document.createElement('link');canonical.rel='canonical';document.head.appendChild(canonical);}
-  canonical.href=window.location.href.split('#')[0];
+  canonical.href=window.location.origin+'/?product=grp-jacking-pipe';
+  let schema=document.getElementById('grpJackingProductSchema');
+  if(!schema){
+    schema=document.createElement('script');
+    schema.id='grpJackingProductSchema';
+    schema.type='application/ld+json';
+    schema.textContent=JSON.stringify({
+      '@context':'https://schema.org','@type':'Product',
+      name:'GRP Jacking Pipe',
+      alternateName:['Pipa GRP Jacking','Pipa GRP untuk Pipe Jacking','GRP Pipe Jacking'],
+      brand:{'@type':'Brand',name:'PILARK Composite'},
+      manufacturer:{'@type':'Organization',name:'PT Panca Integra Laguna Reksa',url:'https://pilarkomposit.com'},
+      category:'GRP Pipe',
+      description:desc,
+      url:window.location.origin+'/?product=grp-jacking-pipe'
+    });
+    document.head.appendChild(schema);
+  }
   document.getElementById('seoProductTitle').textContent=p.title;
   document.getElementById('seoProductIntro').textContent=p.desc;
   section.scrollIntoView({block:'start'});
