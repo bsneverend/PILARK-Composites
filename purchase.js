@@ -63,44 +63,94 @@
     if(el('purchaseTax'))el('purchaseTax').textContent=money(tax);
     if(el('purchaseTotal'))el('purchaseTotal').textContent=money(sub+tax);
   }
+  function showDocumentModal(title,message,status='loading',details=''){
+    const m=el('purchaseDocumentModal');if(!m)return;
+    el('purchaseDocumentTitle').textContent=title;
+    el('purchaseDocumentMessage').textContent=message;
+    const s=el('purchaseDocumentStatus');s.className='purchase-document-status '+status;
+    s.textContent=status==='success'?'Completed':status==='error'?'Action could not be completed':'Processing…';
+    el('purchaseDocumentDetails').textContent=details||'';
+    m.hidden=false;document.body.classList.add('modal-open');
+  }
+  function closeDocumentModal(){
+    const m=el('purchaseDocumentModal');if(m)m.hidden=true;
+    document.body.classList.remove('modal-open');
+  }
+  function readableFetchError(err){
+    const raw=String(err?.message||err||'Unknown error');
+    if(/failed to fetch/i.test(raw)){
+      return 'The browser could not reach the Supabase API. This is a network/API connection error, not a missing form field. Check the Supabase project status, API URL, and browser Network tab for the failed request.';
+    }
+    return raw;
+  }
   async function createQuotation(e){
     e.preventDefault();
     const partner=el('purchasePartner').value,lines=readLines();
-    if(!partner)return alert('Select a vendor.');
+    if(!partner)return showDocumentModal('RFQ not created','Select a vendor before creating the RFQ.','error');
     if(!lines.length||lines.some(l=>!l.description||l.quantity<=0||l.unit_price<0||l.discount_percent<0||l.discount_percent>100||l.tax_rate<0))
-      return alert('Complete every purchase line.');
-    const {data:userData}=await client().auth.getUser();
-    const {data:orderNo,error:noErr}=await client().rpc('next_purchase_order_no');
-    if(noErr)return alert(noErr.message);
-    const {data:order,error}=await client().from('purchase_orders').insert({
-      order_no:orderNo,status:'quotation',partner_id:partner,
-      quotation_date:el('purchaseDate').value||today(),
-      validity_date:el('purchaseValidity').value||null,
-      reference:el('purchaseReference').value.trim()||null,
-      notes:el('purchaseNotes').value.trim()||null,
-      created_by:userData?.user?.id||null
-    }).select().single();
-    if(error)return alert(error.message);
-    const {error:lineErr}=await client().from('purchase_order_lines').insert(lines.map(l=>({...l,purchase_order_id:order.id})));
-    if(lineErr){await client().from('purchase_orders').delete().eq('id',order.id);return alert(lineErr.message);}
-    const {error:calcErr}=await client().rpc('recalc_purchase_order',{p_purchase_order_id:order.id});
-    if(calcErr)return alert(calcErr.message);
-    e.target.reset();el('purchaseDate').value=today();el('purchaseLines').innerHTML=lineHtml(0);await load();showTab('quotations');
+      return showDocumentModal('RFQ not created','Complete every purchase line.','error');
+    showDocumentModal('Creating RFQ','Saving the RFQ and purchase lines…','loading');
+    try{
+      const {data:userData,error:userErr}=await client().auth.getUser();
+      if(userErr)throw userErr;
+      const {data:orderNo,error:noErr}=await client().rpc('next_purchase_order_no');
+      if(noErr)throw noErr;
+      const {data:order,error}=await client().from('purchase_orders').insert({
+        order_no:orderNo,status:'quotation',partner_id:partner,
+        quotation_date:el('purchaseDate').value||today(),
+        validity_date:el('purchaseValidity').value||null,
+        reference:el('purchaseReference').value.trim()||null,
+        notes:el('purchaseNotes').value.trim()||null,
+        created_by:userData?.user?.id||null
+      }).select().single();
+      if(error)throw error;
+      const {error:lineErr}=await client().from('purchase_order_lines').insert(lines.map(l=>({...l,purchase_order_id:order.id})));
+      if(lineErr){await client().from('purchase_orders').delete().eq('id',order.id);throw lineErr;}
+      const {error:calcErr}=await client().rpc('recalc_purchase_order',{p_purchase_order_id:order.id});
+      if(calcErr)throw calcErr;
+      e.target.reset();el('purchaseDate').value=today();el('purchaseLines').innerHTML=lineHtml(0);
+      await load();showTab('quotations');
+      showDocumentModal('RFQ created','The supplier RFQ has been created successfully.','success','RFQ number: '+orderNo+'\nStatus: Quotation');
+    }catch(err){
+      console.error('Purchase RFQ creation failed:',err);
+      showDocumentModal('RFQ could not be created','The RFQ transaction failed.','error',readableFetchError(err));
+    }
   }
   async function confirmOrder(id){
     if(!confirm('Confirm this RFQ as a Purchase Order?'))return;
-    const {error}=await client().rpc('confirm_purchase_order',{p_purchase_order_id:id});
-    if(error)return alert(error.message);await load();showTab('orders');
+    showDocumentModal('Confirming Purchase Order','Posting the confirmed Purchase Order…','loading');
+    try{
+      const {error}=await client().rpc('confirm_purchase_order',{p_purchase_order_id:id});
+      if(error)throw error;
+      await load();showTab('orders');
+      showDocumentModal('Purchase Order confirmed','The RFQ has been converted to a Purchase Order.','success','Purchase Order status: Confirmed');
+    }catch(err){
+      console.error('Purchase Order confirmation failed:',err);
+      showDocumentModal('Purchase Order failed','The RFQ could not be converted to a Purchase Order.','error',readableFetchError(err));
+    }
   }
   async function createBill(id){
     if(!confirm('Create and post the vendor bill for this Purchase Order?'))return;
-    const {error}=await client().rpc('create_vendor_bill_from_purchase_order',{p_purchase_order_id:id});
-    if(error)return alert(error.message);await load();showTab('orders');
+    showDocumentModal('Creating Vendor Bill','Posting the vendor bill to accounting…','loading');
+    try{
+      const {error}=await client().rpc('create_vendor_bill_from_purchase_order',{p_purchase_order_id:id});
+      if(error)throw error;
+      await load();showTab('orders');
+      showDocumentModal('Vendor Bill created','The vendor bill was created and posted successfully.','success','Purchase Order → Vendor Bill completed.');
+    }catch(err){
+      console.error('Vendor bill creation failed:',err);
+      showDocumentModal('Vendor Bill failed','The vendor bill could not be created.','error',readableFetchError(err));
+    }
   }
   async function cancelOrder(id){
     if(!confirm('Cancel this RFQ?'))return;
-    const {error}=await client().from('purchase_orders').update({status:'cancelled'}).eq('id',id).in('status',['quotation','sent']);
-    if(error)return alert(error.message);await load();
+    try{
+      const {error}=await client().from('purchase_orders').update({status:'cancelled'}).eq('id',id).in('status',['quotation','sent']);
+      if(error)throw error;await load();
+    }catch(err){
+      console.error('RFQ cancellation failed:',err);
+      showDocumentModal('RFQ cancellation failed','The RFQ could not be cancelled.','error',readableFetchError(err));
+    }
   }
   function statusClass(s){return 'purchase-status purchase-status-'+s.replace('_','-');}
   function row(o){
@@ -136,7 +186,10 @@
     el('purchaseLines')?.addEventListener('click',e=>{if(e.target.classList.contains('purchase-line-remove')){const rows=el('purchaseLines').querySelectorAll('.purchase-line');if(rows.length>1)e.target.closest('.purchase-line').remove();updatePreview();}});
     el('purchaseLines')?.addEventListener('input',updatePreview);
     el('purchaseLines')?.addEventListener('change',updatePreview);
-    el('purchaseRefresh')?.addEventListener('click',()=>load().catch(e=>alert(e.message)));
+    el('purchaseRefresh')?.addEventListener('click',()=>load().catch(e=>showDocumentModal('Purchase refresh failed','Could not load Purchase data.','error',readableFetchError(e))));
+    el('purchaseDocumentClose')?.addEventListener('click',closeDocumentModal);
+    el('purchaseDocumentCloseBtn')?.addEventListener('click',closeDocumentModal);
+    el('purchaseDocumentModal')?.querySelector('[data-purchase-close]')?.addEventListener('click',closeDocumentModal);
     window.addEventListener('pilark:refresh-view',e=>{if(e.detail?.view==='purchase')load().then(()=>e.detail?.done?.()).catch(err=>e.detail?.done?.(err));});
     if(el('purchaseDate'))el('purchaseDate').value=today();
     if(el('purchaseLines'))el('purchaseLines').innerHTML=lineHtml(0);
