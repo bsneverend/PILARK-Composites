@@ -63,18 +63,27 @@
     if(el('purchaseTax'))el('purchaseTax').textContent=money(tax);
     if(el('purchaseTotal'))el('purchaseTotal').textContent=money(sub+tax);
   }
-  function showDocumentModal(title,message,status='loading',details=''){
-    const m=el('purchaseDocumentModal');if(!m)return;
-    el('purchaseDocumentTitle').textContent=title;
-    el('purchaseDocumentMessage').textContent=message;
-    const s=el('purchaseDocumentStatus');s.className='purchase-document-status '+status;
-    s.textContent=status==='success'?'Completed':status==='error'?'Action could not be completed':'Processing…';
-    el('purchaseDocumentDetails').textContent=details||'';
-    m.hidden=false;document.body.classList.add('modal-open');
+  function showDocumentModal(title,message,status='loading',html=''){const m=el('purchaseDocumentModal');if(!m)return;el('purchaseDocumentTitle').textContent=title;el('purchaseDocumentMessage').textContent=message;el('purchaseDocumentPreview').innerHTML=html||'<div class="purchase-document-status '+status+'">'+(status==='error'?'Action could not be completed':status==='success'?'Completed':'Processing…')+'</div>';el('purchaseDocumentPrint').hidden=true;m.hidden=false;document.body.classList.add('modal-open');}
+  function closeDocumentModal(){const m=el('purchaseDocumentModal');if(m)m.hidden=true;document.body.classList.remove('modal-open');}
+  function fmtDate(v){if(!v)return '—';return new Date(v+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'});}
+  function documentHtml(o,lines){
+    let sub=0,tax=0;lines.forEach(l=>{sub+=Number(l.line_total||0);tax+=Math.round(Number(l.line_total||0)*Number(l.tax_rate||0))/100;});
+    const rows=lines.map(l=>'<tr><td>'+esc(l.product_code||'')+'</td><td>'+esc(l.description||l.product_name||'')+'</td><td class="num">'+Number(l.quantity||0).toLocaleString('id-ID')+'</td><td>'+esc(l.uom||'PCS')+'</td><td class="num">'+money(l.unit_price)+'</td><td class="num">'+money(l.line_total)+'</td></tr>').join('');
+    return '<div class="purchase-document-paper"><div class="purchase-document-brand"><div><div class="purchase-doc-brand">PILARK</div><div class="purchase-doc-sub">COMPOSITES · PT. PANCA INTEGRA LAGUNA REKSA</div></div><div class="purchase-doc-type">'+(o.status==='purchase_order'?'PURCHASE ORDER':'REQUEST FOR QUOTATION')+'</div></div><div class="purchase-doc-meta"><div><b>Number</b><span>'+esc(o.order_no)+'</span></div><div><b>Vendor</b><span>'+esc(o.accounting_partners?.name||'—')+'</span></div><div><b>Date</b><span>'+fmtDate(o.quotation_date)+'</span></div><div><b>Valid Until</b><span>'+fmtDate(o.validity_date)+'</span></div><div><b>Reference</b><span>'+esc(o.reference||'—')+'</span></div></div><table class="purchase-doc-table"><thead><tr><th>Code</th><th>Description</th><th class="num">Qty</th><th>UOM</th><th class="num">Unit Price</th><th class="num">Amount</th></tr></thead><tbody>'+rows+'</tbody></table><div class="purchase-doc-totals"><div>Subtotal <b>'+money(sub)+'</b></div><div>Input VAT <b>'+money(tax)+'</b></div><div class="grand">Total <b>'+money(sub+tax)+'</b></div></div><div class="purchase-doc-notes"><b>Notes / Terms</b><p>'+esc(o.notes||'').replace(/\n/g,'<br>')+'</p></div></div>';
   }
-  function closeDocumentModal(){
-    const m=el('purchaseDocumentModal');if(m)m.hidden=true;
-    document.body.classList.remove('modal-open');
+  async function viewPurchaseDocument(id){
+    const o=state.orders.find(x=>x.id===id);if(!o)return;
+    showDocumentModal(o.status==='purchase_order'?'Purchase Order':'Request for Quotation','Review the document below. You can print it or save it as PDF.','success');
+    const {data:lines,error}=await client().from('purchase_order_lines').select('*,inventory_products(product_code,name,unit)').eq('purchase_order_id',id).order('line_no');
+    if(error){el('purchaseDocumentPreview').innerHTML='<div class="purchase-document-status error">'+esc(error.message)+'</div>';return;}
+    const normalized=(lines||[]).map(l=>({...l,product_code:l.inventory_products?.product_code,product_name:l.inventory_products?.name,uom:l.inventory_products?.unit,line_total:Number(l.quantity||0)*Number(l.unit_price||0)*(1-Number(l.discount_percent||0)/100)}));
+    el('purchaseDocumentPreview').innerHTML=documentHtml(o,normalized);
+    const pb=el('purchaseDocumentPrint');pb.hidden=false;pb.onclick=()=>printPurchaseDocument(o,normalized);
+  }
+  function printPurchaseDocument(o,lines){
+    const w=window.open('about:blank','_blank','width=1000,height=900');if(!w)return alert('Please allow pop-ups for Print / PDF.');
+    w.document.write('<!doctype html><html><head><title>'+esc(o.order_no)+'</title><meta charset="utf-8"><style>body{font-family:Arial,sans-serif;color:#111;margin:0;padding:32px}.purchase-document-paper{max-width:900px;margin:auto}.purchase-document-brand{display:flex;justify-content:space-between;border-bottom:2px solid #111;padding-bottom:18px}.purchase-doc-brand{font-size:30px;font-weight:900;letter-spacing:4px}.purchase-doc-sub{font-size:10px;letter-spacing:1.5px;color:#68747c}.purchase-doc-type{font-size:20px;font-weight:900}.purchase-doc-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:22px 0}.purchase-doc-meta div{border:1px solid #ddd;padding:10px}.purchase-doc-meta b{display:block;font-size:10px;text-transform:uppercase;color:#68747c;margin-bottom:5px}.purchase-doc-meta span{font-size:13px}.purchase-doc-table{width:100%;border-collapse:collapse;font-size:12px}.purchase-doc-table th,.purchase-doc-table td{border-bottom:1px solid #ddd;padding:9px;text-align:left}.purchase-doc-table th{font-size:10px;text-transform:uppercase;background:#f3f5f6}.num{text-align:right!important}.purchase-doc-totals{margin:22px 0 0 auto;width:360px}.purchase-doc-totals div{display:flex;justify-content:space-between;padding:6px 0}.purchase-doc-totals .grand{font-size:17px;font-weight:900;border-top:2px solid #111;padding-top:10px}.purchase-doc-notes{margin-top:30px;border-top:1px solid #ddd;padding-top:14px;font-size:12px;line-height:1.6}@media print{body{padding:0}.purchase-doc-table th{background:#f3f5f6;-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body>'+documentHtml(o,lines)+'</body></html>');
+    w.document.close();w.focus();setTimeout(()=>w.print(),250);
   }
   function readableFetchError(err){
     const raw=String(err?.message||err||'Unknown error');
@@ -86,9 +95,9 @@
   async function createQuotation(e){
     e.preventDefault();
     const partner=el('purchasePartner').value,lines=readLines();
-    if(!partner)return showDocumentModal('RFQ not created','Select a vendor before creating the RFQ.','error');
+    if(!partner)return alert('Select a vendor before creating the RFQ.');
     if(!lines.length||lines.some(l=>!l.description||l.quantity<=0||l.unit_price<0||l.discount_percent<0||l.discount_percent>100||l.tax_rate<0))
-      return showDocumentModal('RFQ not created','Complete every purchase line.','error');
+      return alert('Complete every purchase line.');
     showDocumentModal('Creating RFQ','Saving the RFQ and purchase lines…','loading');
     try{
       const {data:userData,error:userErr}=await client().auth.getUser();
@@ -110,7 +119,7 @@
       if(calcErr)throw calcErr;
       e.target.reset();el('purchaseDate').value=today();el('purchaseLines').innerHTML=lineHtml(0);
       await load();showTab('quotations');
-      showDocumentModal('RFQ created','The supplier RFQ has been created successfully.','success','RFQ number: '+orderNo+'\nStatus: Quotation');
+      el('purchaseRfqModal').hidden=true;document.body.classList.remove('modal-open');alert('RFQ '+orderNo+' created successfully.');
     }catch(err){
       console.error('Purchase RFQ creation failed:',err);
       showDocumentModal('RFQ could not be created','The RFQ transaction failed.','error',readableFetchError(err));
@@ -154,9 +163,7 @@
   }
   function statusClass(s){return 'purchase-status purchase-status-'+s.replace('_','-');}
   function row(o){
-    const actions=o.status==='purchase_order'
-      ?'<button class="accounting-small-btn purchase-bill-btn" data-id="'+o.id+'">Create Vendor Bill</button>'
-      :'<button class="accounting-small-btn purchase-confirm-btn" data-id="'+o.id+'">Confirm PO</button><button class="accounting-small-btn purchase-cancel-btn" data-id="'+o.id+'">Cancel</button>';
+    const actions='<button class="accounting-small-btn purchase-view-btn" data-id="'+o.id+'">View / Print</button>'+(o.status==='purchase_order'?'<button class="accounting-small-btn purchase-bill-btn" data-id="'+o.id+'">Create Vendor Bill</button>':'<button class="accounting-small-btn purchase-confirm-btn" data-id="'+o.id+'">Confirm PO</button><button class="accounting-small-btn purchase-cancel-btn" data-id="'+o.id+'">Cancel</button>');
     return '<tr><td><b>'+esc(o.order_no)+'</b></td><td>'+esc(o.accounting_partners?.name||'—')+'</td><td>'+String(o.quotation_date||'—')+'</td><td>'+String(o.validity_date||'—')+'</td><td class="num">'+money(o.total_amount)+'</td><td><span class="'+statusClass(o.status)+'">'+esc(o.status.replace('_',' '))+'</span></td><td>'+actions+'</td></tr>';
   }
   function render(){
@@ -166,6 +173,7 @@
     el('purchaseMetricOpen').textContent=money(po.reduce((n,o)=>n+Number(o.total_amount||0),0));
     el('purchaseQuotationsBody').innerHTML=q.map(row).join('')||'<tr><td colspan="7" class="accounting-empty">No RFQs yet.</td></tr>';
     el('purchaseOrdersBody').innerHTML=po.map(row).join('')||'<tr><td colspan="7" class="accounting-empty">No Purchase Orders yet.</td></tr>';
+    document.querySelectorAll('.purchase-view-btn').forEach(b=>b.onclick=()=>viewPurchaseDocument(b.dataset.id));
     document.querySelectorAll('.purchase-confirm-btn').forEach(b=>b.onclick=()=>confirmOrder(b.dataset.id));
     document.querySelectorAll('.purchase-bill-btn').forEach(b=>b.onclick=()=>createBill(b.dataset.id));
     document.querySelectorAll('.purchase-cancel-btn').forEach(b=>b.onclick=()=>cancelOrder(b.dataset.id));
@@ -187,6 +195,9 @@
     el('purchaseLines')?.addEventListener('input',updatePreview);
     el('purchaseLines')?.addEventListener('change',updatePreview);
     el('purchaseRefresh')?.addEventListener('click',()=>load().catch(e=>showDocumentModal('Purchase refresh failed','Could not load Purchase data.','error',readableFetchError(e))));
+    const openRfq=()=>{const m=el('purchaseRfqModal');if(m){m.hidden=false;document.body.classList.add('modal-open');if(el('purchaseDate'))el('purchaseDate').value=today();}};
+    el('newPurchaseRfq')?.addEventListener('click',openRfq);el('overviewNewRfq')?.addEventListener('click',openRfq);el('rfqNewFromList')?.addEventListener('click',openRfq);
+    el('purchaseRfqClose')?.addEventListener('click',()=>{el('purchaseRfqModal').hidden=true;document.body.classList.remove('modal-open');});el('purchaseFormCancel')?.addEventListener('click',()=>{el('purchaseRfqModal').hidden=true;document.body.classList.remove('modal-open');});
     el('purchaseDocumentClose')?.addEventListener('click',closeDocumentModal);
     el('purchaseDocumentCloseBtn')?.addEventListener('click',closeDocumentModal);
     el('purchaseDocumentModal')?.querySelector('[data-purchase-close]')?.addEventListener('click',closeDocumentModal);
