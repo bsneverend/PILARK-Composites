@@ -69,3 +69,7 @@
     padding:0;
   }
 }
+
+
+/* Purchase document window */
+.purchase-document-modal-card{width:min(720px,calc(100vw - 32px));max-width:720px}.purchase-document-body{padding:8px 0 4px}.purchase-document-status{border-radius:14px;padding:14px 16px;font-weight:800;margin-bottom:14px;background:#eef3f6;color:#52636d}.purchase-document-status.success{background:#e8f7ee;color:#137342}.purchase-document-status.error{background:#fdeaea;color:#a82c2c}.purchase-document-status.loading{background:#eef4ff;color:#245bb8}.purchase-document-details{border:1px solid #dce8ee;border-radius:14px;padding:14px 16px;color:#52636d;line-height:1.6;white-space:pre-wrap;word-break:break-word}.purchase-document-details strong{color:#07121a}@media(max-width:700px){.purchase-document-modal-card{width:calc(100vw - 20px)}}
