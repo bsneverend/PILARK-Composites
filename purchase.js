@@ -154,7 +154,7 @@
       '<section class="meta"><div><b>Number</b><span>'+esc(o.order_no)+'</span></div><div><b>Vendor</b><span>'+esc(o.accounting_partners?.name||'—')+'</span></div><div><b>Date</b><span>'+fmtDate(o.quotation_date)+'</span></div><div><b>Valid Until</b><span>'+fmtDate(o.validity_date)+'</span></div><div><b>Reference</b><span>'+esc(o.reference||'—')+'</span></div></section>'+
       '<table class="table"><thead><tr><th>Code</th><th>Description</th><th class="num">Qty</th><th>UOM</th><th class="num">Unit Price</th><th class="num">Amount</th></tr></thead><tbody>'+lines.map(l=>'<tr><td>'+esc(l.product_code||'')+'</td><td>'+esc(l.description||l.product_name||'')+'</td><td class="num">'+Number(l.quantity||0).toLocaleString('id-ID')+'</td><td>'+esc(l.uom||'PCS')+'</td><td class="num">'+money(l.unit_price)+'</td><td class="num">'+money(l.line_total)+'</td></tr>').join('')+'</tbody></table>'+
       '<div class="totals"><div>Subtotal <b>'+money(lines.reduce((s,l)=>s+Number(l.line_total||0),0))+'</b></div><div>Input VAT <b>'+money(lines.reduce((s,l)=>s+Math.round(Number(l.line_total||0)*Number(l.tax_rate||0))/100,0))+'</b></div><div class="grand">Total <b>'+money(Number(o.total_amount||0))+'</b></div></div>'+
-      '<div class="notes"><b>Notes / Terms</b><p>'+esc(o.notes||'').replace(/\\r\\n|\\r|\\n/g,'<br>')+'</p></div>'+footer+'</main><script>window.onload=()=>setTimeout(()=>window.print(),350);<\\/script></body></html>');
+      '<div class="notes"><b>Notes / Terms</b><p>'+esc(o.notes||'').replace(/\r\n|\r|\n/g,'<br>')+'</p></div>'+footer+'</main><script>window.onload=()=>setTimeout(()=>window.print(),350);<\\/script></body></html>');
     w.document.close();
   }
   function readableFetchError(err){
