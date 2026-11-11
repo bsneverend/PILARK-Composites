@@ -6,8 +6,24 @@
   const esc=v=>String(v??'').replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[m]));
   let state={orders:[],partners:[],accounts:[],products:[],tab:'overview',editingOrderId:null};
 
+  async function normalizeLegacyPurchaseOrderNumber(){
+    // Migrate the legacy PO number for the existing confirmed Havisena PO to
+    // the PILARK global document sequence already assigned to this document.
+    const db=client(); if(!db)return;
+    const legacy='PO-2026-00002';
+    const globalNo='PO.007.1111.26';
+    const {data:legacyRows,error:legacyErr}=await db.from('purchase_orders').select('id,order_no,status,quotation_date').eq('order_no',legacy).eq('status','purchase_order').limit(10);
+    if(legacyErr||!legacyRows?.length)return;
+    const {data:existing,error:existingErr}=await db.from('purchase_orders').select('id').eq('order_no',globalNo).limit(1);
+    if(existingErr)return;
+    if(existing?.length)return;
+    const {error:updateErr}=await db.from('purchase_orders').update({order_no:globalNo}).eq('id',legacyRows[0].id).eq('order_no',legacy).eq('status','purchase_order');
+    if(updateErr)console.warn('Legacy PO number normalization failed:',updateErr.message);
+  }
+
   async function load(){
     if(!client())return;
+    await normalizeLegacyPurchaseOrderNumber();
     const [o,p,a,pr]=await Promise.all([
       client().from('purchase_orders').select('*,accounting_partners(name,email)').order('quotation_date',{ascending:false}).limit(500),
       client().from('accounting_partners').select('*').eq('is_active',true).order('name'),
