@@ -64,6 +64,27 @@
     renderStockCard();
   }
 
+  async function checkOdooConnection(){
+    const c=client();
+    const status=el('inventoryOdooStatus');
+    if(!c||!status)return false;
+    try{
+      const {data,error:sessionError}=await c.auth.getSession();
+      if(sessionError)throw sessionError;
+      if(!data?.session)throw new Error('CMS session has expired.');
+      const res=await fetch('https://seelqcgjfuuwurslwtgf.supabase.co/functions/v1/odoo-director-dashboard?detail=connection',{method:'GET',headers:{Authorization:'Bearer '+data.session.access_token,apikey:window.PILARK_SUPABASE_CONFIG?.anonKey||''}});
+      const payload=await res.json().catch(()=>({}));
+      if(!res.ok||!payload.ok)throw new Error(payload.error||'Odoo connection failed.');
+      status.textContent='Odoo: Connected';
+      status.className='inventory-odoo-status synced';
+      return true;
+    }catch(err){
+      status.textContent='Odoo: Offline';
+      status.className='inventory-odoo-status error';
+      return false;
+    }
+  }
+
   async function syncToOdoo(){
     const c=client();
     if(!c)throw new Error('Supabase client is not ready.');
@@ -178,6 +199,6 @@
     el('inventoryCardLocation')?.addEventListener('change',renderStockCard);
     document.querySelector('.side-link[data-view="inventory"]')?.addEventListener('click',()=>setTimeout(()=>load().catch(console.warn),50));
   }
-  function init(){if(!el('view-inventory'))return;bind();if(client())load().catch(e=>console.warn('Inventory init:',e));}
+  function init(){if(!el('view-inventory'))return;bind();if(client()){load().then(()=>checkOdooConnection()).catch(e=>console.warn('Inventory init:',e));if(window.__pilarkOdooInventoryHeartbeat)clearInterval(window.__pilarkOdooInventoryHeartbeat);window.__pilarkOdooInventoryHeartbeat=setInterval(()=>{if(document.getElementById('view-inventory')?.classList.contains('active'))checkOdooConnection();},60000);}}
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
