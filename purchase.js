@@ -204,8 +204,22 @@
   }
   async function confirmOrder(id){
     if(!confirm('Confirm this RFQ as a Purchase Order?'))return;
+    document.querySelectorAll('.purchase-confirm-btn').forEach(b=>{b.disabled=true;b.dataset.confirming='1';});
     showDocumentModal('Confirming Purchase Order','Posting the confirmed Purchase Order…','loading');
     try{
+      // Re-read the current status before calling the RPC. This prevents a second
+      // click (or a stale UI row) from trying to confirm an RFQ that was already converted.
+      const {data:current,error:statusErr}=await client().from('purchase_orders').select('id,order_no,status').eq('id',id).maybeSingle();
+      if(statusErr)throw statusErr;
+      if(!current)throw new Error('Purchase Order not found.');
+      if(current.status==='purchase_order'){
+        await load();showTab('orders');
+        showDocumentModal('Purchase Order already confirmed','This RFQ has already been converted to a Purchase Order.','success','Purchase Order status: Confirmed');
+        return;
+      }
+      if(!['quotation','sent'].includes(current.status)){
+        throw new Error('This document is no longer an RFQ/quotation. Current status: '+current.status.replace('_',' '));
+      }
       const {error}=await client().rpc('confirm_purchase_order',{p_purchase_order_id:id});
       if(error)throw error;
       await load();showTab('orders');
@@ -213,6 +227,8 @@
     }catch(err){
       console.error('Purchase Order confirmation failed:',err);
       showDocumentModal('Purchase Order failed','The RFQ could not be converted to a Purchase Order.','error',readableFetchError(err));
+    }finally{
+      document.querySelectorAll('.purchase-confirm-btn').forEach(b=>{b.disabled=false;delete b.dataset.confirming;});
     }
   }
   async function createBill(id){
