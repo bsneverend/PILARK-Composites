@@ -179,7 +179,8 @@
         el('purchaseRfqModal').hidden=true;document.body.classList.remove('modal-open');closeDocumentModal();alert('RFQ '+number+' updated successfully.');
         return;
       }
-      const {data:orderNo,error:noErr}=await client().rpc('next_purchase_order_no');
+      const purchaseDate=el('purchaseDate').value||today();
+      const {data:orderNo,error:noErr}=await client().rpc('next_purchase_order_no',{p_date:purchaseDate});
       if(noErr)throw noErr;
       const {data:order,error}=await client().from('purchase_orders').insert({
         order_no:orderNo,status:'quotation',partner_id:partner,
