@@ -266,50 +266,12 @@
   </div>
 </div>
 <section class="view" id="view-purchase">
-<div class="section-intro accounting-intro"><div><h2>Purchase</h2><p>RFQ → Purchase Order → Vendor Bill → Vendor Payment.</p></div><button id="purchaseRefresh" class="text-btn">Refresh data ↻</button></div>
-<div class="purchase-tabs" role="tablist">
-<button type="button" data-purchase-tab="overview" class="active">Overview</button>
-<button type="button" data-purchase-tab="quotations">RFQs</button>
-<button type="button" data-purchase-tab="orders">Purchase Orders</button>
-</div>
-<div class="accounting-tab-panel" data-purchase-panel="overview">
-  <div class="purchase-metrics">
-    <div class="purchase-metric"><span>Open RFQs</span><b id="purchaseMetricQuotations">0</b></div>
-    <div class="purchase-metric"><span>Confirmed POs</span><b id="purchaseMetricOrders">0</b></div>
-    <div class="purchase-metric"><span>Total procurement pipeline</span><b id="purchaseMetricValue">Rp0</b></div>
-    <div class="purchase-metric"><span>Open PO value</span><b id="purchaseMetricOpen">Rp0</b></div>
-  </div>
-  <div class="panel"><div class="panel-head"><div><h2>Procurement workflow</h2><p>Create an RFQ, confirm it into a Purchase Order, then generate the vendor bill.</p></div></div>
-    <div class="check-grid"><div>✓ RFQ numbering</div><div>✓ Vendor and line items</div><div>✓ Confirmation to Purchase Order</div><div>✓ Automatic vendor bill + AP</div></div>
-  </div>
-</div>
-<div class="accounting-tab-panel" data-purchase-panel="quotations" hidden>
-  <div class="purchase-form-grid">
-    <div class="panel"><div class="panel-head"><div><h2>New RFQ</h2><p>Request supplier pricing before committing the purchase.</p></div></div>
-      <form id="purchaseForm" class="accounting-form">
-        <label>Vendor<select id="purchasePartner" required></select></label>
-        <div class="accounting-form-row"><label>RFQ date<input id="purchaseDate" type="date" required></label><label>Valid until<input id="purchaseValidity" type="date"></label></div>
-        <label>Reference<input id="purchaseReference" placeholder="Supplier RFQ / reference"></label>
-        <div class="purchase-line-head"><span>Inventory product</span><span>Description</span><span>Qty</span><span>Unit price</span><span>Discount %</span><span>Tax %</span><span>Expense account</span><span></span></div>
-        <div id="purchaseLines" class="purchase-lines"></div>
-        <button id="addPurchaseLine" type="button" class="accounting-small-btn">+ Add line</button>
-        <div class="purchase-totals"><span>Subtotal <b id="purchaseSubtotal">Rp0</b></span><span>Input VAT <b id="purchaseTax">Rp0</b></span><strong>Total <b id="purchaseTotal">Rp0</b></strong></div>
-        <label>Notes<textarea id="purchaseNotes" rows="3" placeholder="Procurement notes / terms"></textarea></label>
-        <button class="primary-btn" type="submit">Create RFQ →</button>
-      </form>
-    </div>
-    <div class="panel"><div class="panel-head"><div><h2>RFQs</h2><p>Confirm an accepted supplier quotation to create a Purchase Order.</p></div></div>
-      <div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Number</th><th>Vendor</th><th>Date</th><th>Valid Until</th><th class="num">Total</th><th>Status</th><th>Action</th></tr></thead><tbody id="purchaseQuotationsBody"></tbody></table></div>
-    </div>
-  </div>
-</div>
-<div class="accounting-tab-panel" data-purchase-panel="orders" hidden>
-  <div class="panel"><div class="panel-head"><div><h2>Purchase Orders</h2><p>Confirmed supplier orders ready to be billed.</p></div></div>
-    <div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Number</th><th>Vendor</th><th>RFQ Date</th><th>Valid Until</th><th class="num">Total</th><th>Status</th><th>Action</th></tr></thead><tbody id="purchaseOrdersBody"></tbody></table></div>
-  </div>
-</div>
-</section>
-<section class="view" id="view-inventory">
+<div class="section-intro accounting-intro"><div><h2>Purchase</h2><p>RFQ → Purchase Order → Vendor Bill → Vendor Payment.</p></div><div style="display:flex;gap:10px;align-items:center"><button id="purchaseRefresh" class="text-btn">Refresh data ↻</button><button id="newPurchaseRfq" class="primary-btn" type="button">+ New RFQ</button></div></div>
+<div class="purchase-tabs" role="tablist"><button type="button" data-purchase-tab="overview" class="active">Overview</button><button type="button" data-purchase-tab="quotations">RFQs</button><button type="button" data-purchase-tab="orders">Purchase Orders</button></div>
+<div class="accounting-tab-panel" data-purchase-panel="overview"><div class="purchase-metrics"><div class="purchase-metric"><span>Open RFQs</span><b id="purchaseMetricQuotations">0</b></div><div class="purchase-metric"><span>Confirmed POs</span><b id="purchaseMetricOrders">0</b></div><div class="purchase-metric"><span>Total procurement pipeline</span><b id="purchaseMetricValue">Rp0</b></div><div class="purchase-metric"><span>Open PO value</span><b id="purchaseMetricOpen">Rp0</b></div></div><div class="panel"><div class="panel-head"><div><h2>Procurement workflow</h2><p>Create an RFQ, confirm it into a Purchase Order, then generate the vendor bill.</p></div><button class="primary-btn" type="button" id="overviewNewRfq">+ New RFQ</button></div><div class="check-grid"><div>✓ RFQ numbering</div><div>✓ Vendor and line items</div><div>✓ Confirmation to Purchase Order</div><div>✓ Automatic vendor bill + AP</div></div></div></div>
+<div class="accounting-tab-panel" data-purchase-panel="quotations" hidden><div class="panel purchase-list-panel"><div class="panel-head"><div><h2>RFQs</h2><p>Supplier quotation requests. Open any document to review, print or convert it to a Purchase Order.</p></div><button class="primary-btn" type="button" id="rfqNewFromList">+ New RFQ</button></div><div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Number</th><th>Vendor</th><th>Date</th><th>Valid Until</th><th class="num">Total</th><th>Status</th><th>Action</th></tr></thead><tbody id="purchaseQuotationsBody"></tbody></table></div></div></div>
+<div class="accounting-tab-panel" data-purchase-panel="orders" hidden><div class="panel purchase-list-panel"><div class="panel-head"><div><h2>Purchase Orders</h2><p>Confirmed supplier orders ready to be billed. Open a PO to review or print it.</p></div></div><div class="accounting-table-wrap"><table class="accounting-table"><thead><tr><th>Number</th><th>Vendor</th><th>RFQ Date</th><th>Valid Until</th><th class="num">Total</th><th>Status</th><th>Action</th></tr></thead><tbody id="purchaseOrdersBody"></tbody></table></div></div></div>
+</section><section class="view" id="view-inventory">
   <div class="section-intro accounting-intro">
     <div><h2>Inventory</h2><p>Stock balances, receipts, deliveries, adjustments and stock card.</p></div>
     <div class="inventory-actions"><span id="inventoryOdooStatus" class="inventory-odoo-status">Odoo: Not synced</span><button id="inventoryOdooSync" class="primary-btn" type="button">Sync to Odoo</button><button id="inventoryRefresh" class="text-btn">Refresh data ↻</button></div>
@@ -608,20 +570,7 @@
     </form>
   </div>
 </div>
-<div class="crm-modal" id="purchaseDocumentModal" hidden>
-  <div class="crm-modal-backdrop" data-purchase-close></div>
-  <div class="crm-modal-card purchase-document-modal-card" role="dialog" aria-modal="true" aria-labelledby="purchaseDocumentTitle">
-    <div class="crm-modal-head">
-      <div><div class="eyebrow">Purchase</div><h2 id="purchaseDocumentTitle">Purchase document</h2><p id="purchaseDocumentMessage">Processing your request…</p></div>
-      <button id="purchaseDocumentClose" class="crm-modal-close" type="button" aria-label="Close">×</button>
-    </div>
-    <div class="purchase-document-body">
-      <div id="purchaseDocumentStatus" class="purchase-document-status"></div>
-      <div id="purchaseDocumentDetails" class="purchase-document-details"></div>
-    </div>
-    <div class="crm-modal-form-actions">
-      <button id="purchaseDocumentCloseBtn" class="accounting-small-btn" type="button">Close</button>
-    </div>
-  </div>
+<div class="crm-modal" id="purchaseDocumentModal" hidden><div class="crm-modal-backdrop" data-purchase-close></div><div class="crm-modal-card purchase-document-modal-card" role="dialog" aria-modal="true" aria-labelledby="purchaseDocumentTitle"><div class="crm-modal-head"><div><div class="eyebrow">Purchase Document</div><h2 id="purchaseDocumentTitle">RFQ</h2><p id="purchaseDocumentMessage">Review purchase document.</p></div><button id="purchaseDocumentClose" class="crm-modal-close" type="button" aria-label="Close">×</button></div><div id="purchaseDocumentPreview" class="purchase-document-preview"></div><div class="crm-modal-form-actions purchase-document-actions"><button id="purchaseDocumentPrint" class="accounting-small-btn" type="button" hidden>Print / Save PDF</button><button id="purchaseDocumentCloseBtn" class="accounting-small-btn" type="button">Close</button></div></div></div>
+<div class="crm-modal purchase-rfq-modal" id="purchaseRfqModal" hidden><div class="crm-modal-backdrop" data-rfq-close></div><div class="crm-modal-card purchase-rfq-modal-card"><div class="crm-modal-head"><div><div class="eyebrow">Purchase</div><h2>New Request for Quotation</h2><p>Create a supplier RFQ without leaving the Purchase screen.</p></div><button id="purchaseRfqClose" class="crm-modal-close" type="button" aria-label="Close">×</button></div><form id="purchaseForm" class="accounting-form purchase-rfq-form"><div class="quotation-header-grid"><label>Vendor<select id="purchasePartner" required></select></label><label>RFQ Date<input id="purchaseDate" type="date" required></label><label>Valid Until<input id="purchaseValidity" type="date"></label><label class="quotation-reference">Reference<input id="purchaseReference" placeholder="Supplier RFQ / reference"></label></div><div class="quotation-items-section"><div class="quotation-section-title"><div><strong>Purchase Items</strong><span>Enter products, quantities, pricing and expense account.</span></div><button id="addPurchaseLine" type="button" class="accounting-small-btn">+ Add line</button></div><div class="purchase-line-head"><span>Inventory product</span><span>Description</span><span>Qty</span><span>Unit price</span><span>Discount %</span><span>Tax %</span><span>Expense account</span><span></span></div><div id="purchaseLines" class="purchase-lines"></div></div><div class="purchase-totals"><span>Subtotal <b id="purchaseSubtotal">Rp0</b></span><span>Input VAT <b id="purchaseTax">Rp0</b></span><strong>Total <b id="purchaseTotal">Rp0</b></strong></div><div class="quotation-terms-grid"><label class="quotation-wide">Notes<textarea id="purchaseNotes" rows="4" placeholder="Procurement notes / terms"></textarea></label></div><div class="quotation-save-row"><button id="purchaseFormCancel" class="accounting-small-btn" type="button">Cancel</button><button class="primary-btn" type="submit">Create RFQ →</button></div></form></div></div>
 </div>
 </main></div><script src="admin.js?v=20261104-document-register-v1"></script><script src="whatsapp-inbox.js?v=20261110-send-error-v2"></script><script src="sales.js?v=20261103-company-letters-v7"></script><script src="purchase.js?v=20261006-stable-pre-floating"></script><script src="inventory.js?v=20261010-product-prices-v2"></script><script src="bank-reconciliation.js?v=20261006-stable-pre-floating"></script><script src="general-ledger.js?v=20261009-odoo-gl-v10"></script><script src="transaction-input.js?v=20261009-live-odoo-status-v3"></script><script src="document-register.js?v=20261104-v1"></script></body></html>
