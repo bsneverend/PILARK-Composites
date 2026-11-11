@@ -188,4 +188,25 @@ html{scroll-behavior:smooth}
     setTimeout(scrollToContact,600);
   });
 })();
+</script><script>
+(function(){
+  function initPILARKMarquee(){
+    const track=document.querySelector('.marquee-track');
+    if(!track) return;
+    const first=track.querySelector('.marquee-content');
+    const second=track.querySelector('.marquee-content + .marquee-content');
+    if(!first) return;
+    // Keep the second cycle byte-for-byte identical to the first cycle.
+    if(second && second.innerHTML!==first.innerHTML) second.innerHTML=first.innerHTML;
+    function measure(){
+      const width=first.getBoundingClientRect().width;
+      if(width>0) track.style.setProperty('--marquee-loop-width',width+'px');
+    }
+    measure();
+    if(document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
+    window.addEventListener('resize',measure,{passive:true});
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',initPILARKMarquee,{once:true});
+  else initPILARKMarquee();
+})();
 </script></body></html>
