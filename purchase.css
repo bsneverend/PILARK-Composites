@@ -108,3 +108,81 @@
  .purchase-rfq-form .purchase-line select:first-child,.purchase-rfq-form .purchase-line input:nth-child(2),.purchase-rfq-form .purchase-line select.purchase-account{grid-column:1/-1}
  .purchase-document-paper{padding:18px}.purchase-doc-meta{grid-template-columns:1fr 1fr}.purchase-document-preview{max-height:65vh}
 }
+
+/* Purchase RFQ modal refinement — 2026-11-11 */
+.purchase-rfq-modal-card{
+  width:min(1000px,calc(100vw - 48px));
+  max-width:1000px;
+  max-height:92vh;
+  overflow:auto;
+  box-sizing:border-box;
+}
+.purchase-rfq-modal-card .crm-modal-head{
+  padding:24px 26px 18px;
+}
+.purchase-rfq-form{
+  padding:0 26px 26px;
+  box-sizing:border-box;
+}
+.purchase-rfq-form .quotation-header-grid{
+  grid-template-columns:minmax(0,1.2fr) minmax(150px,.55fr) minmax(170px,.7fr);
+  gap:14px;
+  margin-bottom:20px;
+}
+.purchase-rfq-form .quotation-reference{
+  grid-column:1/-1;
+}
+.purchase-rfq-form .quotation-items-section{
+  padding:16px;
+  margin-top:0;
+}
+.purchase-rfq-form .quotation-section-title span{
+  max-width:760px;
+}
+.purchase-rfq-form .purchase-line-head,
+.purchase-rfq-form .purchase-line{
+  grid-template-columns:minmax(180px,1.35fr) minmax(180px,1.2fr) 60px 110px 82px 72px minmax(170px,1.15fr) 30px;
+}
+.purchase-rfq-form .purchase-line-head{
+  padding-left:2px;
+  padding-right:2px;
+}
+.purchase-rfq-form .purchase-line{
+  padding:0 2px;
+}
+.purchase-rfq-form .purchase-line input,
+.purchase-rfq-form .purchase-line select{
+  height:40px;
+}
+.purchase-rfq-form .purchase-line-remove{
+  height:40px;
+}
+.purchase-rfq-form .purchase-totals{
+  margin:18px 0 0;
+  padding:16px 18px;
+}
+.purchase-rfq-form .quotation-terms-grid{
+  margin-top:18px;
+}
+@media(max-width:900px){
+  .purchase-rfq-modal-card{width:calc(100vw - 28px)}
+  .purchase-rfq-form{padding:0 20px 22px}
+  .purchase-rfq-modal-card .crm-modal-head{padding:20px 20px 16px}
+  .purchase-rfq-form .quotation-header-grid{grid-template-columns:1fr 1fr}
+  .purchase-rfq-form .quotation-reference{grid-column:1/-1}
+  .purchase-rfq-form .purchase-line-head{display:none}
+  .purchase-rfq-form .purchase-line{grid-template-columns:1fr 1fr}
+  .purchase-rfq-form .purchase-line select:first-child,
+  .purchase-rfq-form .purchase-line input:nth-child(2),
+  .purchase-rfq-form .purchase-line select.purchase-account{grid-column:1/-1}
+}
+@media(max-width:600px){
+  .purchase-rfq-modal-card{width:calc(100vw - 14px);max-height:95vh}
+  .purchase-rfq-form{padding:0 14px 18px}
+  .purchase-rfq-modal-card .crm-modal-head{padding:18px 14px 14px}
+  .purchase-rfq-form .quotation-header-grid{grid-template-columns:1fr}
+  .purchase-rfq-form .quotation-reference{grid-column:auto}
+  .purchase-rfq-form .purchase-line{grid-template-columns:1fr}
+  .purchase-rfq-form .purchase-line select,
+  .purchase-rfq-form .purchase-line input{grid-column:1/-1!important}
+}
