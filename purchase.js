@@ -165,8 +165,7 @@
           quotation_date:el('purchaseDate').value||today(),
           validity_date:el('purchaseValidity').value||null,
           reference:el('purchaseReference').value.trim()||null,
-          notes:el('purchaseNotes').value.trim()||null,
-          updated_at:new Date().toISOString()
+          notes:el('purchaseNotes').value.trim()||null
         }).eq('id',id).in('status',['quotation','sent']);
         if(updateErr)throw updateErr;
         const {error:deleteErr}=await client().from('purchase_order_lines').delete().eq('purchase_order_id',id);
