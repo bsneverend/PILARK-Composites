@@ -74,3 +74,13 @@ html,body{width:100%;max-width:100%;overflow-x:hidden;-webkit-text-size-adjust:1
 .product-media-placeholder small{margin-top:12px;color:#b9d4df;font-size:11px;font-weight:700}
 .product-links{display:flex;flex-wrap:wrap;gap:16px;align-items:center}
 .product-links .product-link{text-decoration:none;color:#078bc4;font-weight:800}
+
+
+/* Seamless product marquee: measure exactly one content copy so the loop never shows a gap */
+.marquee-track{animation:pilarkMarquee 28s linear infinite!important;transform:translate3d(0,0,0);will-change:transform}
+.marquee-content{flex:0 0 auto;white-space:nowrap}
+@keyframes pilarkMarquee{
+  from{transform:translate3d(0,0,0)}
+  to{transform:translate3d(calc(-1 * var(--marquee-loop-width, 0px)),0,0)}
+}
+@media(prefers-reduced-motion:reduce){.marquee-track{animation-play-state:paused!important}}
