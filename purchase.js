@@ -119,7 +119,7 @@
       if(calcErr)throw calcErr;
       e.target.reset();el('purchaseDate').value=today();el('purchaseLines').innerHTML=lineHtml(0);
       await load();showTab('quotations');
-      el('purchaseRfqModal').hidden=true;document.body.classList.remove('modal-open');alert('RFQ '+orderNo+' created successfully.');
+      el('purchaseRfqModal').hidden=true;document.body.classList.remove('modal-open');closeDocumentModal();alert('RFQ '+orderNo+' created successfully.');
     }catch(err){
       console.error('Purchase RFQ creation failed:',err);
       showDocumentModal('RFQ could not be created','The RFQ transaction failed.','error',readableFetchError(err));
