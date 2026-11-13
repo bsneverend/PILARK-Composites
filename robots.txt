@@ -1,4 +1,14 @@
 User-agent: *
 Allow: /
+Disallow: /admin.html
+Disallow: /accounting.html
+Disallow: /inventory.html
+Disallow: /sales.html
+Disallow: /purchase.html
+Disallow: /transaction-input.html
+Disallow: /whatsapp-inbox.html
+Disallow: /cms.html
+Disallow: /document-register.html
+Disallow: /general-ledger.html
 
 Sitemap: https://pilarkomposit.com/sitemap.xml
