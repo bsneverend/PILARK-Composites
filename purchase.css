@@ -196,6 +196,7 @@
 .purchase-list-panel .accounting-table td:last-child{white-space:normal}
 .purchase-list-panel .purchase-edit-btn,
 .purchase-list-panel .purchase-view-btn,
+.purchase-list-panel .purchase-odoo-sync-btn,
 .purchase-list-panel .purchase-confirm-btn,
 .purchase-list-panel .purchase-bill-btn,
 .purchase-list-panel .purchase-cancel-btn{
@@ -211,6 +212,7 @@
  .purchase-list-panel .accounting-table{min-width:900px}
  .purchase-list-panel .purchase-edit-btn,
  .purchase-list-panel .purchase-view-btn,
+ .purchase-list-panel .purchase-odoo-sync-btn,
  .purchase-list-panel .purchase-confirm-btn,
  .purchase-list-panel .purchase-bill-btn,
  .purchase-list-panel .purchase-cancel-btn{height:28px;padding:4px 8px;font-size:10px}
