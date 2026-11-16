@@ -103,6 +103,8 @@
     el('purchaseDate').value=o.quotation_date||today();
     el('purchaseValidity').value=o.validity_date||'';
     el('purchaseReference').value=o.reference||'';
+    el('purchasePaymentTerms').value=o.payment_terms||'';
+    if(el('purchasePaymentTermsCustom'))el('purchasePaymentTermsCustom').value=o.payment_terms||'';
     el('purchaseNotes').value=o.notes||'';
     const box=el('purchaseLines'); box.innerHTML='';
     (lines||[]).forEach((l,i)=>{
@@ -162,6 +164,13 @@
       '<div class="notes"><b>Notes / Terms</b>'+notesHtml(o.notes||'')+'</div>'+footer+'</main><script>window.onload=()=>setTimeout(()=>window.print(),350);<\\/script></body></html>');
     w.document.close();
   }
+  async function ensureOdooPaymentTerm(session, name, data){
+    if(!name)return null;
+    const res=await fetch('https://seelqcgjfuuwurslwtgf.supabase.co/functions/v1/odoo-purchase-sync',{method:'POST',headers:{Authorization:'Bearer '+session.access_token,apikey:window.PILARK_SUPABASE_CONFIG?.anonKey||'','Content-Type':'application/json'},body:JSON.stringify({action:'ensure_payment_term',name,payment_terms_data:data||null})});
+    const payload=await res.json().catch(()=>({}));
+    if(!res.ok||!payload.ok)throw new Error(payload.error||'Odoo payment term sync failed.');
+    return payload.payment_term;
+  }
   async function syncPurchaseOrderToOdoo(id){
     const c=client();
     if(!c)throw new Error('Supabase CMS client is not ready.');
@@ -204,7 +213,7 @@
   }
   async function createQuotation(e){
     e.preventDefault();
-    const partner=el('purchasePartner').value,lines=readLines();
+    const partner=el('purchasePartner').value,lines=readLines(),paymentTerms=(el('purchasePaymentTerms').value==='custom'?el('purchasePaymentTermsCustom')?.value.trim():el('purchasePaymentTerms').value)||'DP 35% dan Pelunasan 65% Sebelum Dikirim';
     if(!partner)return alert('Select a vendor before creating the RFQ.');
     if(!lines.length||lines.some(l=>!l.description||l.quantity<=0||l.unit_price<0||l.discount_percent<0||l.discount_percent>100||l.tax_rate<0))
       return alert('Complete every purchase line.');
@@ -219,6 +228,8 @@
           quotation_date:el('purchaseDate').value||today(),
           validity_date:el('purchaseValidity').value||null,
           reference:el('purchaseReference').value.trim()||null,
+          payment_terms:paymentTerms,
+          payment_terms_data:paymentTerms==='DP 35% dan Pelunasan 65% Sebelum Dikirim'?{type:'custom',installments:[{percentage:35,condition:'DP'},{percentage:65,condition:'Sebelum Dikirim'}]}:null,
           notes:el('purchaseNotes').value.trim()||null
         }).eq('id',id).in('status',['quotation','sent']);
         if(updateErr)throw updateErr;
@@ -241,6 +252,8 @@
         quotation_date:el('purchaseDate').value||today(),
         validity_date:el('purchaseValidity').value||null,
         reference:el('purchaseReference').value.trim()||null,
+        payment_terms:paymentTerms,
+        payment_terms_data:paymentTerms==='DP 35% dan Pelunasan 65% Sebelum Dikirim'?{type:'custom',installments:[{percentage:35,condition:'DP'},{percentage:65,condition:'Sebelum Dikirim'}]}:null,
         notes:el('purchaseNotes').value.trim()||null,
         created_by:userData?.user?.id||null
       }).select().single();
