@@ -207,7 +207,7 @@
     state.editingLetterId=id;el('letterDate').value=l.letter_date||today();el('letterCategory').value=l.category;
     el('letterDirection').value=l.direction;el('letterLanguage').value=l.language||'en';el('letterNo').value=l.letter_no;el('letterRecipient').value=l.recipient_name||'';
     el('letterDepartment').value=l.recipient_department||'';el('letterCompany').value=l.recipient_company||'';el('letterLocation').value=l.recipient_location||'';
-    el('letterSubject').value=l.subject||'';el('letterBody').value=l.body||'';
+    el('letterSubject').value=l.subject||'';setCompanyLetterBody(l.body||'');
     el('letterSignatory').value=l.signatory_name||'';el('letterPosition').value=l.signatory_position||'';
     el('companyLetterEditorTitle').textContent='Edit Company Letter · '+l.letter_no;
     el('companyLetterForm').querySelector('button[type="submit"]').textContent='Save Changes →';
@@ -215,7 +215,7 @@
   }
   async function saveCompanyLetter(e){
     e.preventDefault();const category=el('letterCategory').value,direction=el('letterDirection').value,date=el('letterDate').value;
-    const subject=el('letterSubject').value.trim(),body=el('letterBody').value.trim();
+    const subject=el('letterSubject').value.trim(),body=getCompanyLetterBody().trim();
     if(!date||!subject||!body)return alert('Complete letter date, subject and body.');
     const {data:userData}=await client().auth.getUser();
     const payload={letter_date:date,category,direction,language:el('letterLanguage').value,appendix:el('letterAppendix').value.trim()||null,recipient_name:el('letterRecipient').value.trim()||null,recipient_department:el('letterDepartment').value.trim()||null,recipient_company:el('letterCompany').value.trim()||null,recipient_location:el('letterLocation').value.trim()||null,subject,body,signatory_name:el('letterSignatory').value.trim()||null,signatory_position:el('letterPosition').value.trim()||null,updated_at:new Date().toISOString(),updated_by:userData?.user?.id||null};
@@ -230,33 +230,30 @@
     if(error)return alert('Letter save failed: '+error.message);
     resetCompanyLetterForm();await load();alert('Letter '+no+' saved as Draft.');
   }
+  function letterBodyHtmlForPrint(value){
+    const s=String(value||'').trim();
+    if(!s)return '';
+    if(/<\/?(p|div|br|strong|b|em|i|u|ol|ul|li)\b/i.test(s))return s;
+    return esc(s).split(/\r?\n\r?\n/).map(p=>'<p>'+p.replace(/\r?\n/g,'<br>')+'</p>').join('');
+  }
   async function printCompanyLetter(id){
     const l=state.letters.find(x=>x.id===id);if(!l)return alert('Letter not found.');
     const w=window.open('about:blank','_blank','width=900,height=900');if(!w)return alert('Please allow pop-ups to print the letter.');
     let logo='';try{const {data}=await client().from('quotation_logo_settings').select('storage_path').eq('id',1).maybeSingle();if(data?.storage_path)logo=client().storage.from('quotation-assets').getPublicUrl(data.storage_path).data.publicUrl;}catch(_){}
     const idn=l.language==='id',locale=idn?'id-ID':'en-GB';
     const date=new Date(l.letter_date+'T00:00:00').toLocaleDateString(locale,{day:'numeric',month:'long',year:'numeric'});
-    const safe=v=>esc(v).replace(/\n/g,'<br>');
-    const body=safe(l.body).split('<br>').map(p=>'<p>'+p+'</p>').join('');
+    const body=letterBodyHtmlForPrint(l.body);
     const logoMarkup=logo?'<img class="logo" src="'+esc(logo)+'">':'<div class="fallback">PILARK<small>COMPOSITES</small></div>';
     const numberLabel=idn?'Nomor':'Number',appendixLabel=idn?'Lampiran':'Appendix',subjectLabel=idn?'Hal':'Subject';
     const appendixMarkup=l.appendix?'<div class="row"><span class="label">'+appendixLabel+'</span><span class="colon">:</span><span>'+esc(l.appendix)+'</span></div>':'';
     const recipientMarkup=(l.recipient_name?'<div>'+(idn?'Yth. ':'To: ')+'<b>'+esc(l.recipient_name)+'</b></div>':'')+(l.recipient_department?'<div>'+esc(l.recipient_department)+'</div>':'')+(l.recipient_company?'<div>'+esc(l.recipient_company)+'</div>':'')+(l.recipient_location?'<div>'+esc(l.recipient_location)+'</div>':'');
     const close=idn?'Hormat kami,':'Sincerely,',greeting=idn?'Dengan hormat,':'Dear Sir / Madam,';
+    const header='<header class="head"><div>'+logoMarkup+'</div><div class="company"><b>PT. PANCA INTEGRA LAGUNA REKSA</b><br>Jl. Arteri Kedoya No.88C, Duri Kepa, Kebon Jeruk, Jakarta Barat 11550<br>Telp. (021) 58 1 1 1 4 5 0<br>Email : sales@pilarkomposit.com</div></header>';
+    const footer='<footer class="footer"><svg viewBox="0 0 595 40" preserveAspectRatio="none" aria-hidden="true"><path d="M0 27 C100 12 210 37 320 25 S480 13 595 27" fill="none" stroke="#0875b4" stroke-width=".8"/><path d="M0 31 C120 20 200 40 320 30 S485 19 595 31" fill="none" stroke="#06345f" stroke-width=".8"/><path d="M0 18 C120 6 210 28 330 17 S480 6 595 19" fill="none" stroke="#0875b4" stroke-width=".7"/></svg><span class="site">www.pilarkomposit.com</span></footer>';
+    const content='<div class="date">Jakarta, '+esc(date)+'</div><div class="meta"><div class="row"><span class="label">'+numberLabel+'</span><span class="colon">:</span><span>'+esc(l.letter_no)+'</span></div>'+appendixMarkup+'<div class="row"><span class="label">'+subjectLabel+'</span><span class="colon">:</span><b>'+esc(l.subject)+'</b></div></div><div class="recipient">'+recipientMarkup+'</div><div class="salutation">'+greeting+'</div><div class="body">'+body+'</div><div class="closing">'+close+'<div class="sign"> '+esc(l.signatory_name||'Authorized Signatory')+'</div><div class="signpos">'+esc(l.signatory_position||'')+'</div></div>';
     w.document.open();
     w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>'+esc(l.letter_no)+'</title><style>'+
-      '@page{size:A4;margin:0}*{box-sizing:border-box}body{margin:0;color:#171b20;font-family:Arial,sans-serif}.page{width:210mm;min-height:0;padding:42mm 17mm 32mm;position:relative;margin:auto}'+
-      '.head{height:79px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #09639f;padding-bottom:10px}.logo{max-width:145px;max-height:42px;object-fit:contain}'+
-      '.fallback{font-size:24px;font-weight:800;letter-spacing:3px;color:#12416b}.fallback small{display:block;font-size:8px;letter-spacing:4px}.company{text-align:right;font-size:9px;line-height:1.45}.company b{font-size:11px}'+
-      '.date{text-align:right;margin-top:22px;margin-bottom:16px;font-size:10.5pt}.meta{font-size:10.5pt;line-height:1.65;margin-bottom:24px}.row{display:flex}.label{width:72px;flex:none}.colon{width:14px;flex:none}'+
-      '.recipient{font-size:10.5pt;line-height:1.55;margin:0 0 20px}.salutation{margin-bottom:14px;font-size:10.5pt}.body{font-size:10.5pt;line-height:1.48;text-align:justify;overflow-wrap:anywhere}.body p{margin:0 0 10px}'+
-      '.closing{margin-top:22px;font-size:10.5pt;line-height:1.5}.company-signatory{font-weight:700;margin-top:2px}.sign{margin-top:64px;font-weight:700;text-decoration:underline}.signpos{margin-top:2px}.body p{break-inside:avoid;page-break-inside:avoid}.closing{break-inside:avoid;page-break-inside:avoid}.head{position:fixed;top:19mm;left:17mm;right:17mm;z-index:10;background:#fff}.footer{position:fixed;left:0;right:0;bottom:0;height:42px;text-align:center;font-size:8px;color:#68727b;padding-top:23px}'+
-      '.footer svg{position:absolute;left:0;right:0;top:-31px;width:100%;height:40px}.footer .site{position:relative;z-index:1}@media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}.page{width:auto;min-height:0;margin:0;padding-top:42mm;padding-bottom:32mm}.head{position:fixed;top:19mm;left:17mm;right:17mm;z-index:10;background:#fff}.body p{break-inside:avoid;page-break-inside:avoid}.closing{break-inside:avoid;page-break-inside:avoid}.footer{position:fixed;left:0;right:0;bottom:0}}'+
-      '</style></head><body><main class="page"><header class="head">'+logoMarkup+'<div class="company"><b>PT. PANCA INTEGRA LAGUNA REKSA</b><br>Jl. Arteri Kedoya nomor 88C, Desa/Kel Sukabumi Utara<br>Kec. Kebon Jeruk, Jakarta Barat 11550<br>Email : sales@pilarkkomposit.com</div></header>'+
-      '<div class="date">Jakarta, '+esc(date)+'</div><section class="meta"><div class="row"><span class="label">'+numberLabel+'</span><span class="colon">:</span><span>'+esc(l.letter_no)+'</span></div>'+appendixMarkup+
-      '<div class="row"><span class="label">'+subjectLabel+'</span><span class="colon">:</span><b>'+esc(l.subject)+'</b></div></section><section class="recipient">'+recipientMarkup+'</section>'+
-      '<div class="salutation">'+greeting+'</div><section class="body">'+body+'</section><section class="closing">'+close+'<div class="company-signatory">PT. Panca Integra Laguna Reksa</div><div class="sign">'+esc(l.signatory_name||'Authorized Signatory')+'</div><div class="signpos">'+esc(l.signatory_position||'')+'</div></section>'+
-      '<footer class="footer"><svg viewBox="0 0 595 40" preserveAspectRatio="none" aria-hidden="true"><path d="M0 15 C90 3 150 30 245 17 S420 2 595 18" fill="none" stroke="#05335f" stroke-width="1.1"/><path d="M0 21 C100 8 170 34 270 20 S450 6 595 22" fill="none" stroke="#0870b8" stroke-width="1.2"/><path d="M0 27 C95 14 180 38 290 26 S460 12 595 27" fill="none" stroke="#078fc5" stroke-width="1"/><path d="M0 10 C110 0 190 22 300 11 S475 1 595 12" fill="none" stroke="#07558d" stroke-width=".8"/><path d="M0 31 C120 20 200 40 320 30 S485 19 595 31" fill="none" stroke="#06345f" stroke-width=".8"/><path d="M0 18 C120 6 210 28 330 17 S480 6 595 19" fill="none" stroke="#0875b4" stroke-width=".7"/></svg><span class="site">www.pilarkomposit.com</span></footer></main><script>window.onload=()=>setTimeout(()=>window.print(),400);<\/script></body></html>');
+      '@page{size:A4;margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0;color:#171b20;font-family:Arial,sans-serif}.letter{width:210mm;margin:0 auto;border-collapse:collapse;table-layout:fixed}.letter thead{display:table-header-group}.letter tfoot{display:table-footer-group}.letter thead td{height:42mm;padding:0 17mm;vertical-align:bottom}.letter tbody td{padding:0 17mm 32mm;vertical-align:top}.letter tfoot td{height:32mm;padding:0;vertical-align:bottom}.head{height:23mm;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #09639f;padding-bottom:10px;background:#fff}.logo{max-width:145px;max-height:42px;object-fit:contain}.fallback{font-size:24px;font-weight:800;letter-spacing:3px;color:#12416b}.fallback small{display:block;font-size:8px;letter-spacing:4px}.company{text-align:right;font-size:9px;line-height:1.45}.company b{font-size:11px}.date{text-align:right;margin-top:0;margin-bottom:16px;font-size:10.5pt}.meta{font-size:10.5pt;line-height:1.65;margin-bottom:24px}.row{display:flex}.label{width:72px;flex:none}.colon{width:14px;flex:none}.recipient{font-size:10.5pt;line-height:1.55;margin:0 0 20px}.salutation{margin-bottom:14px;font-size:10.5pt}.body{font-size:10.5pt;line-height:1.48;text-align:justify;overflow-wrap:anywhere}.body p{margin:0 0 10px}.body ol,.body ul{margin:0 0 10px;padding-left:24px}.body li{margin:0 0 5px}.closing{margin-top:22px;font-size:10.5pt;line-height:1.5}.sign{margin-top:64px;font-weight:700;text-decoration:underline}.signpos{margin-top:2px}.footer{height:32mm;text-align:center;font-size:8px;color:#68727b;position:relative;padding-top:23px}.footer svg{position:absolute;left:0;right:0;top:0;width:100%;height:40px}.footer .site{position:relative;z-index:1}@media print{body{print-color-adjust:exact;-webkit-print-color-adjust:exact}.letter{width:210mm;margin:0}.letter thead{display:table-header-group}.letter tfoot{display:table-footer-group}}</style></head><body><table class="letter"><thead><tr><td>'+header+'</td></tr></thead><tbody><tr><td>'+content+'</td></tr></tbody><tfoot><tr><td>'+footer+'</td></tr></tfoot></table><script>window.onload=()=>setTimeout(()=>window.print(),400);<\/script></body></html>');
     w.document.close();
   }
   async function updateCompanyLetterStatus(id,status){
@@ -275,10 +272,30 @@
     b.querySelectorAll('.letter-print').forEach(x=>x.onclick=()=>printCompanyLetter(x.dataset.id));
     b.querySelectorAll('.letter-status-action').forEach(x=>x.onclick=()=>updateCompanyLetterStatus(x.dataset.id,x.dataset.status));
   }
+  function getCompanyLetterBody(){
+    const editor=el('letterBodyEditor');if(editor){
+      const html=editor.innerHTML.trim();
+      return html.replace(/<div><br><\/div>/g,'').trim();
+    }
+    return el('letterBody')?.value||'';
+  }
+  function setCompanyLetterBody(value){
+    const editor=el('letterBodyEditor'),hidden=el('letterBody');if(!editor)return;
+    const s=String(value||'');
+    if(/<\/?(p|div|br|strong|b|em|i|u|ol|ul|li)\b/i.test(s)) editor.innerHTML=s;
+    else editor.innerHTML=s.replace(/\r?\n\r?\n/g,'</p><p>').replace(/\r?\n/g,'<br>');
+    if(hidden)hidden.value=editor.innerHTML;
+  }
+  function syncCompanyLetterBody(){
+    const editor=el('letterBodyEditor'),hidden=el('letterBody');if(editor&&hidden)hidden.value=editor.innerHTML;
+  }
   function initCompanyLetterUi(){
-    const f=el('companyLetterForm');if(!f||f.dataset.bound==='1')return;f.dataset.bound='1';f.addEventListener('submit',saveCompanyLetter);
+    const f=el('companyLetterForm');if(!f||f.dataset.bound==='1')return;f.dataset.bound='1';f.addEventListener('submit',e=>{syncCompanyLetterBody();saveCompanyLetter(e);});
     ['letterCategory','letterDirection'].forEach(id=>el(id)?.addEventListener('change',prepareCompanyLetterNo));
-    el('cancelLetterEdit')?.addEventListener('click',resetCompanyLetterForm);if(!el('letterDate').value)el('letterDate').value=today();prepareCompanyLetterNo();
+    el('cancelLetterEdit')?.addEventListener('click',resetCompanyLetterForm);
+    el('letterBodyEditor')?.addEventListener('input',syncCompanyLetterBody);
+    document.querySelectorAll('[data-letter-cmd]').forEach(btn=>btn.addEventListener('mousedown',e=>{e.preventDefault();el('letterBodyEditor')?.focus();document.execCommand(btn.dataset.letterCmd,false,null);syncCompanyLetterBody();}));
+    if(!el('letterDate').value)el('letterDate').value=today();prepareCompanyLetterNo();
   }
   async function printQuotation(id){
     const w=window.open('about:blank','_blank','width=900,height=900');if(!w)return alert('Please allow pop-ups for Print / PDF.');
