@@ -26,14 +26,22 @@
     await normalizeLegacyPurchaseOrderNumber();
     // Payment Requests are an auxiliary panel. Never let a relationship/schema-cache
     // error there prevent the core RFQ/PO data from rendering.
+    // Load core Purchase data without relying on PostgREST foreign-key
+    // relationship embedding. The PO records must remain visible even if the
+    // accounting_partners relationship/schema cache is stale.
     const [o,p,a,pr]=await Promise.all([
-      client().from('purchase_orders').select('*,accounting_partners(name,email)').order('quotation_date',{ascending:false}).limit(500),
+      client().from('purchase_orders').select('*').order('quotation_date',{ascending:false}).limit(500),
       client().from('accounting_partners').select('*').eq('is_active',true).order('name'),
       client().from('accounting_accounts').select('*').eq('is_active',true).order('code'),
       client().from('inventory_products').select('id,product_code,name,unit,is_active').eq('is_active',true).order('product_code')
     ]);
     if(o.error)throw o.error;if(p.error)throw p.error;if(a.error)throw a.error;if(pr.error)throw pr.error;
-    state.orders=o.data||[];state.partners=p.data||[];state.accounts=a.data||[];state.products=pr.data||[];
+    state.partners=p.data||[];state.accounts=a.data||[];state.products=pr.data||[];
+    const partnerById=new Map(state.partners.map(x=>[x.id,x]));
+    state.orders=(o.data||[]).map(order=>({
+      ...order,
+      accounting_partners: partnerById.get(order.partner_id)||null
+    }));
 
     let pm=await client().from('purchase_payment_requests').select('*,purchase_orders(order_no,total_amount),accounting_partners(name)').order('created_at',{ascending:false}).limit(500);
     if(pm.error){
