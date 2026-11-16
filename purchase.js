@@ -377,6 +377,7 @@
     el('newPurchaseRfq')?.addEventListener('click',openRfq);el('overviewNewRfq')?.addEventListener('click',openRfq);el('rfqNewFromList')?.addEventListener('click',openRfq);
     el('purchaseRfqClose')?.addEventListener('click',()=>{el('purchaseRfqModal').hidden=true;document.body.classList.remove('modal-open');resetPurchaseEditor();});
     el('purchaseFormCancel')?.addEventListener('click',()=>{el('purchaseRfqModal').hidden=true;document.body.classList.remove('modal-open');resetPurchaseEditor();});
+    el('purchasePaymentTerms')?.addEventListener('change',e=>{const custom=el('purchasePaymentTermsCustom');if(custom){custom.hidden=e.target.value!=='custom';if(e.target.value==='custom')custom.focus();}});
     el('purchaseDocumentClose')?.addEventListener('click',closeDocumentModal);
     el('purchaseDocumentCloseBtn')?.addEventListener('click',closeDocumentModal);
     el('purchaseDocumentModal')?.querySelector('[data-purchase-close]')?.addEventListener('click',closeDocumentModal);
