@@ -173,6 +173,17 @@
     if(!res.ok||!payload.ok)throw new Error(payload.error||'Purchase Order Odoo sync failed.');
     return payload;
   }
+  async function syncExistingPurchaseOrder(id){
+    showDocumentModal('Syncing Purchase Order','Sending the confirmed Purchase Order to Odoo…','loading');
+    try{
+      const odoo=await syncPurchaseOrderToOdoo(id);
+      await load();showTab('orders');
+      showDocumentModal('Purchase Order synced','The confirmed Purchase Order is now synchronized to Odoo.','success','Odoo PO: <b>'+esc(odoo.purchase_order?.name||'—')+'</b><br>Vendor: <b>'+esc(odoo.vendor_name||'—')+'</b><br>Status: '+esc(odoo.purchase_order?.state||'—'));
+    }catch(err){
+      console.error('Existing Purchase Order Odoo sync failed:',err);
+      showDocumentModal('Odoo sync failed','The Purchase Order could not be synchronized to Odoo.','error',esc(readableFetchError(err)));
+    }
+  }
   async function syncVendorBillToOdoo(accountingDocumentId){
     const c=client();
     if(!c)throw new Error('Supabase CMS client is not ready.');
@@ -315,7 +326,7 @@
   function statusClass(s){return 'purchase-status purchase-status-'+s.replace('_','-');}
   function row(o){
     const edit=o.status!=='purchase_order'&&o.status!=='cancelled'?'<button class="accounting-small-btn purchase-edit-btn" data-id="'+o.id+'">Edit</button>':'';
-    const actions=edit+'<button class="accounting-small-btn purchase-view-btn" data-id="'+o.id+'">View / Print</button>'+(o.status==='purchase_order'?'<button class="accounting-small-btn purchase-bill-btn" data-id="'+o.id+'">Create Vendor Bill</button>':'<button class="accounting-small-btn purchase-confirm-btn" data-id="'+o.id+'">Confirm PO</button><button class="accounting-small-btn purchase-cancel-btn" data-id="'+o.id+'">Cancel</button>');
+    const actions=edit+'<button class="accounting-small-btn purchase-view-btn" data-id="'+o.id+'">View / Print</button>'+(o.status==='purchase_order'?'<button class="accounting-small-btn purchase-odoo-sync-btn" data-id="'+o.id+'">Sync Odoo</button><button class="accounting-small-btn purchase-bill-btn" data-id="'+o.id+'">Create Vendor Bill</button>':'<button class="accounting-small-btn purchase-confirm-btn" data-id="'+o.id+'">Confirm PO</button><button class="accounting-small-btn purchase-cancel-btn" data-id="'+o.id+'">Cancel</button>');
     return '<tr><td><b>'+esc(o.order_no)+'</b></td><td>'+esc(o.accounting_partners?.name||'—')+'</td><td>'+String(o.quotation_date||'—')+'</td><td>'+String(o.validity_date||'—')+'</td><td class="num">'+money(o.total_amount)+'</td><td><span class="'+statusClass(o.status)+'">'+esc(o.status.replace('_',' '))+'</span></td><td>'+actions+'</td></tr>';
   }
   function render(){
@@ -328,6 +339,7 @@
     document.querySelectorAll('.purchase-edit-btn').forEach(b=>b.onclick=()=>editPurchaseOrder(b.dataset.id));
     document.querySelectorAll('.purchase-view-btn').forEach(b=>b.onclick=()=>viewPurchaseDocument(b.dataset.id));
     document.querySelectorAll('.purchase-confirm-btn').forEach(b=>b.onclick=()=>confirmOrder(b.dataset.id));
+    document.querySelectorAll('.purchase-odoo-sync-btn').forEach(b=>b.onclick=()=>syncExistingPurchaseOrder(b.dataset.id));
     document.querySelectorAll('.purchase-bill-btn').forEach(b=>b.onclick=()=>createBill(b.dataset.id));
     document.querySelectorAll('.purchase-cancel-btn').forEach(b=>b.onclick=()=>cancelOrder(b.dataset.id));
   }
