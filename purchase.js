@@ -4,7 +4,7 @@
   const today=()=>new Date().toISOString().slice(0,10);
   const money=v=>'Rp'+Number(v||0).toLocaleString('id-ID',{maximumFractionDigits:2});
   const esc=v=>String(v??'').replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[m]));
-  let state={orders:[],partners:[],accounts:[],products:[],tab:'overview',editingOrderId:null};
+  let state={orders:[],partners:[],accounts:[],products:[],paymentJournals:[],tab:'overview',editingOrderId:null};
 
   async function normalizeLegacyPurchaseOrderNumber(){
     // Migrate the legacy PO number for the existing confirmed Havisena PO to
@@ -136,14 +136,22 @@
     const rows=lines.map(l=>'<tr><td>'+esc(l.product_code||'')+'</td><td>'+esc(l.description||l.product_name||'')+'</td><td class="num">'+Number(l.quantity||0).toLocaleString('id-ID')+'</td><td>'+esc(l.uom||'PCS')+'</td><td class="num">'+money(l.unit_price)+'</td><td class="num">'+money(l.line_total)+'</td></tr>').join('');
     return '<div class="purchase-document-paper"><div class="purchase-document-brand"><div><div class="purchase-doc-brand">PILARK</div><div class="purchase-doc-sub">COMPOSITES · PT. PANCA INTEGRA LAGUNA REKSA</div></div><div class="purchase-doc-type">'+(o.status==='purchase_order'?'PURCHASE ORDER':'REQUEST FOR QUOTATION')+'</div></div><div class="purchase-doc-meta"><div><b>Number</b><span>'+esc(o.order_no)+'</span></div><div><b>Vendor</b><span>'+esc(o.accounting_partners?.name||'—')+'</span></div><div><b>Date</b><span>'+fmtDate(o.quotation_date)+'</span></div><div><b>Valid Until</b><span>'+fmtDate(o.validity_date)+'</span></div><div><b>Reference</b><span>'+esc(o.reference||'—')+'</span></div></div><table class="purchase-doc-table"><thead><tr><th>Code</th><th>Description</th><th class="num">Qty</th><th>UOM</th><th class="num">Unit Price</th><th class="num">Amount</th></tr></thead><tbody>'+rows+'</tbody></table><div class="purchase-doc-payment-terms"><b>Payment Terms / Termin Pembayaran</b><span>'+esc(o.payment_terms||'—')+'</span></div><div class="purchase-doc-totals"><div>Subtotal <b>'+money(sub)+'</b></div><div>Input VAT <b>'+money(tax)+'</b></div><div class="grand">Total <b>'+money(sub+tax)+'</b></div></div><div class="purchase-doc-notes"><b>Notes / Terms</b>'+notesHtml(o.notes||'')+'</div></div>';
   }
-  async function viewPurchaseDocument(id){
+  async function downloadPurchaseOrderPdf(id){
+    try{
+      const c=client();const {data,error}=await c.auth.getSession();if(error)throw error;if(!data?.session)throw new Error('Your CMS session has expired. Please log in again.');
+      const res=await fetch('https://seelqcgjfuuwurslwtgf.supabase.co/functions/v1/generate-purchase-order-pdf',{method:'POST',headers:{Authorization:'Bearer '+data.session.access_token,apikey:window.PILARK_SUPABASE_CONFIG?.anonKey||'','Content-Type':'application/json'},body:JSON.stringify({purchase_order_id:id})});
+      if(!res.ok){const j=await res.json().catch(()=>({}));throw new Error(j.error||'Purchase Order PDF generation failed.');}
+      const blob=await res.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=(state.orders.find(x=>x.id===id)?.order_no||'purchase-order').replace(/[^a-z0-9_-]/gi,'_')+'.pdf';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+    }catch(err){showDocumentModal('PDF failed','The Purchase Order PDF could not be generated.','error',esc(readableFetchError(err)));}
+  }
+async function viewPurchaseDocument(id){
     const o=state.orders.find(x=>x.id===id);if(!o)return;
     showDocumentModal(o.status==='purchase_order'?'Purchase Order':'Request for Quotation','Review the document below. You can print it or save it as PDF.','success');
     const {data:lines,error}=await client().from('purchase_order_lines').select('*,inventory_products(product_code,name,unit)').eq('purchase_order_id',id).order('line_no');
     if(error){el('purchaseDocumentPreview').innerHTML='<div class="purchase-document-status error">'+esc(error.message)+'</div>';return;}
     const normalized=(lines||[]).map(l=>({...l,product_code:l.inventory_products?.product_code,product_name:l.inventory_products?.name,uom:l.inventory_products?.unit,line_total:Number(l.quantity||0)*Number(l.unit_price||0)*(1-Number(l.discount_percent||0)/100)}));
     el('purchaseDocumentPreview').innerHTML=documentHtml(o,normalized);el('purchaseDocumentPreview').scrollTop=0;
-    const pb=el('purchaseDocumentPrint');pb.hidden=false;pb.onclick=()=>printPurchaseDocument(o,normalized);
+    const pb=el('purchaseDocumentPrint');pb.hidden=false;pb.onclick=()=>printPurchaseDocument(o,normalized);const pdfb=el('purchaseDocumentPdf');if(pdfb){pdfb.hidden=false;pdfb.onclick=()=>downloadPurchaseOrderPdf(id);}
   }
   async function printPurchaseDocument(o,lines){
     const w=window.open('about:blank','_blank','width=1000,height=900');if(!w)return alert('Please allow pop-ups for Print / PDF.');
@@ -311,24 +319,20 @@
   function renderPaymentRequests(){
     const body=el('purchasePaymentRequestsBody');if(!body)return;
     body.innerHTML=state.paymentRequests.map(r=>{
-      let action='';
-      if(r.status==='draft')action='<button class="accounting-small-btn payment-request-submit-btn" data-id="'+r.id+'">Submit</button>';
-      else if(r.status==='submitted')action='<button class="accounting-small-btn payment-request-approve-btn" data-id="'+r.id+'">Approve</button>';
-      else if(r.status==='approved')action='<button class="accounting-small-btn payment-request-paid-btn" data-id="'+r.id+'">Mark Paid</button>';
-      return '<tr><td><b>'+esc(r.request_no)+'</b></td><td>'+esc(r.purchase_orders?.order_no||'—')+'</td><td>'+esc(r.accounting_partners?.name||'—')+'</td><td>'+esc(r.payment_stage||'—')+(r.percentage!=null?' '+Number(r.percentage).toFixed(2).replace(/\\.00$/,'')+'%':'')+'</td><td class="num">'+money(r.requested_amount)+'</td><td>'+esc(r.payment_condition||'—')+'</td><td><span class="'+paymentRequestStatusClass(r.status)+'">'+esc(r.status||'draft')+'</span></td><td>'+action+'</td></tr>';
-    }).join('')||'<tr><td colspan="8" class="accounting-empty">No payment requests yet.</td></tr>';
+      let action='',impact='Not posted';
+      if(r.status==='draft'){action='<button class="accounting-small-btn payment-request-submit-btn" data-id="'+r.id+'">Submit</button>';impact='Not submitted';}
+      else if(r.status==='submitted'){action='<button class="accounting-small-btn payment-request-approve-btn" data-id="'+r.id+'">Approve</button>';impact='Awaiting Finance approval';}
+      else if(r.status==='approved'){action='<button class="accounting-small-btn payment-request-paid-btn" data-id="'+r.id+'">Process Payment</button>';impact='Ready to post in Odoo';}
+      else if(r.status==='paid'){action='<button class="accounting-small-btn payment-request-paid-view-btn" data-id="'+r.id+'">View Odoo Payment</button>';impact='Posted in Odoo'+(r.odoo_payment_name?' · '+esc(r.odoo_payment_name):'');}
+      else if(r.status==='rejected'||r.status==='cancelled'){impact='No accounting posting';}
+      return '<tr><td><b>'+esc(r.request_no)+'</b></td><td>'+esc(r.purchase_orders?.order_no||'—')+'</td><td>'+esc(r.accounting_partners?.name||'—')+'</td><td>'+esc(r.payment_stage||'—')+(r.percentage!=null?' '+Number(r.percentage).toFixed(2).replace(/\.00$/,'')+'%':'')+'</td><td class="num">'+money(r.requested_amount)+'</td><td>'+esc(r.payment_condition||'—')+'</td><td><span class="'+paymentRequestStatusClass(r.status)+'">'+esc(r.status||'draft')+'</span></td><td><span class="payment-impact '+(r.status==='paid'?'payment-impact-posted':'')+'">'+impact+'</span></td><td>'+action+'</td></tr>';
+    }).join('')||'<tr><td colspan="9" class="accounting-empty">No payment requests yet.</td></tr>';
     document.querySelectorAll('.payment-request-submit-btn').forEach(b=>b.onclick=()=>updatePaymentRequestStatus(b.dataset.id,'submitted'));
     document.querySelectorAll('.payment-request-approve-btn').forEach(b=>b.onclick=()=>updatePaymentRequestStatus(b.dataset.id,'approved'));
-    document.querySelectorAll('.payment-request-paid-btn').forEach(b=>b.onclick=()=>updatePaymentRequestStatus(b.dataset.id,'paid'));
+    document.querySelectorAll('.payment-request-paid-btn').forEach(b=>b.onclick=()=>openPaymentExecutionModal(b.dataset.id));
+    document.querySelectorAll('.payment-request-paid-view-btn').forEach(b=>b.onclick=()=>showDocumentModal('Odoo Payment','Payment has already been posted to Odoo.','success','Odoo Payment: <b>'+esc((state.paymentRequests.find(x=>x.id===b.dataset.id)||{}).odoo_payment_name||'—')+'</b>'));
   }
-  async function updatePaymentRequestStatus(id,status){
-    try{
-      const patch={status};if(status==='submitted')patch.submitted_at=new Date().toISOString();if(status==='approved')patch.approved_at=new Date().toISOString();if(status==='paid')patch.paid_at=new Date().toISOString();
-      const {error}=await client().from('purchase_payment_requests').update(patch).eq('id',id);if(error)throw error;
-      await load();showTab('payment-requests');
-    }catch(err){showDocumentModal('Payment Request failed','The request could not be updated.','error',esc(readableFetchError(err)));}
-  }
-  function openPaymentRequestModal(preselectedId=''){
+function openPaymentRequestModal(preselectedId=''){
     const m=el('purchasePaymentRequestModal');if(!m)return;
     const po=el('paymentRequestPO');po.innerHTML=state.orders.filter(o=>o.status==='purchase_order').map(o=>'<option value="'+o.id+'">'+esc(o.order_no)+' — '+esc(o.accounting_partners?.name||'—')+' — '+money(o.total_amount)+'</option>').join('');
     if(!po.options.length)return alert('There are no confirmed Purchase Orders available for payment request.');
@@ -420,6 +424,10 @@
     el('purchasePaymentRequestClose')?.addEventListener('click',()=>{el('purchasePaymentRequestModal').hidden=true;document.body.classList.remove('modal-open');});
     el('purchasePaymentRequestCancel')?.addEventListener('click',()=>{el('purchasePaymentRequestModal').hidden=true;document.body.classList.remove('modal-open');});
     el('purchasePaymentRequestModal')?.querySelector('[data-payment-request-close]')?.addEventListener('click',()=>{el('purchasePaymentRequestModal').hidden=true;document.body.classList.remove('modal-open');});
+    el('purchasePaymentExecutionForm')?.addEventListener('submit',postApprovedVendorPayment);
+    el('purchasePaymentExecutionClose')?.addEventListener('click',()=>{el('purchasePaymentExecutionModal').hidden=true;document.body.classList.remove('modal-open');});
+    el('purchasePaymentExecutionCancel')?.addEventListener('click',()=>{el('purchasePaymentExecutionModal').hidden=true;document.body.classList.remove('modal-open');});
+    el('purchasePaymentExecutionModal')?.querySelector('[data-payment-execution-close]')?.addEventListener('click',()=>{el('purchasePaymentExecutionModal').hidden=true;document.body.classList.remove('modal-open');});
     el('paymentRequestPO')?.addEventListener('change',()=>{const o=state.orders.find(x=>x.id===el('paymentRequestPO').value);if(o){const pct=Number(el('paymentRequestPercentage').value||0);el('paymentRequestAmount').value=(Number(o.total_amount||0)*pct/100).toFixed(2);}});
     el('paymentRequestStage')?.addEventListener('change',()=>{const dp=el('paymentRequestStage').value==='DP';el('paymentRequestPercentage').value=dp?'35':'65';el('paymentRequestCondition').value=dp?'DP':'Sebelum Dikirim';el('paymentRequestPO').dispatchEvent(new Event('change'));});
     el('paymentRequestPercentage')?.addEventListener('input',()=>el('paymentRequestPO')?.dispatchEvent(new Event('change')));
