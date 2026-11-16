@@ -162,6 +162,28 @@
       '<div class="notes"><b>Notes / Terms</b>'+notesHtml(o.notes||'')+'</div>'+footer+'</main><script>window.onload=()=>setTimeout(()=>window.print(),350);<\\/script></body></html>');
     w.document.close();
   }
+  async function syncPurchaseOrderToOdoo(id){
+    const c=client();
+    if(!c)throw new Error('Supabase CMS client is not ready.');
+    const {data,error:sessionError}=await c.auth.getSession();
+    if(sessionError)throw sessionError;
+    if(!data?.session)throw new Error('Your CMS session has expired. Please log in again.');
+    const res=await fetch('https://seelqcgjfuuwurslwtgf.supabase.co/functions/v1/odoo-purchase-sync',{method:'POST',headers:{Authorization:'Bearer '+data.session.access_token,apikey:window.PILARK_SUPABASE_CONFIG?.anonKey||'','Content-Type':'application/json'},body:JSON.stringify({action:'sync_purchase_order',purchase_order_id:id})});
+    const payload=await res.json().catch(()=>({}));
+    if(!res.ok||!payload.ok)throw new Error(payload.error||'Purchase Order Odoo sync failed.');
+    return payload;
+  }
+  async function syncVendorBillToOdoo(accountingDocumentId){
+    const c=client();
+    if(!c)throw new Error('Supabase CMS client is not ready.');
+    const {data,error:sessionError}=await c.auth.getSession();
+    if(sessionError)throw sessionError;
+    if(!data?.session)throw new Error('Your CMS session has expired. Please log in again.');
+    const res=await fetch('https://seelqcgjfuuwurslwtgf.supabase.co/functions/v1/odoo-purchase-sync',{method:'POST',headers:{Authorization:'Bearer '+data.session.access_token,apikey:window.PILARK_SUPABASE_CONFIG?.anonKey||'','Content-Type':'application/json'},body:JSON.stringify({action:'sync_vendor_bill',accounting_document_id:accountingDocumentId})});
+    const payload=await res.json().catch(()=>({}));
+    if(!res.ok||!payload.ok)throw new Error(payload.error||'Vendor Bill Odoo sync failed.');
+    return payload;
+  }
   function readableFetchError(err){
     const raw=String(err?.message||err||'Unknown error');
     if(/failed to fetch/i.test(raw)){
@@ -244,8 +266,15 @@
       }
       const {error}=await client().rpc('confirm_purchase_order',{p_purchase_order_id:id});
       if(error)throw error;
+      let odoo=null;
+      try{ odoo=await syncPurchaseOrderToOdoo(id); }
+      catch(syncErr){ console.error('Purchase Order Odoo sync failed:',syncErr); }
       await load();showTab('orders');
-      showDocumentModal('Purchase Order confirmed','The RFQ has been converted to a Purchase Order.','success','Purchase Order status: Confirmed');
+      if(odoo?.ok){
+        showDocumentModal('Purchase Order confirmed and synced','The Purchase Order was confirmed in PILARK and synchronized to Odoo.','success','Odoo PO: <b>'+esc(odoo.purchase_order?.name||'—')+'</b><br>Vendor: <b>'+esc(odoo.vendor_name||'—')+'</b><br>Status: '+esc(odoo.purchase_order?.state||'—'));
+      }else{
+        showDocumentModal('Purchase Order confirmed','The Purchase Order was confirmed in PILARK, but Odoo synchronization failed.','error','PILARK status: Confirmed<br><br>Odoo sync can be retried from the Purchase Order action.');
+      }
     }catch(err){
       console.error('Purchase Order confirmation failed:',err);
       showDocumentModal('Purchase Order failed','The RFQ could not be converted to a Purchase Order.','error',readableFetchError(err));
@@ -257,10 +286,17 @@
     if(!confirm('Create and post the vendor bill for this Purchase Order?'))return;
     showDocumentModal('Creating Vendor Bill','Posting the vendor bill to accounting…','loading');
     try{
-      const {error}=await client().rpc('create_vendor_bill_from_purchase_order',{p_purchase_order_id:id});
+      const {data:bill,error}=await client().rpc('create_vendor_bill_from_purchase_order',{p_purchase_order_id:id});
       if(error)throw error;
+      let odoo=null;
+      try{ odoo=await syncVendorBillToOdoo(bill.id); }
+      catch(syncErr){ console.error('Vendor Bill Odoo sync failed:',syncErr); }
       await load();showTab('orders');
-      showDocumentModal('Vendor Bill created','The vendor bill was created and posted successfully.','success','Purchase Order → Vendor Bill completed.');
+      if(odoo?.ok){
+        showDocumentModal('Vendor Bill created and synced','The vendor bill was posted in PILARK and synchronized to Odoo.','success','Odoo PO: <b>'+esc(odoo.vendor_bill?.invoice_origin||'—')+'</b><br>Vendor Bill: <b>'+esc(odoo.vendor_bill?.name||'—')+'</b><br>Vendor: <b>'+esc(Array.isArray(odoo.vendor_bill?.partner_id)?odoo.vendor_bill.partner_id[1]:(odoo.vendor_bill?.partner_id||'—'))+'</b>');
+      }else{
+        showDocumentModal('Vendor Bill created','The vendor bill was created and posted in PILARK, but Odoo synchronization failed.','error','PILARK Vendor Bill: Posted<br><br>Odoo sync failed and can be retried.');
+      }
     }catch(err){
       console.error('Vendor bill creation failed:',err);
       showDocumentModal('Vendor Bill failed','The vendor bill could not be created.','error',readableFetchError(err));
