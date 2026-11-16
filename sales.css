@@ -828,3 +828,19 @@
   #view-document-register #documentRegisterDetail .document-register-detail-body{padding:16px}
   #view-document-register .document-detail-grid{grid-template-columns:1fr;gap:8px}
 }
+
+
+/* Company Letter rich editor — 2026-11-16 */
+#companyLetterForm .letter-body-field{min-width:0;display:flex;flex-direction:column;gap:7px;font-size:.78rem;font-weight:800;color:#334851}
+#companyLetterForm .letter-field-label{display:block}
+#companyLetterForm .letter-editor{width:100%;border:1px solid var(--line);border-radius:12px;background:#fff;overflow:hidden;box-sizing:border-box}
+#companyLetterForm .letter-toolbar{display:flex;align-items:center;gap:6px;padding:8px 10px;border-bottom:1px solid #e3edf1;background:#f7fafc}
+#companyLetterForm .letter-toolbar button{appearance:none;border:1px solid #d7e3e9;border-radius:8px;background:#fff;color:#263b45;width:36px;height:32px;padding:0;display:inline-flex;align-items:center;justify-content:center;font-weight:800;cursor:pointer}
+#companyLetterForm .letter-toolbar button:hover{border-color:#08a6e8;background:#f0f9fd;color:#047bc2}
+#companyLetterForm .letter-body-editor{min-height:320px;padding:14px 15px;outline:none;cursor:text;color:#14242c;font-size:14px;line-height:1.65;font-weight:500;background:#fff;white-space:normal;overflow:auto}
+#companyLetterForm .letter-body-editor:focus{box-shadow:inset 0 0 0 2px rgba(8,166,232,.12)}
+#companyLetterForm .letter-body-editor:empty:before{content:attr(data-placeholder);color:#91a1aa;pointer-events:none}
+#companyLetterForm .letter-body-editor p{margin:0 0 10px}
+#companyLetterForm .letter-body-editor ol,#companyLetterForm .letter-body-editor ul{margin:0 0 10px;padding-left:28px}
+#companyLetterForm .letter-body-editor li{margin-bottom:5px}
+@media(max-width:700px){#companyLetterForm .letter-body-editor{min-height:260px}}
