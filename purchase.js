@@ -23,33 +23,65 @@
 
   async function load(){
     if(!client())return;
-    await normalizeLegacyPurchaseOrderNumber();
-    // Payment Requests are an auxiliary panel. Never let a relationship/schema-cache
-    // error there prevent the core RFQ/PO data from rendering.
-    // Load core Purchase data without relying on PostgREST foreign-key
-    // relationship embedding. The PO records must remain visible even if the
-    // accounting_partners relationship/schema cache is stale.
-    const [o,p,a,pr]=await Promise.all([
-      client().from('purchase_orders').select('*').order('quotation_date',{ascending:false}).limit(500),
+
+    // IMPORTANT: Purchase Orders are the core dataset. Load them first and
+    // render immediately. Auxiliary datasets (vendors, accounts, inventory,
+    // payment requests) must never be allowed to blank the PO screen.
+    try{
+      await normalizeLegacyPurchaseOrderNumber();
+    }catch(err){
+      console.warn('PO number normalization skipped:',err?.message||err);
+    }
+
+    const {data:orders,error:ordersError}=await client()
+      .from('purchase_orders')
+      .select('*')
+      .order('quotation_date',{ascending:false})
+      .limit(500);
+
+    if(ordersError)throw ordersError;
+
+    state.orders=orders||[];
+    state.partners=[];
+    state.accounts=[];
+    state.products=[];
+    state.paymentRequests=[];
+
+    // Render the core PO/RFQ screen NOW, even if an auxiliary table has an
+    // RLS/schema/relationship problem.
+    render();
+
+    const [p,a,pr]=await Promise.allSettled([
       client().from('accounting_partners').select('*').eq('is_active',true).order('name'),
       client().from('accounting_accounts').select('*').eq('is_active',true).order('code'),
       client().from('inventory_products').select('id,product_code,name,unit,is_active').eq('is_active',true).order('product_code')
     ]);
-    if(o.error)throw o.error;if(p.error)throw p.error;if(a.error)throw a.error;if(pr.error)throw pr.error;
-    state.partners=p.data||[];state.accounts=a.data||[];state.products=pr.data||[];
+
+    if(p.status==='fulfilled' && !p.value.error)state.partners=p.value.data||[];
+    else console.warn('Purchase vendors could not be loaded:',p.reason?.message||p.value?.error?.message||p.reason);
+
+    if(a.status==='fulfilled' && !a.value.error)state.accounts=a.value.data||[];
+    else console.warn('Purchase accounts could not be loaded:',a.reason?.message||a.value?.error?.message||a.reason);
+
     const partnerById=new Map(state.partners.map(x=>[x.id,x]));
-    state.orders=(o.data||[]).map(order=>({
+    state.orders=state.orders.map(order=>({
       ...order,
-      accounting_partners: partnerById.get(order.partner_id)||null
+      accounting_partners:partnerById.get(order.partner_id)||null
     }));
 
-    let pm=await client().from('purchase_payment_requests').select('*,purchase_orders(order_no,total_amount),accounting_partners(name)').order('created_at',{ascending:false}).limit(500);
+    let pm=await client()
+      .from('purchase_payment_requests')
+      .select('*,purchase_orders(order_no,total_amount),accounting_partners(name)')
+      .order('created_at',{ascending:false})
+      .limit(500);
+
     if(pm.error){
-      console.warn('Purchase Payment Requests relationship query failed; falling back to flat query:',pm.error.message);
+      console.warn('Payment Request relationship query failed; falling back to flat query:',pm.error.message);
       pm=await client().from('purchase_payment_requests').select('*').order('created_at',{ascending:false}).limit(500);
     }
+
     if(pm.error){
-      console.warn('Purchase Payment Requests could not be loaded:',pm.error.message);
+      console.warn('Payment Requests could not be loaded:',pm.error.message);
       state.paymentRequests=[];
     }else{
       state.paymentRequests=(pm.data||[]).map(r=>({
@@ -58,7 +90,12 @@
         accounting_partners:r.accounting_partners||state.partners.find(p=>p.id===r.partner_id)||null
       }));
     }
-    render();populateVendor();resetLineOptions();
+
+    // Final render after auxiliary data is available. The PO dataset itself
+    // came from the first successful query above and is never discarded.
+    render();
+    populateVendor();
+    resetLineOptions();
   }
 
   function accountOptions(selected=''){
