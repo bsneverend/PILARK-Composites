@@ -24,15 +24,32 @@
   async function load(){
     if(!client())return;
     await normalizeLegacyPurchaseOrderNumber();
-    const [o,p,a,pr,pm]=await Promise.all([
+    // Payment Requests are an auxiliary panel. Never let a relationship/schema-cache
+    // error there prevent the core RFQ/PO data from rendering.
+    const [o,p,a,pr]=await Promise.all([
       client().from('purchase_orders').select('*,accounting_partners(name,email)').order('quotation_date',{ascending:false}).limit(500),
       client().from('accounting_partners').select('*').eq('is_active',true).order('name'),
       client().from('accounting_accounts').select('*').eq('is_active',true).order('code'),
-      client().from('inventory_products').select('id,product_code,name,unit,is_active').eq('is_active',true).order('product_code'),
-      client().from('purchase_payment_requests').select('*,purchase_orders(order_no,total_amount),accounting_partners(name)').order('created_at',{ascending:false}).limit(500)
+      client().from('inventory_products').select('id,product_code,name,unit,is_active').eq('is_active',true).order('product_code')
     ]);
-    if(o.error)throw o.error;if(p.error)throw p.error;if(a.error)throw a.error;
-    state.orders=o.data||[];state.partners=p.data||[];state.accounts=a.data||[];state.products=pr.data||[];state.paymentRequests=pm.data||[];if(pm.error)throw pm.error;
+    if(o.error)throw o.error;if(p.error)throw p.error;if(a.error)throw a.error;if(pr.error)throw pr.error;
+    state.orders=o.data||[];state.partners=p.data||[];state.accounts=a.data||[];state.products=pr.data||[];
+
+    let pm=await client().from('purchase_payment_requests').select('*,purchase_orders(order_no,total_amount),accounting_partners(name)').order('created_at',{ascending:false}).limit(500);
+    if(pm.error){
+      console.warn('Purchase Payment Requests relationship query failed; falling back to flat query:',pm.error.message);
+      pm=await client().from('purchase_payment_requests').select('*').order('created_at',{ascending:false}).limit(500);
+    }
+    if(pm.error){
+      console.warn('Purchase Payment Requests could not be loaded:',pm.error.message);
+      state.paymentRequests=[];
+    }else{
+      state.paymentRequests=(pm.data||[]).map(r=>({
+        ...r,
+        purchase_orders:r.purchase_orders||state.orders.find(o=>o.id===r.purchase_order_id)||null,
+        accounting_partners:r.accounting_partners||state.partners.find(p=>p.id===r.partner_id)||null
+      }));
+    }
     render();populateVendor();resetLineOptions();
   }
 
